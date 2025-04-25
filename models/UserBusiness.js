@@ -1,0 +1,20 @@
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+
+const userBusinessSchema = new Schema({
+    name: { type: String, required: true, maxlength: 200 },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
+    verifyStatus: { type: Number, default: 0 },
+    status: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+}, {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+});
+
+module.exports = mongoose.model('UserBusiness', userBusinessSchema);
