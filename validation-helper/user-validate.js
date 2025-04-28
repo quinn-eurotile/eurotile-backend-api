@@ -31,10 +31,12 @@ const register = (req, res, next) => {
 };
 
 const createTeamMember = (req, res, next) => {
+
+
     let validationRule = {
         "name": "required|string",
         "email": "required|email|exist:User,email",
-        "phone": "required|email|exist:User,email",
+        "phone": "required|exist:User,phone",
     };
 
     if (req.body.skip_property_obj !== undefined) {
@@ -212,4 +214,4 @@ const resetPassword = (req, res, next) => {
 
 
 
-module.exports = { register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { createTeamMember, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

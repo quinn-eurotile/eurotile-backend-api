@@ -30,7 +30,7 @@ Validator.registerAsync('exist', function(value,  attribute, req, passes) {
     let attArr = attribute.split(",");
 
     if (attArr.length !== 2) throw new Error(`Invalid format for validation rule on ${attribute}`);
-    console.log('Models[table]',attArr)
+    
     //assign array index 0 and 1 to table and column respectively
     const [table, column] = attArr;
 
