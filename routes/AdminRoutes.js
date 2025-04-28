@@ -16,7 +16,7 @@ router.post('/forgot-password', multer().any(), user_validation.forgotPassword, 
 router.post('/reset-password', multer().any(), adminController.resetPassword);
 router.post('/logout', auth, adminController.logoutUser);
 // router.get('/dashboard', multer().any(), auth, adminController.dashboardData);
-router.get('/team-member-list', multer().any(), auth, /* checkPermission('view-user'), */ adminController.teamMemberList);
+// router.get('/team-member-list', multer().any(), auth, /* checkPermission('view-user'), */ adminController.teamMemberList);
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);
 // router.post('/update-password', multer().any(), auth, adminController.updatePassword);
 // router.post('/update-user-profile/:id', multer().any(), auth, user_validation.updateUserProfile, adminController.updateUserProfile);
