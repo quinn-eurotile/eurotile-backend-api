@@ -1,23 +1,26 @@
-const express = require('express');
-const mongoose = require('mongoose');
 require('dotenv').config();
-const User = require('./models/User');
+require("./configs/database");
+const BodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+const Express = require("express");
+var cors = require('cors');
+path = require('path');
+const express = require('express');
+const app = Express();
 
-const app = express();
-app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected!'))
-.catch((err) => console.error('MongoDB connection error:', err));
+app.use(cors());
+/***** for parsing Cookie Parser ****/
+app.use(cookieParser());
+/***for parsing application/json***/
+//app.use(BodyParser.json());
+app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
+/*****for parsing application/xwww-*****/
+app.use(BodyParser.urlencoded({ limit: "50mb", extended: true}));
+// Setting the app router and static folder
+app.use(Express.static(path.resolve('uploads')));
 
-// Routes
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Logic goes here
+module.exports = app;

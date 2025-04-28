@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoose = require("mongoose"), Schema = mongoose.Schema;
+const mongoosePaginate = require("mongoose-paginate-v2");
 
 const productFileSchema = new Schema({
     product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -20,5 +20,23 @@ const productFileSchema = new Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
+
+// Sets the created_at parameter equal to the current time
+productFileSchema.pre("save", async function (next) {
+    try {
+        now = new Date();
+        this.updatedAt = now;
+        if (this.isNew) {
+            this.createdAt = now;
+        }
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
+
+
+
+productFileSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('ProductFile', productFileSchema);

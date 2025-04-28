@@ -1,5 +1,6 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoose = require("mongoose"), Schema = mongoose.Schema;
+const mongoosePaginate = require("mongoose-paginate-v2");
+
 const supplierSchema = new Schema({
     name: { type: String, required: true },
     email: { type: String, unique: true, required: true },
@@ -26,5 +27,21 @@ const supplierSchema = new Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
+
+// Sets the created_at parameter equal to the current time
+supplierSchema.pre("save", async function (next) {
+    try {
+        now = new Date();
+        this.updatedAt = now;
+        if (this.isNew) {
+            this.createdAt = now;
+        }
+        next();
+    } catch (err) {
+        next(err);
+    }
+  });
+  
+  supplierSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Supplier', supplierSchema);

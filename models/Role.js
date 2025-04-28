@@ -1,14 +1,37 @@
-const mongoose = require('mongoose');
-const { Schema } = mongoose;
-const roleSchema = new Schema({
-    name: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-}, {
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+const mongoose = require("mongoose"), Schema = mongoose.Schema;
+const mongoosePaginate = require("mongoose-paginate-v2");
+
+const RoleSchema = new Schema(
+    {
+        name: { type: String, default: "" },
+        isDeleted: { type: Boolean, default: false },
+        permissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Permission' }],
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now },
+        updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+        createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    },
+    {
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
+    }
+);
+
+// Sets the created_at parameter equal to the current time
+RoleSchema.pre("save", async function (next) {
+    try {
+        now = new Date();
+        this.updatedAt = now;
+        if (this.isNew) {
+            this.createdAt = now;
+        }
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
-module.exports = mongoose.model('Role', roleSchema);
+
+
+RoleSchema.plugin(mongoosePaginate);
+module.exports = mongoose.model("Role", RoleSchema);
