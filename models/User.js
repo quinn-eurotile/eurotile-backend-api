@@ -10,6 +10,7 @@ const userSchema = new Schema({
     emailVerifiedAt: { type: Date, default: Date.now },
     status: { type: Number, default: 0 }, // 1 = Active, 0 = Inactive  
     lastLoginDate: { type: Date, default: Date.now },
+    token: { type: String, default: null },
     addresses: {
         type: { type: String, default: null, },
         addressLine1: { type: String, default: null, },

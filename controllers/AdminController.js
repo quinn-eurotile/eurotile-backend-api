@@ -149,7 +149,7 @@ module.exports = class AdminController {
             const data = await userService.authenticateUser(req);
             res.status(200).send({ type: 'success', message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
         } catch (error) {
-            res.status(200).send({ type: 'failure', message: error.message });
+            res.status(401).send({ type: 'failure', message: error.message });
         }
     }
 
@@ -168,9 +168,9 @@ module.exports = class AdminController {
             req.body.for_admin = true;
             const token = await userService.forgotPassword(req);
             forgotPasswordEmail(req, token);
-            res.status(200).send({ type: 'success', message: 'Password reset email sent successfully' });
+            res.status(200).send({ status: 200, type: 'success', message: 'Password reset email sent successfully' });
         } catch (error) {
-            res.send({ type: 'failure', message: error.message });
+            res.status(404).send({ status: 404, type: 'failure', message: error.message });
         }
     }
 
