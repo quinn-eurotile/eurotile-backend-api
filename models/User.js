@@ -25,6 +25,8 @@ const userSchema = new Schema({
     isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },

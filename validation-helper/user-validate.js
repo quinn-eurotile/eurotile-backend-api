@@ -30,6 +30,36 @@ const register = (req, res, next) => {
     });
 };
 
+const createTeamMember = (req, res, next) => {
+    let validationRule = {
+        "name": "required|string",
+        "email": "required|email|exist:User,email",
+        "phone": "required|email|exist:User,email",
+    };
+
+    if (req.body.skip_property_obj !== undefined) {
+        // Check if the properties in `skip_property_obj` match properties in `validationRule` and remove them if they do
+        Object.keys(req.body.skip_property_obj).forEach(key => {
+            if (validationRule[key] === skip_property_obj[key]) {
+                delete validationRule[key];
+            }
+        });
+    }
+
+    validator(req.body, validationRule, {}, (err, status) => {
+        if (!status) {
+            res.status(200)
+                .send({
+                    type: 'validation_error',
+                    message: 'You form data is invalid',
+                    data: err
+                });
+        } else {
+            next();
+        }
+    });
+};
+
 
 const userRoleValidate = (req, res, next) => {
     console.log('I am here');
