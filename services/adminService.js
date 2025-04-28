@@ -19,7 +19,7 @@ class AdminService {
 
         // Create a new user in the database
         const newUser = new userModel({
-            name: req.body.name, 
+            name: req.body.name,
             email: req.body.email,
             token: token,
             roles: [String(constants?.adminRole?.id)],
@@ -37,7 +37,7 @@ class AdminService {
     /** Get Total User **/
     async dashboardData(req) {
         try {
-            const userCount = await userModel.countDocuments({ role: 2 });
+            const userCount = await userModel.countDocuments();
             return { userCount };
         } catch (err) {
             throw new Error(err.message);
@@ -57,8 +57,8 @@ class AdminService {
     async createTeamMember(req) {
         const { name, email, phone } = req.body;
 
-        console.log('req.user',req.user)
-    
+        console.log('req.user', req.user);
+
         const lowerCaseEmail = email.trim().toLowerCase(); // Proper trim + lowercase
         const token = helpers.randomString(20);
         const newUser = new userModel({
@@ -66,19 +66,18 @@ class AdminService {
             email: lowerCaseEmail,
             phone: phone,
             token,
-            roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))] ,
+            roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))],
             status: 1,
             createdBy: req.user.id || null,
             updatedBy: req.user.id || null
         });
-    
+
         await newUser.save();
-    
+
         if (!newUser) throw new Error("Team member not created");
-    
+
         return newUser;
     }
-
 
     async buildTeamMemberListQuery(req) {
         const query = req.query;
@@ -120,14 +119,21 @@ class AdminService {
         return builtQuery;
     }
 
-    async softDeleteUser(userId) {
+    /*** Update User By Id ***/
+    async updateTeamMemberById(req) {
+        const { name, email, phone } = req.body;
+        const updatedUser = await userModel.findOneAndUpdate({ _id: req.params.id }, { email, phone, name }, { new: true });
+        if (!updatedUser) throw new Error("User does not found");
+        return updatedUser;
+    }
+
+    async softDeleteTeamMember(userId) {
         try {
             // const isUserAssignToCase = await caseModal.findOne({ case_team: { $in: [userId] } });
             // if (isUserAssignToCase) throw new Error("User is already assigned to another case");
             // Find the user and update the `deleted_at` field
             const user = await userModel.findById({ _id: userId });
             if (!user) throw new Error('User not found');
-
             user.isDeleted = true;
             await user.save();
             return true;
@@ -144,7 +150,7 @@ class AdminService {
             user.status = 1;
             user.token = null;
             await user.save();
-            return true
+            return true;
         } catch (error) {
             throw error;
 
@@ -167,12 +173,12 @@ class AdminService {
             const token = helpers.randomString(20);
             user.token = token;
             const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${token}`;
-            console.log(verificationLink, "verificationLinkverificationLink")
+            console.log(verificationLink, "verificationLinkverificationLink");
 
             await user.save();
             // Send a new verification email
             sendVerificationEmail(req, verificationLink); //send email to the user
-            return true
+            return true;
         } catch (error) {
             throw error;
         }

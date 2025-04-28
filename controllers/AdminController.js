@@ -22,6 +22,55 @@ module.exports = class AdminController {
         }
     }
 
+    /** Get Team Member List **/
+    async teamMemberList(req, res) {
+        try {
+            const query = await adminService.buildTeamMemberListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const teamMembers = await adminService.teamMemberList(query, options);
+            // Fetch roles and transform them
+            const roles = await RoleModel.find({ is_deleted: false, _id: { $ne: new mongoose.Types.ObjectId(String(constants?.adminRole?.id)) } }).select('_id name');
+            const formattedRoles = roles.map(role => ({ value: role._id, label: role.name }));
+            return res.send({ type: "success", data: teamMembers, roles: formattedRoles, message: '' });
+        } catch (error) {
+            res.send({ type: 'failure', message: error.message });
+        }
+    }
+
+    /*** Save New Team member Data ************/
+    async createTeamMember(req, res) {
+        try {
+            const user = await adminService.createTeamMember(req);
+            sendVerificationEmail(req,user?.token); //send email to the user
+            return res.json({ type: "success", message: "Team member created successfully", data: user, });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
+        }
+    }
+
+
+    /*** Update Team Member From Here ***/
+    async updateTeamMember(req, res) {
+        try {
+            const updatedUser = await userService.updateTeamMemberById(req);
+            res.status(200).send({ type: 'success', message: 'Team member updated successfully', data: updatedUser });
+        } catch (error) {
+            res.send({ type: 'failure', message: error.message });
+        }
+    }
+
+    /** Delete Team Member By Api Request */
+    async deleteTeamMember(req, res) {
+        try {
+            const userId = req?.params?.id;
+            await adminService.softDeleteTeamMember(userId);
+            return res.status(200).json({ type: 'success', message: "Team member deleted successfully." });
+        } catch (error) {
+            return res.status(500).json({ type: 'failure', message: error.message });
+        }
+    }
+    
+
     /** Update User Profile */
     async updateUserProfile(req, res) {
         try {
@@ -67,18 +116,7 @@ module.exports = class AdminController {
         }
     }
 
-    /** Delete User By Api Request */
-    async deleteUser(req, res) {
-        try {
-            const userId = req.body.user_id;
-            const result = await adminService.softDeleteUser(userId);
-            if (result) {
-                return res.status(200).json({ type: 'success', message: "User deleted successfully." });
-            }
-        } catch (error) {
-            return res.status(500).json({ type: 'failure', message: error.message });
-        }
-    }
+    
 
     /** Update Password For Admin */
     async updatePassword(req, res) {
@@ -89,33 +127,6 @@ module.exports = class AdminController {
             res.send({ type: 'failure', message: error.message });
         }
     }
-
-    /** Get Team Member List **/
-    async teamMemberList(req, res) {
-        try {
-            const query = await adminService.buildTeamMemberListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
-            const teamMembers = await adminService.teamMemberList(query, options);
-            // Fetch roles and transform them
-            const roles = await RoleModel.find({ is_deleted: false, _id: { $ne: new mongoose.Types.ObjectId(String(constants?.adminRole?.id)) } }).select('_id name');
-            const formattedRoles = roles.map(role => ({ value: role._id, label: role.name }));
-            return res.send({ type: "success", data: teamMembers, roles: formattedRoles, message: '' });
-        } catch (error) {
-            res.send({ type: 'failure', message: error.message });
-        }
-    }
-
-    /*** Save New Team member Data ************/
-    async createTeamMember(req, res) {
-        try {
-            const user = await adminService.createTeamMember(req);
-            sendVerificationEmail(req,user?.token); //send email to the user
-            return res.json({ type: "success", message: "Team member created successfully", data: user, });
-        } catch (error) {
-            return res.json({ type: "failure", message: error.message });
-        }
-    }
-
 
 
     /** Admin Dashboard  **/
@@ -150,15 +161,7 @@ module.exports = class AdminController {
         }
     }
 
-    /*** Update User From Here ***/
-    async updateUser(req, res) {
-        try {
-            const updatedUser = await userService.updateUserById(req);
-            res.status(200).send({ type: 'success', message: 'User updated successfully', data: updatedUser });
-        } catch (error) {
-            res.send({ type: 'failure', message: error.message });
-        }
-    }
+    
 
     async forgotPassword(req, res) {
         try {
