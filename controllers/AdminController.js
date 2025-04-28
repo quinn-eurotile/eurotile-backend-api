@@ -1,5 +1,5 @@
 const userService = require('../services/userService');
-const { sendWelcomeEmail,sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
+const {  sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
 const util = require('util');
 const Fs = require('fs');
@@ -14,7 +14,7 @@ module.exports = class AdminController {
     async registerAdmin(req, res) {
         try {
             const user = await adminService.registerAdmin(req);
-            const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${user.token}`
+            const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${user.token}`;
             sendVerificationEmail(req, verificationLink); //send email to the user
             return res.json({ type: "success", message: "User registered. Please check your email for verification.", data: user, });
         } catch (error) {
@@ -90,23 +90,29 @@ module.exports = class AdminController {
         }
     }
 
-    /** Get User List **/
-    async userList(req, res) {
+    /** Get Team Member List **/
+    async teamMemberList(req, res) {
         try {
-            const query = await adminService.buildUserListQuery(req);
+            const query = await adminService.buildTeamMemberListQuery(req);
             const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
-            const users = await adminService.userList(query, options);
-
+            const teamMembers = await adminService.teamMemberList(query, options);
             // Fetch roles and transform them
             const roles = await RoleModel.find({ is_deleted: false, _id: { $ne: new mongoose.Types.ObjectId(String(constants?.adminRole?.id)) } }).select('_id name');
-            const formattedRoles = roles.map(role => ({
-                value: role._id,
-                label: role.name
-            }));
-
-            return res.send({ type: "success", data: users, roles: formattedRoles, message: '' });
+            const formattedRoles = roles.map(role => ({ value: role._id, label: role.name }));
+            return res.send({ type: "success", data: teamMembers, roles: formattedRoles, message: '' });
         } catch (error) {
             res.send({ type: 'failure', message: error.message });
+        }
+    }
+
+    /*** Save New Team member Data ************/
+    async createTeamMember(req, res) {
+        try {
+            const user = await adminService.createTeamMember(req);
+            sendVerificationEmail(req,user?.token); //send email to the user
+            return res.json({ type: "success", message: "Team member created successfully", data: user, });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
         }
     }
 
@@ -132,16 +138,7 @@ module.exports = class AdminController {
         }
     }
 
-    /*** Save New User Data ************/
-    async createUser(req, res) {
-        try {
-            const user = await adminService.createUser(req);
-            sendWelcomeEmail(req); //send email to the user
-            return res.json({ type: "success", message: "User created successfully", data: user, });
-        } catch (error) {
-            return res.json({ type: "failure", message: error.message });
-        }
-    }
+    
 
     async loginUser(req, res) {
         try {
@@ -185,25 +182,25 @@ module.exports = class AdminController {
         }
     }
 
-    	/*********************verified email******/
-		async verifyEmail(req, res) {
-			try {
-				await adminService.verifyEmail(req);
-				return res.json({ type: "success", message: "Email verified successfully" });
-			} catch (error) {
-				return res.json({ type: "failure", message: error.message });
-			}
-		}
+    /*********************verified email******/
+    async verifyEmail(req, res) {
+        try {
+            await adminService.verifyEmail(req);
+            return res.json({ type: "success", message: "Email verified successfully" });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
+        }
+    }
 
 
-        	/*********************Resend email******/
-		async resendEmail(req, res) {
-			try {
-				await adminService.resendEmail(req);
-				return res.json({ type: "success", message: "Email resend successfully" });
-			} catch (error) {
-				return res.json({ type: "failure", message: error.message });
-			}
-		}
+    /*********************Resend email******/
+    async resendEmail(req, res) {
+        try {
+            await adminService.resendEmail(req);
+            return res.json({ type: "success", message: "Email resend successfully" });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
+        }
+    }
 
 };

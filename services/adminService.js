@@ -44,24 +44,49 @@ class AdminService {
         }
     }
 
-    /** Get User List  */
-    async userList(query, options) {
+    /** Get Team Member List  */
+    async teamMemberList(query, options) {
         try {
             const result = await userModel.paginate(query, options);
             return result;
         } catch (error) {
-            console.error(error, 'comming');
-            throw error;
+            throw new Error('Users list not found');
         }
     }
 
-    async buildUserListQuery(req) {
+    async createTeamMember(req) {
+        const { name, email, phone } = req.body;
+
+        console.log('req.user',req.user)
+    
+        const lowerCaseEmail = email.trim().toLowerCase(); // Proper trim + lowercase
+        const token = helpers.randomString(20);
+        const newUser = new userModel({
+            name,
+            email: lowerCaseEmail,
+            phone: phone,
+            token,
+            roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))] ,
+            status: 1,
+            createdBy: req.user.id || null,
+            updatedBy: req.user.id || null
+        });
+    
+        await newUser.save();
+    
+        if (!newUser) throw new Error("Team member not created");
+    
+        return newUser;
+    }
+
+
+    async buildTeamMemberListQuery(req) {
         const query = req.query;
         const conditionArr = [
             {
-                role: { $ne: 1 },
-                created_by: new mongoose.Types.ObjectId(String(req.user.id)),
-                is_deleted: false,
+                roles: { $in: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))] },
+                createdBy: new mongoose.Types.ObjectId(String(req.user.id)),
+                isDeleted: false,
             },
         ];
         if (query.status !== undefined) {
@@ -77,22 +102,7 @@ class AdminService {
         if (query.search_string !== undefined && query.search_string !== "") {
             conditionArr.push({
                 $or: [
-                    { first_name: new RegExp(query.search_string, "i") },
-                    { last_name: new RegExp(query.search_string, "i") },
-                    {
-                        $expr: {
-                            $regexMatch: {
-                                input: {
-                                    $concat: [
-                                        '$first_name',
-                                        ' ',
-                                        '$last_name'
-                                    ]
-                                },
-                                regex: new RegExp(query.search_string, 'i')
-                            }
-                        }
-                    },
+                    { name: new RegExp(query.search_string, "i") },
                     { email: new RegExp(query.search_string, "i") },
                     { phone: new RegExp(query.search_string, "i") },
                 ],
@@ -125,32 +135,6 @@ class AdminService {
             throw error;
         }
     }
-
-
-    async createUser(req) {
-
-        const { first_name, last_name, email, roles } = req.body;
-        let lowerCaseEmail = email.toLowerCase();
-
-        const password = Math.random().toString(36).substring(-10); // Generate a random password
-        req.body.password = password;
-        const genSalt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, genSalt); // Hash the password
-
-        // Create a new user in the database
-        const newUser = new userModel({
-            first_name, last_name, email: lowerCaseEmail,
-            roles: Array.isArray(roles) ? roles : [roles],
-            password: hashedPassword, status: 1, created_by: req.user.id || null, updated_by: req.user.id || null
-        });
-
-        await newUser.save();
-
-        if (!newUser) throw new Error("User not found");
-
-        return newUser;
-    }
-
 
     // Verify Email
     async verifyEmail(req) {
