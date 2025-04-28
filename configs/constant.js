@@ -9,6 +9,6 @@ const currencyOptions = [
   { name: "eur", icon: "€", id: 2 },
 ];
 
-const adminRole = { id: '67ad96e90d7f6debed296e17', name: 'Admin' };
+const adminRole = { id: '680f110aa6224872fab09569', name: 'Admin' };
 
 module.exports = {  roles,  currencyOptions, adminRole };

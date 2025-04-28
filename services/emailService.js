@@ -13,7 +13,7 @@ const sendVerificationEmail = (req, verificationLink) => {
 
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/send_verification_email_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/assets/images/mail-logo.png`;
+    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
     // Replace placeholders in the template
     const emailContent = emailTemplate.replace('[USER_NAME]', req.body.first_name + ` ` + req.body.last_name)
         .replace('[LOGO]', logo)
@@ -36,7 +36,7 @@ const sendWelcomeEmail = (req) => {
 
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/welcome_email_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/assets/images/mail-logo.png`;
+    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
     const emailContent = emailTemplate.replace('[USER_NAME]', req.body.first_name + ` ` + req.body.last_name)
         .replace('[CLIENT_URL]', process.env.CLIENT_URL)
         .replace('[APP_NAME]', process.env.APP_NAME)
@@ -58,15 +58,26 @@ const sendWelcomeEmail = (req) => {
 
 /** Forgot Password Send Email ***/
 const forgotPasswordEmail = (req, token) => {
-    const roleName = req.body.for_admin ? 'admin' : 'user';
+    // Read the HTML template
+    const emailTemplate = require('fs').readFileSync('views/emails/forgot_password_template.html', 'utf-8');
+    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+    const resetPassLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
+    // Replace placeholders in the template
+    const emailContent = emailTemplate.replace('[USER_NAME]', 'User')
+        .replace('[LOGO]', logo)
+        .replace('[CLIENT_URL]', process.env.CLIENT_URL)
+        .replace('[APP_NAME]', process.env.APP_NAME)
+        .replace('[RESET_PASSWORD_LINK]', resetPassLink);
+
+    // Send the email
     const mailOptions = {
         from: `<${process.env.SMTP_USER}>`,
         to: req.body.email,
-        subject: 'Reset Password',
-        text: `Click the following link to reset your password: <a href="${process.env.CLIENT_URL}/${roleName}/reset-password/${token}" target="_blank" ><u>Link</u></a>`,
-        html: `<b>Hello User,</b><br /><p>Click the following link to reset your password: (<a href="${process.env.CLIENT_URL}/${roleName}/reset-password/${token}" target="_blank" ><u>Link</u></a>)</p>`, // html body
+        subject: 'RESET PASSWORD',
+        html: emailContent
     };
     return sendEmailCommon(mailOptions);
+
 };
 
 
