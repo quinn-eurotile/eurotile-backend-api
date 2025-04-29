@@ -56,30 +56,6 @@ const sendWelcomeEmail = (req) => {
 
 };
 
-/** Register Time Send Email ***/
-const sendWelcomeSupplierEmail = (req) => {
-
-    // Read the HTML template
-    const emailTemplate = require('fs').readFileSync('views/emails/welcome_team_member_email_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
-    const emailContent = emailTemplate.replace('[USER_NAME]', req.body.name)
-        .replace('[CLIENT_URL]', process.env.CLIENT_URL)
-        .replace('[APP_NAME]', process.env.APP_NAME)
-        .replace('[EMAIL]', req.body.email)
-        .replace('[PASSWORD]', req.body.password)
-        .replace('[LOGO]', logo)
-        .replace('[LOGIN_URL]', `${process.env.CLIENT_URL}/user/login`);
-
-    // Send the email
-    const mailOptions = {
-        from: `<${process.env.SMTP_USER}>`,
-        to: req.body.email,
-        subject: 'Welcome to Our App!',
-        html: emailContent
-    };
-    return sendEmailCommon(mailOptions);
-
-};
 
 /** Forgot Password Send Email ***/
 const forgotPasswordEmail = (req, token) => {
@@ -122,4 +98,4 @@ const sendEmailCommon = (mailOptions) => {
     });
 };
 
-module.exports = { sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail, sendWelcomeSupplierEmail };
+module.exports = { sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail };

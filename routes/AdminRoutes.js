@@ -1,6 +1,5 @@
 const router = require('express').Router();
 const auth = require("../middleware/authMiddleware");
-const checkPermission = require("../middleware/checkPermission");
 const user_validation = require('../validation-helper/user-validate');
 const AdminController = require('../controllers').AdminController;
 const adminController = new AdminController();
@@ -16,12 +15,15 @@ router.get('/dashboard', multer().any(), auth, adminController.dashboardData);
 
 /* Team Member Management */
 router.get('/team-member-list', multer().any(), auth, adminController.teamMemberList);
-router.post('/create-team-member', multer().any(), auth,  user_validation.saveTeamMember,  adminController.createTeamMember);
+router.post('/create-team-member', multer().any(), auth, user_validation.saveTeamMember, adminController.createTeamMember);
 router.post('/update-team-member/:id', multer().any(), auth, user_validation.saveTeamMember, adminController.updateTeamMember);
 router.delete('/delete-team-member/:id', multer().any(), auth, adminController.deleteTeamMember);
 
 /* Supplier Management */
-router.post('/create-supplier', multer().any(), auth,   adminController.createSupplier);
+router.post('/update-supplier/:id', multer().any(), auth, user_validation.saveSupplier, adminController.updateSupplier);
+router.post('/create-supplier', multer().any(), auth, user_validation.saveSupplier, adminController.createSupplier);
+router.get('/supplier-list', multer().any(), auth, adminController.supplierList);
+router.delete('/delete-supplier/:id', multer().any(), auth, adminController.deleteSupplier);
 
 
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);
