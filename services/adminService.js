@@ -106,10 +106,12 @@ class AdminService {
             },
         ];
         if (query.status !== undefined) {
-            if (query.status === "0") {
+            if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
-            } else if (query.status === "1") {
+            } else if (query.status === "1" || query.status === 1) {
                 conditionArr.push({ status: 1 });
+            } else if (query.status === "2" || query.status === 2) {
+                conditionArr.push({ status: 2 });
             }
         }
 
@@ -141,7 +143,7 @@ class AdminService {
         try {
             const { name, email, phone } = req.body;
             const { id } = req.params;
-            
+
             // Validate ObjectId format
             if (!mongoose.Types.ObjectId.isValid(id)) {
                 throw {

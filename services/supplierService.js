@@ -61,9 +61,9 @@ class SupplierService {
             },
         ];
         if (query.status !== undefined) {
-            if (query.status === "0") {
+            if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
-            } else if (query.status === "1") {
+            } else if (query.status === "1" || query.status === 1) {
                 conditionArr.push({ status: 1 });
             }
         }
@@ -148,7 +148,7 @@ class SupplierService {
             await supplier.save();
             return true;
         } catch (error) {
-            
+
             throw {
                 message: error?.message || 'Something went wrong while fetching users',
                 statusCode: error?.statusCode || 500

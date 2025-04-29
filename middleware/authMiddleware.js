@@ -3,10 +3,7 @@ const User = require("../models/User");
 
 const verifyToken = async (req, res, next) => {
 
-	// console.log('req.body', req.body);
-	// console.log('req.query', req.query);
-	// console.log('req.headers', req.headers);
-	let token =		req.body?.token ||		req.query?.token ||		req.headers["x-access-token"] ||		req.headers.authorization;
+	let token = req.body?.token || req.query?.token || req.headers["x-access-token"] || req.headers.authorization;
 	if (!token) {
 		return res.status(200).send({ type: 'failure', message: "A authorization token is required for user authentication" });
 	}
