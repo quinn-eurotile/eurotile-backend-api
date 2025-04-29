@@ -30,23 +30,14 @@ const register = (req, res, next) => {
     });
 };
 
-const createTeamMember = (req, res, next) => {
-
+const saveTeamMember = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
 
     let validationRule = {
         "name": "required|string",
-        "email": "required|email|exist:User,email",
-        "phone": "required|exist:User,phone",
+        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
+        "phone": id ? `required|numeric|exist_update:User,phone,${id}` : "required|numeric|exist:User,phone",
     };
-
-    if (req.body.skip_property_obj !== undefined) {
-        // Check if the properties in `skip_property_obj` match properties in `validationRule` and remove them if they do
-        Object.keys(req.body.skip_property_obj).forEach(key => {
-            if (validationRule[key] === skip_property_obj[key]) {
-                delete validationRule[key];
-            }
-        });
-    }
 
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
@@ -214,4 +205,4 @@ const resetPassword = (req, res, next) => {
 
 
 
-module.exports = { createTeamMember, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { saveTeamMember, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

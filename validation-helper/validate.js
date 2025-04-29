@@ -64,7 +64,7 @@ Validator.registerAsync('exist_update', function(value,  attribute, req, passes)
     //assign array index 0 and 1 to table and column respectively
     const { 0: table, 1: column, 2: update_id } = attArr;
     //define custom error message
-    let msg = (column == "username") ? `${column} has already been taken `: `${column} has already been taken other ${table}`
+    let msg = (column == "username") ? `${column.charAt(0).toUpperCase() + column.slice(1)} has already been taken `: `${column.charAt(0).toUpperCase() + column.slice(1)} has already been taken other ${table}`
     //check if incoming value already exists in the database
     Models[table].findOne({ [column]: value })
     .then((result) => {
