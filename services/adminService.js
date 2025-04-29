@@ -48,11 +48,79 @@ class AdminService {
     /** Get Team Member List */
     async teamMemberList(query, options) {
         try {
-            const result = await userModel.paginate(query, options);
-            if (!result) {
-                throw { message: 'Team member list not found', statusCode: 404 };
-            }
-            return result;
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const skip = (page - 1) * limit;
+
+            const pipeline = [
+                { $match: query },
+
+                /* {
+                    $lookup: {
+                        from: 'teams',
+                        localField: 'teamId',
+                        foreignField: '_id',
+                        as: 'team'
+                    }
+                },
+                { $unwind: { path: '$team', preserveNullAndEmptyArrays: true } }, */
+
+                {
+                    $facet: {
+                        metadata: [
+                            { $count: "totalDocs" }
+                        ],
+                        statusCounts: [
+                            {
+                                $group: {
+                                    _id: "$status",
+                                    count: { $sum: 1 }
+                                }
+                            }
+                        ],
+                        data: [
+                            { $sort: sort },
+                            { $skip: skip },
+                            { $limit: limit }
+                        ]
+                    }
+                },
+                {
+                    $project: {
+                        data: 1,
+                        totalDocs: { $arrayElemAt: ["$metadata.totalDocs", 0] },
+                        statusCounts: 1
+                    }
+                }
+            ];
+
+            const [result] = await userModel.aggregate(pipeline);
+
+            const totalDocs = result.totalDocs || 0;
+            const statusCounts = result.statusCounts.reduce((acc, item) => {
+                const statusMap = { 1: 'active', 0: 'inactive', 2: 'pending' };
+                const key = statusMap[item._id];
+                if (key) {
+                    acc[key] = item.count;
+                }
+                return acc;
+            }, { active: 0, inactive: 0, pending: 0 });
+
+            return {
+                docs: result.data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1,
+                nextPage: page * limit < totalDocs ? page + 1 : null,
+                prevPage: page > 1 ? page - 1 : null,
+                statusSummary: {
+                    active: statusCounts.active || 0,
+                    inactive: statusCounts.inactive || 0,
+                    pending: statusCounts.pending || 0
+                }
+            };
         } catch (error) {
             throw {
                 message: error?.message || 'Something went wrong while fetching users',
@@ -61,10 +129,12 @@ class AdminService {
         }
     }
 
+
+
     /** Create A Team Member */
     async createTeamMember(req) {
         try {
-            const { name, email, phone ,status} = req.body;
+            const { name, email, phone, status } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
             const token = helpers.randomString(20);
 
@@ -74,7 +144,7 @@ class AdminService {
                 token,
                 email: lowerCaseEmail,
                 roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))],
-                status: status??0,
+                status: status ?? 0,
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
             });
@@ -94,7 +164,6 @@ class AdminService {
             };
         }
     }
-
 
     async buildTeamMemberListQuery(req) {
         const query = req.query;
@@ -141,10 +210,10 @@ class AdminService {
     /*** Update User By Id ***/
     async updateTeamMemberById(req) {
         try {
-            const { name, email, phone,status } = req.body;
+            const { name, email, phone, status } = req.body;
 
-            console.log({ name, email, phone } ,'lllllllllll');
-            
+            console.log({ name, email, phone }, 'lllllllllll');
+
             const { id } = req.params;
 
             // Validate ObjectId format
@@ -159,7 +228,7 @@ class AdminService {
 
             const updatedUser = await userModel.findByIdAndUpdate(
                 id,
-                { name, phone, email: lowerCaseEmail,status },
+                { name, phone, email: lowerCaseEmail, status },
                 { new: true }
             );
 

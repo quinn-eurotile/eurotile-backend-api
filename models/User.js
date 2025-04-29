@@ -8,7 +8,7 @@ const userSchema = new Schema({
     roles: [{ type: Schema.Types.ObjectId, ref: 'Role' }],
     password: { type: String },
     emailVerifiedAt: { type: Date, default: Date.now },
-    status: { type: Number, default: 0 }, // 1 = Active, 0 = Inactive  
+    status: { type: Number, default: 0 }, // 1 = Active, 0 = Inactive, 2 = Pending  
     lastLoginDate: { type: Date, default: Date.now },
     token: { type: String, default: null },
     addresses: {

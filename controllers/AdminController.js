@@ -25,9 +25,6 @@ module.exports = class AdminController {
 
     /** Get Team Member List **/
     async teamMemberList(req, res) {
-
-        console.log('helll teamMemberList');
-         
         try {
             const query = await adminService.buildTeamMemberListQuery(req);
             const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
@@ -53,30 +50,25 @@ module.exports = class AdminController {
     async updateTeamMember(req, res) {
         try {
             const updatedUser = await adminService.updateTeamMemberById(req);
-            return res.status(200).send({  message: 'Team member updated successfully', data: updatedUser });
+            return res.status(200).send({ message: 'Team member updated successfully', data: updatedUser });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
- 
+
     /** Delete Team Member By Api Request */
     async deleteTeamMember(req, res) {
-        return res.status(200).json({  message: "Team member deleted successfully." });
-        // try {
-        //     return res.status(200).json({  message: "Team member deleted successfully." });
-        //     const userId = req?.params?.id;
-        //     console.log( req?.params,'userId---');
-        //     return res.status(200).json({  message: "Team member deleted successfully." });
-        //     await adminService.softDeleteTeamMember(userId);
-        //     return res.status(200).json({  message: "Team member deleted successfully." });
-        // } catch (error) {
-        //     return res.status(error.statusCode || 500).json({ message: error.message });
-        // }
+        try {
+            const userId = req?.params?.id;
+            await adminService.softDeleteTeamMember(userId);
+            return res.status(200).json({ message: "Team member deleted successfully." });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
     }
 
     /** Get Supplier List **/
     async supplierList(req, res) {
-       
         try {
             const query = await supplierService.buildSupplierListQuery(req);
             const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
@@ -101,7 +93,7 @@ module.exports = class AdminController {
     async updateSupplier(req, res) {
         try {
             const updateSupplierData = await supplierService.updateSupplierById(req);
-            return res.status(200).send({  message: 'Supplier updated successfully', data: updateSupplierData });
+            return res.status(200).send({ message: 'Supplier updated successfully', data: updateSupplierData });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -112,11 +104,36 @@ module.exports = class AdminController {
         try {
             const userId = req?.params?.id;
             await supplierService.softDeleteSupplier(userId);
-            return res.status(200).json({  message: "Supplier deleted successfully." });
+            return res.status(200).json({ message: "Supplier deleted successfully." });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+
+    /** Save Category */
+    // async saveCategory(req, res) {
+    //     try {
+    //         const data = { ...req.body, updatedBy: req.user?._id, };
+
+    //         // Detect Create vs Update
+    //         if (req.method === 'POST') {
+    //             data.createdBy = req.user?._id;
+    //             const created = await categoryService.saveCategory(null, data);
+    //             return res.status(201).json({ success: true, data: created });
+    //         }
+
+    //         if (req.method === 'PUT') {
+    //             const categoryId = req.params.id;
+    //             const updated = await categoryService.saveCategory(categoryId, data);
+    //             if (!updated) return res.status(404).json({ success: false, message: 'Category not found' });
+    //             return res.json({ success: true, data: updated });
+    //         }
+
+    //         res.status(405).json({ success: false, message: 'Method not allowed' });
+    //     } catch (err) {
+    //         res.status(500).json({ success: false, message: err.message });
+    //     }
+    // }
 
 
     /** Update User Profile */
@@ -129,7 +146,7 @@ module.exports = class AdminController {
                 { first_name, last_name, email, updated_by, phonenumber, role },
                 { new: true }
             );
-            return res.json({  message: 'User updated successfully', data: userData });
+            return res.json({ message: 'User updated successfully', data: userData });
         } catch (error) {
             return res.json({ type: 'failure', message: error.message });
         }
@@ -158,7 +175,7 @@ module.exports = class AdminController {
             } else {
                 updatedUser = await userService.updateUserById(req);
             }
-            return res.json({  message: 'Profile updated successfully', data: updatedUser });
+            return res.json({ message: 'Profile updated successfully', data: updatedUser });
         } catch (error) {
             return res.json({ type: 'failure', message: 'Failed to update profile' });
         }
@@ -170,7 +187,7 @@ module.exports = class AdminController {
     async updatePassword(req, res) {
         try {
             await userService.updateUserPassword(req, res);
-            res.send({  message: 'Password updated successfully' });
+            res.send({ message: 'Password updated successfully' });
         } catch (error) {
             res.send({ type: 'failure', message: error.message });
         }
@@ -181,7 +198,7 @@ module.exports = class AdminController {
     async dashboardData(req, res) {
         try {
             const data = await adminService.dashboardData(req);
-            res.send({  message: "", data: data });
+            res.send({ message: "", data: data });
         } catch (error) {
             res.send({ type: 'failure', message: error.message });
         }
@@ -191,7 +208,7 @@ module.exports = class AdminController {
     async logoutUser(req, res) {
         try {
             await userService.logoutUser(req);
-            res.status(200).send({  message: "Admin logout successfully" });
+            res.status(200).send({ message: "Admin logout successfully" });
         } catch (error) {
             res.status(200).send({ type: 'failure', message: error.message });
         }
@@ -203,7 +220,7 @@ module.exports = class AdminController {
         try {
             req.body.for_admin = true;
             const data = await userService.authenticateUser(req);
-            res.status(200).send({  message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
+            res.status(200).send({ message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
         } catch (error) {
             res.status(401).send({ type: 'failure', message: error.message });
         }
@@ -216,7 +233,7 @@ module.exports = class AdminController {
             req.body.for_admin = true;
             const token = await userService.forgotPassword(req);
             forgotPasswordEmail(req, token);
-            res.status(200).send({ status: 200,  message: 'Password reset email sent successfully' });
+            res.status(200).send({ status: 200, message: 'Password reset email sent successfully' });
         } catch (error) {
             res.status(404).send({ status: 404, type: 'failure', message: error.message });
         }
@@ -227,7 +244,7 @@ module.exports = class AdminController {
         try {
             req.body.for_admin = false;
             await userService.resetPassword(req);
-            res.send({  message: 'Password reset successfully' });
+            res.send({ message: 'Password reset successfully' });
         } catch (error) {
             res.send({ type: 'failure', message: error.message });
         }

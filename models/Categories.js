@@ -3,12 +3,12 @@ const mongoosePaginate = require("mongoose-paginate-v2");
 
 const categorySchema = new Schema({
     name: { type: String, required: true, maxlength: 255 },
-    parent: { type: Schema.Types.ObjectId, ref: 'Category' },
+    parent: { type: Schema.Types.ObjectId, ref: 'Category', default : null },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-    status: Boolean
+    status: { type: Number, default: 1 }, // 1 = Active, 0 = Inactive  
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },

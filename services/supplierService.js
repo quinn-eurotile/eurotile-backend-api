@@ -8,13 +8,15 @@ class SupplierService {
 
     async createSupplier(req) {
         try {
-            const { name, email, phone } = req.body;
+            const { name, email, phone, areaInSquareFeetNeedForDiscount, discountInPercentage } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
             const newSupplier = new supplierModel({
                 name,
                 phone,
                 email: lowerCaseEmail,
                 status: 1,
+                areaInSquareFeetNeedForDiscount: areaInSquareFeetNeedForDiscount ?? 0,
+                discountInPercentage: discountInPercentage ?? 0,
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
             });
@@ -37,20 +39,63 @@ class SupplierService {
     /** Get Supplier List */
     async supplierList(query, options) {
         try {
-            const result = await supplierModel.paginate(query, options);
-            if (!result) {
-                throw { message: 'Supplier list not found', statusCode: 404 };
-            }
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const skip = (page - 1) * limit;
+
+            // Build aggregation pipeline
+            const pipeline = [
+                { $match: query },
+
+                // Example $lookup - adjust this according to your schema
+                /* {
+                    $lookup: {
+                        from: 'users', // target collection to join
+                        localField: 'userId', // local field in supplierModel
+                        foreignField: '_id',  // field in users collection
+                        as: 'userDetails'
+                    }
+                },
+                { $unwind: { path: '$userDetails', preserveNullAndEmptyArrays: true } }, */
+
+                // Optional sort
+                { $sort: sort },
+
+                // Pagination
+                { $skip: skip },
+                { $limit: limit }
+            ];
+
+            // Run aggregation
+            const data = await supplierModel.aggregate(pipeline);
+
+            // Get total count (for pagination meta)
+            const totalCountAgg = await supplierModel.aggregate([
+                { $match: query },
+                { $count: 'total' }
+            ]);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            const result = {
+                docs: data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+
             return result;
+
         } catch (error) {
             console.log(error, 'error');
-
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
             };
         }
     }
+
 
     async buildSupplierListQuery(req) {
         const query = req.query;
