@@ -24,6 +24,9 @@ module.exports = class AdminController {
 
     /** Get Team Member List **/
     async teamMemberList(req, res) {
+
+        console.log('helll teamMemberList');
+         
         try {
             const query = await adminService.buildTeamMemberListQuery(req);
             const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };

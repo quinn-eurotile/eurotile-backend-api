@@ -9,7 +9,14 @@ const express = require('express');
 const app = Express();
 
 
-app.use(cors());
+const corsOptions = {
+    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  };
+  
+  app.use(cors(corsOptions)); 
 /***** for parsing Cookie Parser ****/
 app.use(cookieParser());
 /***for parsing application/json***/

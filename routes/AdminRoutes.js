@@ -18,6 +18,12 @@ router.get('/team-member-list', multer().any(), auth, adminController.teamMember
 router.post('/create-team-member', multer().any(), auth,  user_validation.saveTeamMember,  adminController.createTeamMember);
 router.post('/update-team-member/:id', multer().any(), auth, user_validation.saveTeamMember, adminController.updateTeamMember);
 router.delete('/delete-team-member/:id', multer().any(), auth, adminController.deleteTeamMember);
+
+
+router.get('/team-member', multer().any(), auth, adminController.teamMemberList);
+router.post('/team-member', multer().any(), auth,  user_validation.saveTeamMember,  adminController.createTeamMember);
+router.post('/team-member/:id', multer().any(), auth, user_validation.saveTeamMember, adminController.updateTeamMember);
+router.delete('/team-member/:id', multer().any(), auth, adminController.deleteTeamMember);
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);
 // router.post('/update-password', multer().any(), auth, adminController.updatePassword);
 // router.post('/update-user-profile/:id', multer().any(), auth, user_validation.updateUserProfile, adminController.updateUserProfile);
