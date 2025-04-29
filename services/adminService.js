@@ -1,4 +1,5 @@
 const userModel = require('../models/User');
+const supplierModel = require('../models/Supplier');
 const mongoose = require('mongoose');
 const bcrypt = require("bcryptjs");
 const constants = require('../configs/constant');
@@ -44,40 +45,56 @@ class AdminService {
         }
     }
 
-    /** Get Team Member List  */
+    /** Get Team Member List */
     async teamMemberList(query, options) {
         try {
             const result = await userModel.paginate(query, options);
+            if (!result) {
+                throw { message: 'Team member list not found', statusCode: 404 };
+            }
             return result;
         } catch (error) {
-            throw new Error('Users list not found');
+            throw {
+                message: error?.message || 'Something went wrong while fetching users',
+                statusCode: error?.statusCode || 500
+            };
         }
     }
 
+    /** Create A Team Member */
     async createTeamMember(req) {
-        const { name, email, phone } = req.body;
+        try {
+            const { name, email, phone } = req.body;
+            const lowerCaseEmail = email.trim().toLowerCase();
+            const token = helpers.randomString(20);
+    
+            const newSupplier = new userModel({
+                name,
+                phone,
+                token,
+                email: lowerCaseEmail,
+                roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))],
+                status: 1,
+                createdBy: req?.user?.id || null,
+                updatedBy: req?.user?.id || null,
+            });
+    
+            await newSupplier.save();
+    
+            if (!newSupplier) {
+                throw { message: 'Failed to create team member', statusCode: 500 };
+            }
+    
+            return newSupplier;
 
-        console.log('req.user', req.user);
-
-        const lowerCaseEmail = email.trim().toLowerCase(); // Proper trim + lowercase
-        const token = helpers.randomString(20);
-        const newUser = new userModel({
-            name,
-            email: lowerCaseEmail,
-            phone: phone,
-            token,
-            roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))],
-            status: 1,
-            createdBy: req.user.id || null,
-            updatedBy: req.user.id || null
-        });
-
-        await newUser.save();
-
-        if (!newUser) throw new Error("Team member not created");
-
-        return newUser;
+        } catch (error) {
+            throw {
+                message: error?.message || 'Error creating team member',
+                statusCode: error?.statusCode || 500
+            };
+        }
     }
+    
 
     async buildTeamMemberListQuery(req) {
         const query = req.query;
@@ -121,11 +138,34 @@ class AdminService {
 
     /*** Update User By Id ***/
     async updateTeamMemberById(req) {
-        const { name, email, phone } = req.body;
-        const updatedUser = await userModel.findOneAndUpdate({ _id: req.params.id }, { email, phone, name }, { new: true });
-        if (!updatedUser) throw new Error("User does not found");
-        return updatedUser;
+        try {
+            const { name, email, phone } = req.body;
+            const { id } = req.params;
+    
+            const lowerCaseEmail = email.trim().toLowerCase();
+    
+            const updatedUser = await userModel.findByIdAndUpdate(
+                id,
+                { name, phone, email: lowerCaseEmail },
+                { new: true }
+            );
+    
+            if (!updatedUser) {
+                throw {
+                    message: 'User not found',
+                    statusCode: 404
+                };
+            }
+    
+            return updatedUser
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to update team member',
+                statusCode: error?.statusCode || 500
+            };
+        }
     }
+    
 
     async softDeleteTeamMember(userId) {
         try {
@@ -133,12 +173,15 @@ class AdminService {
             // if (isUserAssignToCase) throw new Error("User is already assigned to another case");
             // Find the user and update the `deleted_at` field
             const user = await userModel.findById({ _id: userId });
-            if (!user) throw new Error('User not found');
+            if (!user) throw new Error({ message: 'User not found', statusCode: 404 });
             user.isDeleted = true;
             await user.save();
             return true;
         } catch (error) {
-            throw error;
+            throw {
+                message: error?.message || 'Something went wrong while fetching users',
+                statusCode: error?.statusCode || 500
+            };
         }
     }
 

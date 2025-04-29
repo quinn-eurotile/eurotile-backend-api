@@ -57,7 +57,7 @@ const sendWelcomeEmail = (req) => {
 };
 
 /** Register Time Send Email ***/
-const sendWelcomeTeamMemberEmail = (req) => {
+const sendWelcomeSupplierEmail = (req) => {
 
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/welcome_team_member_email_template.html', 'utf-8');
@@ -122,4 +122,4 @@ const sendEmailCommon = (mailOptions) => {
     });
 };
 
-module.exports = { sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail, sendWelcomeTeamMemberEmail };
+module.exports = { sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail, sendWelcomeSupplierEmail };

@@ -6,19 +6,9 @@ const register = (req, res, next) => {
         "name": "required|string",
         "email": "required|email|exist:User,email",
     };
-
-    if (req.body.skip_property_obj !== undefined) {
-        // Check if the properties in `skip_property_obj` match properties in `validationRule` and remove them if they do
-        Object.keys(req.body.skip_property_obj).forEach(key => {
-            if (validationRule[key] === skip_property_obj[key]) {
-                delete validationRule[key];
-            }
-        });
-    }
-
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -41,7 +31,7 @@ const saveTeamMember = (req, res, next) => {
 
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -69,7 +59,7 @@ const userRoleValidate = (req, res, next) => {
     validator(req.body, validationRule, {}, async (err, status) => {
         if (!status) {
             // Send validation error response if validation fails
-            return res.status(400).send({
+            return res.status(422).send({
                 type: 'validation_error',
                 message: 'Your form data is invalid',
                 data: err
@@ -89,7 +79,7 @@ const login = (req, res, next) => {
     };
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -111,7 +101,7 @@ const update = (req, res, next) => {
     };
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -135,7 +125,7 @@ const updateUserProfile = (req, res, next) => {
     };
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -153,7 +143,7 @@ const UpadetPassword = (req, res, next) => {
     };
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',
@@ -171,7 +161,7 @@ const forgotPassword = (req, res, next) => {
     };
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(200)
+            res.status(422)
                 .send({
                     type: 'validation_error',
                     message: 'You form data is invalid',

@@ -1,6 +1,7 @@
 const userService = require('../services/userService');
-const {  sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
+const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
+const supplierService = require('../services/supplierService');
 const util = require('util');
 const Fs = require('fs');
 const writeFileAsync = util.promisify(Fs.writeFile);
@@ -14,11 +15,11 @@ module.exports = class AdminController {
     async registerAdmin(req, res) {
         try {
             const user = await adminService.registerAdmin(req);
-            const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${user.token}`;
-            sendVerificationEmail(req, verificationLink); //send email to the user
-            return res.json({ type: "success", message: "User registered. Please check your email for verification.", data: user, });
+            /* const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${user.token}`;
+            sendVerificationEmail(req, verificationLink); */
+            return res.status(201).json({  message: "Admin registered. Please check your email for verification.", data: user, });
         } catch (error) {
-            return res.json({ type: "failure", message: error.message });
+            return res.status(error?.statusCode || 500).json({ message: error?.message });
         }
     }
 
@@ -34,31 +35,30 @@ module.exports = class AdminController {
             // Fetch roles and transform them
             const roles = await RoleModel.find({ is_deleted: false, _id: { $ne: new mongoose.Types.ObjectId(String(constants?.adminRole?.id)) } }).select('_id name');
             const formattedRoles = roles.map(role => ({ value: role._id, label: role.name }));
-            return res.send({ type: "success", data: teamMembers, roles: formattedRoles, message: '' });
+            return res.status(200).json({ data: teamMembers, roles: formattedRoles, message: 'Team member list get successfully.' });
         } catch (error) {
-            res.send({ type: 'failure', message: error.message });
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
 
-    /*** Save New Team member Data ************/
+    /*** Save New Team member Data ****/
     async createTeamMember(req, res) {
         try {
             const user = await adminService.createTeamMember(req);
-            sendVerificationEmail(req,user?.token); //send email to the user
+            sendVerificationEmail(req, user?.token); //send email to the user
             return res.json({ type: "success", message: "Team member created successfully", data: user, });
         } catch (error) {
-            return res.json({ type: "failure", message: error.message });
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
-
 
     /*** Update Team Member From Here ***/
     async updateTeamMember(req, res) {
         try {
             const updatedUser = await userService.updateTeamMemberById(req);
-            res.status(200).send({ type: 'success', message: 'Team member updated successfully', data: updatedUser });
+            return res.status(200).send({ type: 'success', message: 'Team member updated successfully', data: updatedUser });
         } catch (error) {
-            res.send({ type: 'failure', message: error.message });
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
 
@@ -69,10 +69,20 @@ module.exports = class AdminController {
             await adminService.softDeleteTeamMember(userId);
             return res.status(200).json({ type: 'success', message: "Team member deleted successfully." });
         } catch (error) {
-            return res.status(500).json({ type: 'failure', message: error.message });
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
-    
+
+    /*** Save New Supplier Data ****/
+    async createSupplier(req, res) {
+        try {
+            const result = await supplierService.createSupplier(req);
+            return res.status(201).json({ message: 'Team member created successfully.', user: result, });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
 
     /** Update User Profile */
     async updateUserProfile(req, res) {
@@ -119,7 +129,7 @@ module.exports = class AdminController {
         }
     }
 
-    
+
 
     /** Update Password For Admin */
     async updatePassword(req, res) {
@@ -152,7 +162,7 @@ module.exports = class AdminController {
         }
     }
 
-    
+
 
     async loginUser(req, res) {
         try {
@@ -164,7 +174,7 @@ module.exports = class AdminController {
         }
     }
 
-    
+
 
     async forgotPassword(req, res) {
         try {
