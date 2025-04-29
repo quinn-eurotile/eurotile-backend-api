@@ -44,6 +44,30 @@ const saveTeamMember = (req, res, next) => {
 };
 
 
+const saveSupplier = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
+
+    let validationRule = {
+        "name": "required|string",
+        "email": id ? `required|email|exist_update:Supplier,email,${id}` : "required|email|exist:Supplier,email",
+        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:Supplier,phone",
+    };
+
+    validator(req.body, validationRule, {}, (err, status) => {
+        if (!status) {
+            res.status(422)
+                .send({
+                    type: 'validation_error',
+                    message: 'You form data is invalid',
+                    data: err
+                });
+        } else {
+            next();
+        }
+    });
+};
+
+
 const userRoleValidate = (req, res, next) => {
     console.log('I am here');
 
@@ -195,4 +219,4 @@ const resetPassword = (req, res, next) => {
 
 
 
-module.exports = { saveTeamMember, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { saveTeamMember,saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

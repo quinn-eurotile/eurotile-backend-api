@@ -67,8 +67,8 @@ class AdminService {
             const { name, email, phone } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
             const token = helpers.randomString(20);
-    
-            const newSupplier = new userModel({
+
+            const newTeamMember = new userModel({
                 name,
                 phone,
                 token,
@@ -78,14 +78,14 @@ class AdminService {
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
             });
-    
-            await newSupplier.save();
-    
-            if (!newSupplier) {
+
+            await newTeamMember.save();
+
+            if (!newTeamMember) {
                 throw { message: 'Failed to create team member', statusCode: 500 };
             }
-    
-            return newSupplier;
+
+            return newTeamMember;
 
         } catch (error) {
             throw {
@@ -94,7 +94,7 @@ class AdminService {
             };
         }
     }
-    
+
 
     async buildTeamMemberListQuery(req) {
         const query = req.query;
@@ -141,23 +141,31 @@ class AdminService {
         try {
             const { name, email, phone } = req.body;
             const { id } = req.params;
-    
+            
+            // Validate ObjectId format
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                throw {
+                    message: 'Invalid team member ID',
+                    statusCode: 400
+                };
+            }
+
             const lowerCaseEmail = email.trim().toLowerCase();
-    
+
             const updatedUser = await userModel.findByIdAndUpdate(
                 id,
                 { name, phone, email: lowerCaseEmail },
                 { new: true }
             );
-    
+
             if (!updatedUser) {
                 throw {
                     message: 'User not found',
                     statusCode: 404
                 };
             }
-    
-            return updatedUser
+
+            return updatedUser;
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to update team member',
@@ -165,7 +173,7 @@ class AdminService {
             };
         }
     }
-    
+
 
     async softDeleteTeamMember(userId) {
         try {
