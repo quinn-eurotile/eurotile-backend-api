@@ -52,22 +52,26 @@ module.exports = class AdminController {
     /*** Update Team Member From Here ***/
     async updateTeamMember(req, res) {
         try {
-            const updatedUser = await userService.updateTeamMemberById(req);
+            const updatedUser = await adminService.updateTeamMemberById(req);
             return res.status(200).send({  message: 'Team member updated successfully', data: updatedUser });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
-
+ 
     /** Delete Team Member By Api Request */
     async deleteTeamMember(req, res) {
-        try {
-            const userId = req?.params?.id;
-            await adminService.softDeleteTeamMember(userId);
-            return res.status(200).json({  message: "Team member deleted successfully." });
-        } catch (error) {
-            return res.status(error.statusCode || 500).json({ message: error.message });
-        }
+        return res.status(200).json({  message: "Team member deleted successfully." });
+        // try {
+        //     return res.status(200).json({  message: "Team member deleted successfully." });
+        //     const userId = req?.params?.id;
+        //     console.log( req?.params,'userId---');
+        //     return res.status(200).json({  message: "Team member deleted successfully." });
+        //     await adminService.softDeleteTeamMember(userId);
+        //     return res.status(200).json({  message: "Team member deleted successfully." });
+        // } catch (error) {
+        //     return res.status(error.statusCode || 500).json({ message: error.message });
+        // }
     }
 
     /** Get Supplier List **/

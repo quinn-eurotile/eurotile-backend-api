@@ -64,7 +64,7 @@ class AdminService {
     /** Create A Team Member */
     async createTeamMember(req) {
         try {
-            const { name, email, phone } = req.body;
+            const { name, email, phone ,status} = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
             const token = helpers.randomString(20);
 
@@ -74,7 +74,7 @@ class AdminService {
                 token,
                 email: lowerCaseEmail,
                 roles: [new mongoose.Types.ObjectId(String(constants?.teamMemberRole?.id))],
-                status: 1,
+                status: status??0,
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
             });
@@ -139,7 +139,10 @@ class AdminService {
     /*** Update User By Id ***/
     async updateTeamMemberById(req) {
         try {
-            const { name, email, phone } = req.body;
+            const { name, email, phone,status } = req.body;
+
+            console.log({ name, email, phone } ,'lllllllllll');
+            
             const { id } = req.params;
             
             // Validate ObjectId format
@@ -154,7 +157,7 @@ class AdminService {
 
             const updatedUser = await userModel.findByIdAndUpdate(
                 id,
-                { name, phone, email: lowerCaseEmail },
+                { name, phone, email: lowerCaseEmail,status },
                 { new: true }
             );
 
