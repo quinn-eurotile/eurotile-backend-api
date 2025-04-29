@@ -50,20 +50,10 @@ class AdminService {
         try {
             const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
             const skip = (page - 1) * limit;
-
+    
             const pipeline = [
                 { $match: query },
-
-                /* {
-                    $lookup: {
-                        from: 'teams',
-                        localField: 'teamId',
-                        foreignField: '_id',
-                        as: 'team'
-                    }
-                },
-                { $unwind: { path: '$team', preserveNullAndEmptyArrays: true } }, */
-
+    
                 {
                     $facet: {
                         metadata: [
@@ -80,46 +70,50 @@ class AdminService {
                         data: [
                             { $sort: sort },
                             { $skip: skip },
-                            { $limit: limit }
+                            { $limit: limit },
+                            {
+                                $project: {
+                                    name: 1,
+                                    email: 1,
+                                    phone: 1,
+                                    status: 1,
+                                    addresses: 1,
+                                    createdBy: 1,
+                                    // Only include fields needed in UI
+                                }
+                            }
                         ]
                     }
                 },
                 {
                     $project: {
                         data: 1,
-                        totalDocs: { $arrayElemAt: ["$metadata.totalDocs", 0] },
+                        totalDocs: { $ifNull: [{ $arrayElemAt: ["$metadata.totalDocs", 0] }, 0] },
                         statusCounts: 1
                     }
                 }
             ];
-
+    
             const [result] = await userModel.aggregate(pipeline);
-
-            const totalDocs = result.totalDocs || 0;
-            const statusCounts = result.statusCounts.reduce((acc, item) => {
+    
+            const statusSummary = result.statusCounts.reduce((acc, item) => {
                 const statusMap = { 1: 'active', 0: 'inactive', 2: 'pending' };
                 const key = statusMap[item._id];
-                if (key) {
-                    acc[key] = item.count;
-                }
+                if (key) acc[key] = item.count;
                 return acc;
             }, { active: 0, inactive: 0, pending: 0 });
-
+    
             return {
                 docs: result.data,
-                totalDocs,
+                totalDocs: result.totalDocs,
                 limit,
                 page,
-                totalPages: Math.ceil(totalDocs / limit),
-                hasNextPage: page * limit < totalDocs,
+                totalPages: Math.ceil(result.totalDocs / limit),
+                hasNextPage: page * limit < result.totalDocs,
                 hasPrevPage: page > 1,
-                nextPage: page * limit < totalDocs ? page + 1 : null,
+                nextPage: page * limit < result.totalDocs ? page + 1 : null,
                 prevPage: page > 1 ? page - 1 : null,
-                statusSummary: {
-                    active: statusCounts.active || 0,
-                    inactive: statusCounts.inactive || 0,
-                    pending: statusCounts.pending || 0
-                }
+                statusSummary: statusSummary
             };
         } catch (error) {
             throw {
@@ -128,6 +122,7 @@ class AdminService {
             };
         }
     }
+    
 
 
 
