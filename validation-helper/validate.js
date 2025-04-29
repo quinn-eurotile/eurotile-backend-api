@@ -21,61 +21,55 @@ const validator = (body, rules, customMessages, callback) => {
 Validator.register('check_password', value => passwordRegex.test(value),
      'Password must be 8 charcter long and it should contains 1 uppercase, 1 lowercase , 1 number and a special character');
 	 
-//check if the field value is alerdy taken	 
-Validator.registerAsync('exist', function(value,  attribute, req, passes) {
-   
-    if (!attribute) throw new Error('Specify Requirements i.e fieldName: exist:table,column');
-    
-    //split table and column
-    let attArr = attribute.split(",");
+// Capitalize helper
+const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
-    if (attArr.length !== 2) throw new Error(`Invalid format for validation rule on ${attribute}`);
-    
-    //assign array index 0 and 1 to table and column respectively
-    const [table, column] = attArr;
+// Check if the field value already exists
+Validator.registerAsync('exist', async function (value, attribute, req, passes) {
+    try {
+        if (!attribute) throw { message: 'Specify requirements like fieldName:exist:table,column' };
 
-    // Ensure that the model exists
-    if (!Models[table]) {
-        throw new Error(`Model ${table} not found in the Models object`);
-    }
+        const [table, column] = attribute.split(",");
+        if (!table || !column) throw { message: `Invalid format for validation rule: "${attribute}"` };
 
-   // console.log('Models[table]',attribute)
-    //define custom error message
-    let msg = (column == "username") ? `${column.charAt(0).toUpperCase() + column.slice(1)} has already been taken `: `${column.charAt(0).toUpperCase() + column.slice(1)} already in use`
-    
-    //check if incoming value already exists in the database
-    Models[table].findOne({ [column]: value })
-    .then((result) => {
-        if(result){
-            passes(false, msg); // return false if value exists
-            return;
+        const Model = Models[table];
+        if (!Model) throw { message: `Model "${table}" not found`};
+
+        const msg = `${capitalize(column)} already in use`;
+
+        const existing = await Model.findOne({ [column]: value });
+        if (existing) {
+            return passes(false, msg);
         }
+
         passes();
-    })
+    } catch (err) {
+        return passes(false, err.message || 'Validation error');
+    }
 });
 
-//check if the field value update in edit case and it is taken by other collection 
-Validator.registerAsync('exist_update', function(value,  attribute, req, passes) {
-    if (!attribute) throw new Error('Specify Requirements i.e fieldName: exist:table,column');
-    //split table and column
-    let attArr = attribute.split(",");
-    if (attArr.length !== 3) throw new Error(`Invalid format for validation rule on ${attribute}`);
+// Check if the field value exists for another document during update
+Validator.registerAsync('exist_update', async function (value, attribute, req, passes) {
+    try {
+        if (!attribute) throw { message: 'Specify requirements like fieldName:exist_update:table,column,id' };
 
-    //assign array index 0 and 1 to table and column respectively
-    const { 0: table, 1: column, 2: update_id } = attArr;
-    //define custom error message
-    let msg = (column == "username") ? `${column.charAt(0).toUpperCase() + column.slice(1)} has already been taken `: `${column.charAt(0).toUpperCase() + column.slice(1)} has already been taken other ${table}`
-    //check if incoming value already exists in the database
-    Models[table].findOne({ [column]: value })
-    .then((result) => {
-        if(result){
-			if(result.id !== update_id){
-				passes(false, msg); // return false if value exists
-				return;
-			}
+        const [table, column, updateId] = attribute.split(",");
+        if (!table || !column || !updateId) throw { message: `Invalid format for validation rule: "${attribute}"`};
+
+        const Model = Models[table];
+        if (!Model) throw { message: `Model "${table}" not found`};
+
+        const msg = `${capitalize(column)} has already been taken by another ${table}`;
+
+        const existing = await Model.findOne({ [column]: value });
+        if (existing && String(existing._id) !== updateId) {
+            return passes(false,  msg);
         }
+
         passes();
-    })
+    } catch (err) {
+        return passes(false,  err.message || 'Validation error');
+    }
 });
 
 //validate category Add function	 

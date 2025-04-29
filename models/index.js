@@ -5,5 +5,14 @@ const ProductFile = require('./ProductFile');
 const ProductAttribute = require('./ProductAttribute');
 const Role = require('./Role');
 const Permission = require('./Permission');
+const Promotion = require('./Promotion');
+const Supplier = require('./Supplier');
+const SupportTicket = require('./SupportTicket');
+const SupportTicketDoc = require('./SupportTicketDoc');
+const SupportTicketMsg = require('./SupportTicketMsg');
+const UserBusiness = require('./UserBusiness');
+const UserBusinessDocument = require('./UserBusinessDocument');
 
-module.exports = { User, Order, Product, ProductFile, ProductAttribute, Role, Permission };
+
+
+module.exports = { User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketDoc, SupportTicketMsg, UserBusinessDocument, UserBusiness };
