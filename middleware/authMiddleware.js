@@ -2,20 +2,31 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const verifyToken = async (req, res, next) => {
+	let token =
+		req.body?.token ||
+		req.query?.token ||
+		req.headers["x-access-token"] ||
+		req.headers["authorization"];
 
-	let token = req.body?.token || req.query?.token || req.headers["x-access-token"] || req.headers.authorization;
 	if (!token) {
-		return res.status(200).send({ type: 'failure', message: "A authorization token is required for user authentication" });
+		return res.status(200).send({
+			type: 'failure',
+			message: "An authorization token is required for user authentication"
+		});
 	}
+
 	try {
-		//console.log('token',token);
 		if (token.startsWith("Bearer ")) {
 			token = token.slice(7);
 		}
+
+		if (!process.env.TOKEN_KEY) {
+			throw new Error("TOKEN_KEY environment variable is missing");
+		}
+
 		const decoded = jwt.verify(token, process.env.TOKEN_KEY);
-		//console.log('decoded',decoded);
 		req.user = decoded;
-		// Check if the user is active
+
 		const user = await User.findById(decoded.id);
 		if (!user) {
 			return res.status(200).send({ type: 'failure', message: 'User not found, please log in again.' });
@@ -24,8 +35,10 @@ const verifyToken = async (req, res, next) => {
 		if (!user.status) {
 			return res.status(200).send({ type: 'failure', message: 'User is inactive, please contact support.', inactiveUser: true });
 		}
+
+		next();
 	} catch (err) {
-		console.log('auth file err', err);
+		console.error('Auth error:', err);
 		if (err.name === 'TokenExpiredError') {
 			return res.status(200).send({ type: 'failure', message: 'Token expired, please log in again.', tokenExpired: true });
 		} else if (err.name === 'JsonWebTokenError') {
@@ -34,7 +47,6 @@ const verifyToken = async (req, res, next) => {
 			return res.status(500).send({ type: 'failure', message: 'Internal Server Error' });
 		}
 	}
-	return next();
 };
 
 module.exports = verifyToken;
