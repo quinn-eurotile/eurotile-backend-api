@@ -8,7 +8,7 @@ Validator.register('isMongoIdOrNull', function (value) {
 
 /** Validate Cat Before Save And Update */
 const saveCategory = (req, res, next) => {
-    const id = req?.body?.parent;
+    const id = req?.params?.id;
 
     const validationRule = {
         name: id
