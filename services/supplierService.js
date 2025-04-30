@@ -8,12 +8,12 @@ class SupplierService {
 
     async createSupplier(req) {
         try {
-            const { name, email, phone, areaInSquareFeetNeedForDiscount, discountInPercentage } = req.body;
-            const lowerCaseEmail = email.trim().toLowerCase();
+            const { name, companyEmail, companyPhone, areaInSquareFeetNeedForDiscount, discountInPercentage } = req.body;
+            const lowerCaseEmail = companyEmail.trim().toLowerCase();
             const newSupplier = new supplierModel({
                 name,
-                phone,
-                email: lowerCaseEmail,
+                companyPhone,
+                companyEmail: lowerCaseEmail,
                 status: 1,
                 areaInSquareFeetNeedForDiscount: areaInSquareFeetNeedForDiscount ?? 0,
                 discountInPercentage: discountInPercentage ?? 0,

@@ -67,9 +67,12 @@ const saveSupplier = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
 
     let validationRule = {
-        "name": "required|string",
-        "email": id ? `required|email|exist_update:Supplier,email,${id}` : "required|email|exist:Supplier,email",
-        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:Supplier,phone",
+        "companyName": "required|string",
+        "companyEmail": id ? `required|email|exist_update:Supplier,companyEmail,${id}` : "required|email|exist:Supplier,companyEmail",
+        "companyPhone": id ? `required|numeric|exist_update:Supplier,companyPhone,${id}` : "required|numeric|exist:Supplier,companyPhone",
+        "addresses.addressLine1":  `required|string`,
+        "addresses.city":  `required|string`,
+        "addresses.country":  `required|string`, 
     };
 
     validator(req.body, validationRule, {}, (err, status) => {
