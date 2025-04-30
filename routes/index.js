@@ -13,6 +13,10 @@ routes.use(`/api/${API_V}/role-permission`, rolePermissionRoutes);
 const locationRoutes = require('./LocationRoutes');
 routes.use(`/api/${API_V}/location`, locationRoutes);
 
+/************* Categories route**************/
+const categoryRoutes = require('./CategoryRoutes');
+routes.use(`/api/${API_V}/category`, categoryRoutes);
+
 
 
 module.exports = routes;

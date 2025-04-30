@@ -10,17 +10,16 @@ module.exports = class AdminController {
             const data = { ...req.body, updatedBy: req.user?._id };
 
             if (req.method === 'POST') {
-                data.createdBy = req.user?._id;
+                data.createdBy = req?.user?.id;
                 const category = await categoryService.saveCategory(null, data);
                 return res.status(201).json({  data: category, message: 'Category saved successfully' });
             }
-            if (req.method === 'PUT' && req.params.id) {
-                const categoryId = req.params.id;
-                const updated = await categoryService.saveCategory(categoryId, data);
+            if (req.method === 'PUT' && req?.params?.id) {
+                data.updatedBy = req?.user?.id;
+                const updated = await categoryService.saveCategory(req.params.id, data);
                 if (!updated) {
                     return res.status(404).json({ success: false, message: 'Category not found' });
                 }
-    
                 return res.status(201).json({  data: updated, message : 'Category updated successfully' });
             }
             throw { message: 'Method not allowed' , statusCode: 405 };
@@ -30,7 +29,7 @@ module.exports = class AdminController {
         }
     }
 
-
+    /** Delete Category  **/
     async deleteCategory(req, res) {
         try {
             const id = req.params.id;
@@ -42,6 +41,7 @@ module.exports = class AdminController {
         }
     }
 
+    /** Get Category By Id **/
     async getCategory(req, res) {
         try {
             const id = req.params.id;
@@ -53,6 +53,7 @@ module.exports = class AdminController {
         }
     }
 
+    /** Get List Of Categories **/
     async listCategories(req, res) {
         try {
             const query = {};

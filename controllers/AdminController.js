@@ -84,8 +84,8 @@ module.exports = class AdminController {
         try {
             const result = await supplierService.saveSupplier(req);
             return res.status(201).json({ message: 'Supplier created successfully.', user: result, });
-        } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
+        } catch (error) {
         }
     }
 
@@ -121,32 +121,7 @@ module.exports = class AdminController {
 
     
 
-    /** Save Category */
-    // async saveCategory(req, res) {
-    //     try {
-    //         const data = { ...req.body, updatedBy: req.user?._id, };
-
-    //         // Detect Create vs Update
-    //         if (req.method === 'POST') {
-    //             data.createdBy = req.user?._id;
-    //             const created = await categoryService.saveCategory(null, data);
-    //             return res.status(201).json({ success: true, data: created });
-    //         }
-
-    //         if (req.method === 'PUT') {
-    //             const categoryId = req.params.id;
-    //             const updated = await categoryService.saveCategory(categoryId, data);
-    //             if (!updated) return res.status(404).json({ success: false, message: 'Category not found' });
-    //             return res.json({ success: true, data: updated });
-    //         }
-
-    //         res.status(405).json({ success: false, message: 'Method not allowed' });
-    //     } catch (err) {
-    //         res.status(500).json({ success: false, message: err.message });
-    //     }
-    // }
-
-
+    
     /** Update User Profile */
     async updateUserProfile(req, res) {
         try {
