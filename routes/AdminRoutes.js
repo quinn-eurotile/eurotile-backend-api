@@ -25,14 +25,6 @@ router.put('/supplier/:id', multer().any(), auth, user_validation.saveSupplier, 
 router.get('/supplier', multer().any(), auth, adminController.supplierList);
 router.delete('/supplier/:id', multer().any(), auth, adminController.deleteSupplier);
 
-
-/* Category Management */
-// router.post('/category', multer().any(), auth, user_validation.saveCategory, adminController.saveCategory);
-// router.put('/category/:id', multer().any(), auth, user_validation.saveCategory, adminController.saveCategory);
-// router.get('/category', multer().any(), auth, adminController.categoryList);
-// router.delete('/category/:id', multer().any(), auth, adminController.deleteCategory);
-
-
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);
 // router.post('/update-password', multer().any(), auth, adminController.updatePassword);
 // router.post('/update-user-profile/:id', multer().any(), auth, user_validation.updateUserProfile, adminController.updateUserProfile);

@@ -20,24 +20,6 @@ const register = (req, res, next) => {
     });
 };
 
-const saveCategory = (req, res, next) => {
-    let validationRule = {
-        "name": "required|string|max:255",
-        "parent": "nullable|mongoid", // optional parent category ID
-    };
-
-    validator(req.body, validationRule, {}, (err, status) => {
-        if (!status) {
-            res.status(422).send({
-                type: 'validation_error',
-                message: 'Your form data is invalid',
-                data: err
-            });
-        } else {
-            next();
-        }
-    });
-};
 
 const saveTeamMember = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
@@ -238,4 +220,4 @@ const resetPassword = (req, res, next) => {
 
 
 
-module.exports = { saveTeamMember,saveSupplier,saveCategory, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { saveTeamMember,saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
