@@ -1,4 +1,3 @@
-const categoryService = require('../services/categoryService');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const Country = require('../models/Country');
@@ -9,8 +8,7 @@ module.exports = class LocationController {
 
     async getCountries(req, res) {
         try {
-            const countries = await Country.find();
-            res.json(countries);
+            const countries = await Country.find({}, { _id: 1, name: 1, iso2: 1, iso3: 1 });
             return res.status(201).json({ message: "", data: countries, });
         } catch (error) {
             return res.status(error?.statusCode || 500).json({ message: error?.message });
@@ -19,7 +17,7 @@ module.exports = class LocationController {
 
     async getStatesByCountryId(req, res) {
         try {
-            const states = await State.find({ country_id: parseInt(req.params.country_id) });
+            const states = await State.find({ country_id: parseInt(req.params.country_id) }, { _id: 1, name: 1, state_code: 1, });
             return res.status(201).json({ message: "", data: states, });
         } catch (error) {
             return res.status(error?.statusCode || 500).json({ message: error?.message });
@@ -28,7 +26,7 @@ module.exports = class LocationController {
 
     async getCitiesByStateId(req, res) {
         try {
-            const cities = await City.find({ state_id: parseInt(req.params.state_id) });
+            const cities = await City.find({ state_id: parseInt(req.params.state_id) }, { _id: 1, name: 1});
             return res.status(201).json({ message: "", data: cities, });
         } catch (error) {
             return res.status(error?.statusCode || 500).json({ message: error?.message });

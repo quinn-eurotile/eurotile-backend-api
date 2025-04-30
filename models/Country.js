@@ -39,7 +39,8 @@ const CountrySchema = new Schema({
     emoji: { type: String },
     emojiU: { type: String }
 }, {
-    timestamps: true
+    timestamps: true,
+    _id: false 
 });
 
 CountrySchema.plugin(mongoosePaginate);

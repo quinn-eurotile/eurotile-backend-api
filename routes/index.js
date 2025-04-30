@@ -11,7 +11,7 @@ routes.use(`/api/${API_V}/role-permission`, rolePermissionRoutes);
 
 /************* Location route**************/
 const locationRoutes = require('./LocationRoutes');
-routes.all('/api/' + API_V + '/location/*', locationRoutes);
+routes.use(`/api/${API_V}/location`, locationRoutes);
 
 
 
