@@ -32,7 +32,8 @@ const CitySchema = new Schema({
     }
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  _id : false
 });
 
 CitySchema.plugin(mongoosePaginate);

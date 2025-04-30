@@ -12,7 +12,6 @@ routes.use(`/api/${API_V}/role-permission`, rolePermissionRoutes);
 /************* Location route**************/
 const locationRoutes = require('./LocationRoutes');
 routes.use(`/api/${API_V}/location`, locationRoutes);
- 
 
 
 

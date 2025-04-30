@@ -15,7 +15,8 @@ const StateSchema = new Schema({
     ref: 'Country'
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  _id : false
 });
 
 StateSchema.plugin(mongoosePaginate);
