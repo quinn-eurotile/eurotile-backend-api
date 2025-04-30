@@ -109,6 +109,17 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+    async getSupplierById(req, res) {
+        try {
+            const userId = req?.params?.id;
+            const supplierData =    await supplierService.getSupplierById(userId);
+            return res.status(200).send({ message: 'Supplier get successfully', data: supplierData }); 
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    
 
     
     /** Update User Profile */

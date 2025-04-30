@@ -15,6 +15,7 @@ router.get('/dashboard', multer().any(), auth, adminController.dashboardData);
 
 /* Team Member Management */
 router.get('/team-member', multer().any(), auth, adminController.teamMemberList);
+router.get('/team-member', multer().any(), auth, adminController.teamMemberList);
 router.post('/team-member', multer().any(), auth,  user_validation.saveTeamMember,  adminController.createTeamMember);
 router.put('/team-member/:id', multer().any(), auth, user_validation.saveTeamMember, adminController.updateTeamMember);
 router.delete('/team-member/:id', multer().any(), auth, adminController.deleteTeamMember);
@@ -23,6 +24,7 @@ router.delete('/team-member/:id', multer().any(), auth, adminController.deleteTe
 router.post('/supplier', multer().any(), auth, user_validation.saveSupplier, adminController.createSupplier);
 router.put('/supplier/:id', multer().any(), auth, user_validation.saveSupplier, adminController.updateSupplier);
 router.get('/supplier', multer().any(), auth, adminController.supplierList);
+router.get('/supplier/:id', multer().any(), auth, adminController.getSupplierById);
 router.delete('/supplier/:id', multer().any(), auth, adminController.deleteSupplier);
 
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);

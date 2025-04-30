@@ -3,25 +3,40 @@ const bcrypt = require("bcryptjs");
 const helpers = require("../_helpers/common");
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
+const SupplierDiscount = require('../models/SupplierDiscount'); // adjust path as needed
 
 class SupplierService {
 
     /** Save Supplier **/
-    async saveSupplier(req) {
+    async saveSupplier(req) { 
         try {
             const { id } = req.params;
-            const { name, email, phone, minimumAreaSqFt, discountPercentage } = req.body;
-            const lowerCaseEmail = email.trim().toLowerCase();
+            const { companyName, companyPhone,status, companyEmail, contactInfo, discounts,addresses } = req.body;
+            // Validate the email
+            if (!companyEmail || !companyEmail.trim()) {
+                throw { message: 'Email cannot be empty', statusCode: 400 };
+            }
+            const lowerCaseEmail = companyEmail.trim().toLowerCase(); 
+            let discountIds = [];
 
+            if (Array.isArray(discounts) && discounts.length > 0) {
+                const savedDiscounts = await SupplierDiscount.insertMany(discounts);
+                discountIds = savedDiscounts.map(discount => discount._id);
+            }
             const commonData = {
-                name,
-                phone,
-                email: lowerCaseEmail,
-                minimumAreaSqFt: minimumAreaSqFt ?? 0,
-                discountPercentage: discountPercentage ?? 0,
+                companyName,
+                companyPhone,
+                companyEmail: lowerCaseEmail,
+                status: status ?? 1,
+                contactInfo: contactInfo,
+                discounts: discountIds, 
+                addresses: addresses ?? [], 
+                // supplierId:'',
+                createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
-            };
-
+            }
+ 
+            
             // Check if we're updating
             if (id) {
                 if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -129,16 +144,18 @@ class SupplierService {
             } else if (query.status === "1" || query.status === 1) {
                 conditionArr.push({ status: 1 });
             }
+            
         }
-
+     console.log(conditionArr,'conditionArr');
+     
 
         // Add search conditions if 'search_string' is provided
         if (query.search_string !== undefined && query.search_string !== "") {
             conditionArr.push({
                 $or: [
-                    { name: new RegExp(query.search_string, "i") },
-                    { email: new RegExp(query.search_string, "i") },
-                    { phone: new RegExp(query.search_string, "i") },
+                    { companyName: new RegExp(query.search_string, "i") },
+                    { companyEmail: new RegExp(query.search_string, "i") },
+                    { companyPhone: new RegExp(query.search_string, "i") },
                 ],
             });
         }
@@ -180,6 +197,10 @@ class SupplierService {
             };
         }
     }
+        async getSupplierById(id) {
+            return await supplierModel.findById(id).populate('discounts') ;
+        }
+    
 
 
 }
