@@ -74,6 +74,7 @@ const saveSupplier = (req, res, next) => {
         "addresses.city":  `required|string`,
         "addresses.country":  `required|string`, 
     };
+    
 
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {

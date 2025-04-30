@@ -3,38 +3,71 @@ const bcrypt = require("bcryptjs");
 const helpers = require("../_helpers/common");
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
+const SupplierDiscount = require('../models/SupplierDiscount'); // adjust path as needed
 
 class SupplierService {
 
-    async createSupplier(req) {
+    /** Save Supplier **/
+    async saveSupplier(req) { 
         try {
-            const { name, companyEmail, companyPhone, areaInSquareFeetNeedForDiscount, discountInPercentage } = req.body;
-            const lowerCaseEmail = companyEmail.trim().toLowerCase();
-            const newSupplier = new supplierModel({
-                name,
+            const { id } = req.params;
+            const { companyName, companyPhone,status, companyEmail, contactInfo, discounts,addresses } = req.body;
+            // Validate the email
+            if (!companyEmail || !companyEmail.trim()) {
+                throw { message: 'Email cannot be empty', statusCode: 400 };
+            }
+            const lowerCaseEmail = companyEmail.trim().toLowerCase(); 
+            let discountIds = [];
+
+            if (Array.isArray(discounts) && discounts.length > 0) {
+                const savedDiscounts = await SupplierDiscount.insertMany(discounts);
+                discountIds = savedDiscounts.map(discount => discount._id);
+            }
+            const commonData = {
+                companyName,
                 companyPhone,
                 companyEmail: lowerCaseEmail,
-                status: 1,
-                areaInSquareFeetNeedForDiscount: areaInSquareFeetNeedForDiscount ?? 0,
-                discountInPercentage: discountInPercentage ?? 0,
+                status: status ?? 1,
+                contactInfo: contactInfo,
+                discounts: discountIds, 
+                addresses: addresses ?? [], 
+                // supplierId:'',
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
-            });
+            }
+ 
+            
+            // Check if we're updating
+            if (id) {
+                if (!mongoose.Types.ObjectId.isValid(id)) {
+                    throw { message: 'Invalid supplier ID', statusCode: 400 };
+                }
+
+                const updated = await supplierModel.findByIdAndUpdate(id, commonData, { new: true });
+
+                if (!updated) {
+                    throw { message: 'Supplier not found', statusCode: 404 };
+                }
+
+                return updated;
+            }
+
+            // Creating new supplier
+            const newSupplier = new supplierModel({ ...commonData, status: 1, createdBy: req?.user?.id || null });
 
             await newSupplier.save();
 
             if (!newSupplier) {
-                throw { message: 'Failed to create team member', statusCode: 500 };
+                throw { message: 'Failed to create supplier', statusCode: 500 };
             }
 
             return newSupplier;
+
         } catch (error) {
-            throw {
-                message: error.message || 'Failed to create supplier',
-                statusCode: error.statusCode || 500
-            };
+            throw { message: error?.message || 'Failed to save supplier', statusCode: error?.statusCode || 500 };
         }
     }
+
 
     /** Get Supplier List */
     async supplierList(query, options) {
@@ -111,16 +144,18 @@ class SupplierService {
             } else if (query.status === "1" || query.status === 1) {
                 conditionArr.push({ status: 1 });
             }
+            
         }
-
+     console.log(conditionArr,'conditionArr');
+     
 
         // Add search conditions if 'search_string' is provided
         if (query.search_string !== undefined && query.search_string !== "") {
             conditionArr.push({
                 $or: [
-                    { name: new RegExp(query.search_string, "i") },
-                    { email: new RegExp(query.search_string, "i") },
-                    { phone: new RegExp(query.search_string, "i") },
+                    { companyName: new RegExp(query.search_string, "i") },
+                    { companyEmail: new RegExp(query.search_string, "i") },
+                    { companyPhone: new RegExp(query.search_string, "i") },
                 ],
             });
         }
@@ -134,44 +169,6 @@ class SupplierService {
         }
 
         return builtQuery;
-    }
-
-    /*** Update Supplier By Id ***/
-    async updateSupplierById(req) {
-        try {
-            const { name, email, phone } = req.body;
-            const { id } = req.params;
-
-            // Validate ObjectId format
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                throw {
-                    message: 'Invalid supplier ID',
-                    statusCode: 400
-                };
-            }
-
-            const lowerCaseEmail = email.trim().toLowerCase();
-
-            const updatedSupplierData = await supplierModel.findByIdAndUpdate(
-                id,
-                { name, phone, email: lowerCaseEmail },
-                { new: true }
-            );
-
-            if (!updatedSupplierData) {
-                throw {
-                    message: 'Supplier not found',
-                    statusCode: 404
-                };
-            }
-
-            return updatedSupplierData;
-        } catch (error) {
-            throw {
-                message: error?.message || 'Failed to update supplier',
-                statusCode: error?.statusCode || 500
-            };
-        }
     }
 
     async softDeleteSupplier(userId) {
@@ -200,6 +197,10 @@ class SupplierService {
             };
         }
     }
+        async getSupplierById(id) {
+            return await supplierModel.findById(id).populate('discounts') ;
+        }
+    
 
 
 }

@@ -82,7 +82,7 @@ module.exports = class AdminController {
     /*** Save New Supplier Data ****/
     async createSupplier(req, res) {
         try {
-            const result = await supplierService.createSupplier(req);
+            const result = await supplierService.saveSupplier(req);
             return res.status(201).json({ message: 'Supplier created successfully.', user: result, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -92,7 +92,7 @@ module.exports = class AdminController {
     /*** Update Supplier From Here ***/
     async updateSupplier(req, res) {
         try {
-            const updateSupplierData = await supplierService.updateSupplierById(req);
+            const updateSupplierData = await supplierService.saveSupplier(req);
             return res.status(200).send({ message: 'Supplier updated successfully', data: updateSupplierData });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -109,6 +109,17 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+    async getSupplierById(req, res) {
+        try {
+            const userId = req?.params?.id;
+            const supplierData =    await supplierService.getSupplierById(userId);
+            return res.status(200).send({ message: 'Supplier get successfully', data: supplierData }); 
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    
 
     /** Save Category */
     // async saveCategory(req, res) {

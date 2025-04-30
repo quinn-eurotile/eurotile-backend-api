@@ -5,13 +5,14 @@ const { API_V } = process.env;
 const adminRoutes = require('./AdminRoutes'); 
 routes.use(`/api/${API_V}/admin`, adminRoutes);
 
-// /*************Role Permission**************/
+/*************Role Permission**************/
 const rolePermissionRoutes = require('./RolePermissionRoute');
 routes.use(`/api/${API_V}/role-permission`, rolePermissionRoutes);
 
-// /*************User route**************/
-// const userRoutes = require('./UserRoutes');
-// routes.all('/api/' + API_V + '/user/*', userRoutes);
+/************* Location route**************/
+const locationRoutes = require('./LocationRoutes');
+routes.use(`/api/${API_V}/location`, locationRoutes);
+ 
 
 
 
