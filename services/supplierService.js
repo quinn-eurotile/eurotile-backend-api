@@ -6,35 +6,53 @@ const constants = require('../configs/constant');
 
 class SupplierService {
 
-    async createSupplier(req) {
+    /** Save Supplier **/
+    async saveSupplier(req) {
         try {
-            const { name, email, phone, areaInSquareFeetNeedForDiscount, discountInPercentage } = req.body;
+            const { id } = req.params;
+            const { name, email, phone, minimumAreaSqFt, discountPercentage } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
-            const newSupplier = new supplierModel({
+
+            const commonData = {
                 name,
                 phone,
                 email: lowerCaseEmail,
-                status: 1,
-                areaInSquareFeetNeedForDiscount: areaInSquareFeetNeedForDiscount ?? 0,
-                discountInPercentage: discountInPercentage ?? 0,
-                createdBy: req?.user?.id || null,
+                minimumAreaSqFt: minimumAreaSqFt ?? 0,
+                discountPercentage: discountPercentage ?? 0,
                 updatedBy: req?.user?.id || null,
-            });
+            };
+
+            // Check if we're updating
+            if (id) {
+                if (!mongoose.Types.ObjectId.isValid(id)) {
+                    throw { message: 'Invalid supplier ID', statusCode: 400 };
+                }
+
+                const updated = await supplierModel.findByIdAndUpdate(id, commonData, { new: true });
+
+                if (!updated) {
+                    throw { message: 'Supplier not found', statusCode: 404 };
+                }
+
+                return updated;
+            }
+
+            // Creating new supplier
+            const newSupplier = new supplierModel({ ...commonData, status: 1, createdBy: req?.user?.id || null });
 
             await newSupplier.save();
 
             if (!newSupplier) {
-                throw { message: 'Failed to create team member', statusCode: 500 };
+                throw { message: 'Failed to create supplier', statusCode: 500 };
             }
 
             return newSupplier;
+
         } catch (error) {
-            throw {
-                message: error.message || 'Failed to create supplier',
-                statusCode: error.statusCode || 500
-            };
+            throw { message: error?.message || 'Failed to save supplier', statusCode: error?.statusCode || 500 };
         }
     }
+
 
     /** Get Supplier List */
     async supplierList(query, options) {
@@ -134,44 +152,6 @@ class SupplierService {
         }
 
         return builtQuery;
-    }
-
-    /*** Update Supplier By Id ***/
-    async updateSupplierById(req) {
-        try {
-            const { name, email, phone } = req.body;
-            const { id } = req.params;
-
-            // Validate ObjectId format
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                throw {
-                    message: 'Invalid supplier ID',
-                    statusCode: 400
-                };
-            }
-
-            const lowerCaseEmail = email.trim().toLowerCase();
-
-            const updatedSupplierData = await supplierModel.findByIdAndUpdate(
-                id,
-                { name, phone, email: lowerCaseEmail },
-                { new: true }
-            );
-
-            if (!updatedSupplierData) {
-                throw {
-                    message: 'Supplier not found',
-                    statusCode: 404
-                };
-            }
-
-            return updatedSupplierData;
-        } catch (error) {
-            throw {
-                message: error?.message || 'Failed to update supplier',
-                statusCode: error?.statusCode || 500
-            };
-        }
     }
 
     async softDeleteSupplier(userId) {
