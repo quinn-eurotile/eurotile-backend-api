@@ -26,10 +26,10 @@ const supplierSchema = new Schema({
         type: { type: String, default: null },
         addressLine1: { type: String, default: null },
         addressLine2: { type: String, default: null },
-        city: { type: String, default: null },
-        state: { type: String, default: null },
+        city: { type: Number,  default: null  },
+        state: { type: Number,   default: null },
         postalCode: { type: String, default: null },
-        country: { type: String, default: null },
+        country: { type: Number,   default: null },
         lat: { type: String, default: null, },
         long: { type: String, default: null, },
     },
@@ -72,8 +72,24 @@ supplierSchema.pre("save", async function (next) {
         next(err);
     }
 });
-  
-
+supplierSchema.virtual('country', {
+    ref: 'Country',
+    localField: 'addresses.country', // nested field
+    foreignField: '_id',         // assuming Country schema has "country"
+    justOne: true
+  });
+  supplierSchema.virtual('city', {
+    ref: 'City',
+    localField: 'addresses.city', // nested field
+    foreignField: '_id',         // assuming Country schema has "country"
+    justOne: true
+  });
+  supplierSchema.virtual('state', {
+    ref: 'State',
+    localField: 'addresses.state', // nested field
+    foreignField: '_id',         // assuming Country schema has "country"
+    justOne: true
+  });
 supplierSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('Supplier', supplierSchema);

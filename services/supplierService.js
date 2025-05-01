@@ -8,15 +8,15 @@ const SupplierDiscount = require('../models/SupplierDiscount'); // adjust path a
 class SupplierService {
 
     /** Save Supplier **/
-    async saveSupplier(req) { 
+    async saveSupplier(req) {
         try {
             const { id } = req.params;
-            const { companyName, companyPhone,status, companyEmail, contactInfo, discounts,addresses } = req.body;
+            const { companyName, companyPhone, status, companyEmail, contactInfo, discounts, addresses } = req.body;
             // Validate the email
             if (!companyEmail || !companyEmail.trim()) {
                 throw { message: 'Email cannot be empty', statusCode: 400 };
             }
-            const lowerCaseEmail = companyEmail.trim().toLowerCase(); 
+            const lowerCaseEmail = companyEmail.trim().toLowerCase();
             let discountIds = [];
 
             if (Array.isArray(discounts) && discounts.length > 0) {
@@ -29,14 +29,14 @@ class SupplierService {
                 companyEmail: lowerCaseEmail,
                 status: status ?? 1,
                 contactInfo: contactInfo,
-                discounts: discountIds, 
-                addresses: addresses ?? [], 
+                discounts: discountIds,
+                addresses: addresses ?? [],
                 // supplierId:'',
                 createdBy: req?.user?.id || null,
                 updatedBy: req?.user?.id || null,
-            }
- 
-            
+            };
+
+
             // Check if we're updating
             if (id) {
                 if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -80,19 +80,68 @@ class SupplierService {
                 { $match: query },
 
                 // Example $lookup - adjust this according to your schema
-                /* {
+                // Country lookup
+                {
                     $lookup: {
-                        from: 'users', // target collection to join
-                        localField: 'userId', // local field in supplierModel
-                        foreignField: '_id',  // field in users collection
-                        as: 'userDetails'
+                        from: 'countries', // collection name (lowercase plural usually)
+                        localField: 'addresses.country',
+                        foreignField: '_id',
+                        as: 'country'
                     }
                 },
-                { $unwind: { path: '$userDetails', preserveNullAndEmptyArrays: true } }, */
+                { $unwind: { path: '$country', preserveNullAndEmptyArrays: true } },
+
+                // State lookup
+                {
+                    $lookup: {
+                        from: 'states',
+                        localField: 'addresses.state',
+                        foreignField: '_id',
+                        as: 'state'
+                    }
+                },
+                { $unwind: { path: '$state', preserveNullAndEmptyArrays: true } },
+
+                // City lookup
+                {
+                    $lookup: {
+                        from: 'cities',
+                        localField: 'addresses.city',
+                        foreignField: '_id',
+                        as: 'city'
+                    }
+                },
+                { $unwind: { path: '$city', preserveNullAndEmptyArrays: true } },
+
 
                 // Optional sort
                 { $sort: sort },
-
+                // Optional projection to only return required fields
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        supplierId: 1,
+                        companyName: 1,
+                        companyEmail: 1,
+                        companyPhone: 1,
+                        status: 1,
+                        isDeleted: 1,
+                        contactInfo: 1,
+                        addresses: 1,
+                        discounts: 1,
+                        teamMembers: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        createdBy: 1,
+                        updatedBy: 1,
+            
+                        // Include only _id and name from each populated field
+                        country: { _id: '$country._id', name: '$country.name' },
+                        state: { _id: '$state._id', name: '$state.name' },
+                        city: { _id: '$city._id', name: '$city.name' }
+                    }
+                },
                 // Pagination
                 { $skip: skip },
                 { $limit: limit }
@@ -144,10 +193,9 @@ class SupplierService {
             } else if (query.status === "1" || query.status === 1) {
                 conditionArr.push({ status: 1 });
             }
-            
+
         }
-     console.log(conditionArr,'conditionArr');
-     
+
 
         // Add search conditions if 'search_string' is provided
         if (query.search_string !== undefined && query.search_string !== "") {
@@ -197,10 +245,10 @@ class SupplierService {
             };
         }
     }
-        async getSupplierById(id) {
-            return await supplierModel.findById(id).populate('discounts') ;
-        }
-    
+    async getSupplierById(id) {
+        return await supplierModel.findById(id).populate(['discounts', 'country', 'city', 'state']);
+    }
+
 
 
 }

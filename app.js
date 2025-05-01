@@ -10,13 +10,18 @@ const app = Express();
 
 
 const corsOptions = {
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  };
+  origin: [
+    'http://localhost:3000', 
+    'https://eurotiles-admin.netqom.com', 
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
   
   app.use(cors(corsOptions)); 
+    
+  // app.use(cors()); 
 /***** for parsing Cookie Parser ****/
 app.use(cookieParser());
 /***for parsing application/json***/
