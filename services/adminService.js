@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
 const { sendVerificationEmail } = require("../services/emailService");
+const {getClientUrlByRole} = require('../_helpers/common');
 
 class AdminService {
 
@@ -289,7 +290,8 @@ class AdminService {
             // Generate a new verification token
             const token = helpers.randomString(20);
             user.token = token;
-            const verificationLink = `${process.env.CLIENT_URL}/admin/verify/${token}`;
+            const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
+            const verificationLink = `${CLIENT_URL}/admin/verify/${token}`;
             console.log(verificationLink, "verificationLinkverificationLink");
 
             await user.save();

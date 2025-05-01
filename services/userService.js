@@ -37,22 +37,22 @@ class UserService {
 		const userId = req.user?.id;
 		const user = await userModel.findOne({ _id: userId }).populate({ path: 'roles', select: '_id name module permissions', populate: { path: 'permissions', select: "_id name slug" } }).select("+password");
 		if (!user) throw new Error("User not found");
-		return user
+		return user;
 	}
 
 	async authenticateUser(req) {
-		const { email, password, for_admin } = req.body;
+		const { email, password, for_which_role } = req.body;
 		let lowerCaseEmail = email.toLowerCase();
 		let conditions = {};
-		if (for_admin) {
-			conditions = { email: lowerCaseEmail, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } }
+		if (for_which_role == "admin") {
+			conditions = { email: lowerCaseEmail, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
 		} else {
-			conditions = { email: lowerCaseEmail, roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } }
+			conditions = { email: lowerCaseEmail, roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
 		}
 
 		const user = await userModel.findOne(conditions).populate({ path: 'roles', select: '_id name module permissions', populate: { path: 'permissions', select: "_id name slug" } }).select("+password");
-	
-		
+
+
 		if (!user) throw new Error("User not found");
 		if (user.status === 0) throw new Error("Your account is inactive");
 
@@ -66,11 +66,10 @@ class UserService {
 			{
 				id: user._id,
 				user_id: user._id,
-				email: lowerCaseEmail, 
+				email: lowerCaseEmail,
 				role_name: user.rolename,
-				role: user.role,
 				roles: user.roles,
-				status: user.status, 
+				status: user.status,
 				full_name: user.fullname,
 				user_image: user.user_image,
 				first_name: user.first_name,
@@ -170,39 +169,84 @@ class UserService {
 		}
 	}
 
-	/*** ForgotPassword Mentod By Email ***/
-	async forgotPassword(req) {
-		const { email, for_admin } = req.body;
+	/*** Forgot Password Method By Email ***/
+	async forgotPassword(req, res) {
+		try {
+			const { email, for_which_role } = req.body;
 
-		let lowerCaseEmail = email.toLowerCase();
-		let conditions = {};
-		if (for_admin) {
-			conditions = { email: lowerCaseEmail, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } }
-		} else {
-			conditions = { email: lowerCaseEmail, roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } }
+			if (!email) {
+				return res.status(400).json({ message: 'Email is required.' });
+			}
+
+			const lowerCaseEmail = email.toLowerCase();
+			let conditions = {};
+
+			if (for_which_role == "admin") {
+				conditions = {
+					email: lowerCaseEmail,
+					roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
+				};
+			} else {
+				conditions = {
+					email: lowerCaseEmail,
+					roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
+				};
+			}
+
+			const user = await userModel.findOne(conditions);
+
+			if (!user) {
+				return res.status(404).json({ message: 'User not found.' });
+			}
+
+			const token = helpers.randomString(20);
+			user.token = token;
+			await user.save();
+
+			// You may also send email here using your mail service
+
+			return res.status(200).json({ message: 'Reset token generated successfully.', token });
+		} catch (error) {
+			console.error('Forgot Password Error:', error);
+			return res.status(500).json({
+				message: error.message || 'Something went wrong while generating the reset token.',
+			});
 		}
-		// const user = await userModel.findOne(conditions).select("+password");
-		const user = await userModel.findOne(conditions);
-		if (!user) throw new Error("User not found");
-		const token = helpers.randomString(20);
-		user.token = token;
-		await user.save();
-		return token;
 	}
 
-	/*** Reset Password Mentod By Email ***/
-	async resetPassword(req) {
-		const { token, password, for_admin } = req.body;
-		let conditions = { token: token };
-		const user = await userModel.findOne(conditions);
-		if (!user) throw new Error("Invalid or expired token");
-		const genSalt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, genSalt); // Hash the password
-		user.password = hashedPassword;
-		user.token = null;
-		await user.save();
-		return true;
+
+	/*** Reset Password Method By Email ***/
+	async resetPassword(req, res) {
+		try {
+			const { token, password, for_admin } = req.body;
+
+			if (!token || !password) {
+				return res.status(400).json({ message: 'Token and password are required.' });
+			}
+
+			const user = await userModel.findOne({ token });
+
+			if (!user) {
+				return res.status(401).json({ message: 'Invalid or expired token.' });
+			}
+
+			const salt = await bcrypt.genSalt(10);
+			const hashedPassword = await bcrypt.hash(password, salt);
+
+			user.password = hashedPassword;
+			user.token = null;
+
+			await user.save();
+
+			return res.status(200).json({ message: 'Password reset successful.' });
+		} catch (error) {
+			console.error('Reset Password Error:', error);
+			return res.status(error.statusCode || 500).json({
+				message: error.message || 'Something went wrong while resetting the password.'
+			});
+		}
 	}
+
 
 	async updateUserPassword(req) {
 		const { currentpassword, newpassword, confirmpassword } = req.body;

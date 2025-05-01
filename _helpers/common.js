@@ -46,6 +46,27 @@ const helpers = {
 	toUnderscoreCase: function (str) {
 		return str.replace(/([a-z])([A-Z])/g, '$1_$2') // Insert underscore between lowercase and uppercase letters
 				  .toLowerCase(); // Convert to lowercase
+	},
+
+	getClientUrlByRole: function(userRoles = []) {
+		try {
+			const roleDomainList = JSON.parse(process.env.ROLES_DOMAINS_JSON || '[]');
+	
+			// Ensure roles are in array form
+			const rolesArray = Array.isArray(userRoles) ? userRoles : [userRoles];
+	
+			// Find the first role that matches a name in the domain list
+			const matched = roleDomainList.find(item => rolesArray.includes(item.name));
+	
+			if (!matched) {
+				throw new Error(`No domain configured for roles: ${rolesArray.join(', ')}`);
+			}
+	
+			return matched.domain; // Return the matched domain URL
+		} catch (err) {
+			console.error('Error getting client URL by role:', err.message);
+			throw new Error('Failed to determine client URL based on role');
+		}
 	}
 }
 

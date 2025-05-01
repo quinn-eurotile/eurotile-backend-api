@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const {getClientUrlByRole} = require('../_helpers/common');
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -14,21 +15,21 @@ const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /** Send Email Verification Email ***/
 const sendVerificationEmail = (req, verificationLink) => {
-
+    const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/send_verification_email_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+    const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
     // Replace placeholders in the template
-    const emailContent = emailTemplate.replace('[USER_NAME]', capitalize(req.body.name))
+    const emailContent = emailTemplate.replace('[USER_NAME]', capitalize(req?.body?.name))
         .replace('[LOGO]', logo)
-        .replace('[CLIENT_URL]', process.env.CLIENT_URL)
-        .replace('[APP_NAME]', process.env.APP_NAME)
+        .replace('[CLIENT_URL]', process?.env?.CLIENT_URL)
+        .replace('[APP_NAME]', process?.env?.APP_NAME)
         .replace('[VERIFICATION_LINK]', verificationLink);
 
     // Send the email
     const mailOptions = {
-        from: `<${process.env.SMTP_USER}>`,
-        to: req.body.email,
+        from: `<${process?.env?.SMTP_USER}>`,
+        to: req?.body?.email,
         subject: 'Email Verification',
         html: emailContent
     };
@@ -37,17 +38,17 @@ const sendVerificationEmail = (req, verificationLink) => {
 
 /** Register Time Send Email ***/
 const sendWelcomeEmail = (req) => {
-
+    const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/welcome_email_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+    const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
     const emailContent = emailTemplate.replace('[USER_NAME]', req.body.first_name + ` ` + req.body.last_name)
-        .replace('[CLIENT_URL]', process.env.CLIENT_URL)
+        .replace('[CLIENT_URL]', CLIENT_URL)
         .replace('[APP_NAME]', process.env.APP_NAME)
         .replace('[EMAIL]', req.body.email)
         .replace('[PASSWORD]', req.body.password)
         .replace('[LOGO]', logo)
-        .replace('[LOGIN_URL]', `${process.env.CLIENT_URL}/user/login`);
+        .replace('[LOGIN_URL]', `${CLIENT_URL}/user/login`);
 
     // Send the email
     const mailOptions = {
@@ -63,14 +64,15 @@ const sendWelcomeEmail = (req) => {
 
 /** Forgot Password Send Email ***/
 const forgotPasswordEmail = (req, token) => {
+    const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
     // Read the HTML template
     const emailTemplate = require('fs').readFileSync('views/emails/forgot_password_template.html', 'utf-8');
-    const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
-    const resetPassLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
+    const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+    let resetPassLink = `${CLIENT_URL}/reset-password/${token}`;
     // Replace placeholders in the template
     const emailContent = emailTemplate.replace('[USER_NAME]', 'User')
         .replace('[LOGO]', logo)
-        .replace('[CLIENT_URL]', process.env.CLIENT_URL)
+        .replace('[CLIENT_URL]', CLIENT_URL)
         .replace('[APP_NAME]', process.env.APP_NAME)
         .replace('[RESET_PASSWORD_LINK]', resetPassLink);
 

@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
 const supplierService = require('../services/supplierService');
+const {getClientUrlByRole} = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
 const writeFileAsync = util.promisify(Fs.writeFile);
@@ -37,10 +38,11 @@ module.exports = class AdminController {
 
     /*** Save New Team member Data ****/
     async createTeamMember(req, res) {
-        try {
+        try {            
             const user = await adminService.createTeamMember(req);
-           const verificationLink = `${process.env.CLIENT_URL}/reset-password/${user.token}`;
-            sendVerificationEmail(req, verificationLink); 
+            const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
+            const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
+            sendVerificationEmail(req, verificationLink);
             return res.json({ type: "success", message: "Team member created successfully", data: user, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -87,6 +89,7 @@ module.exports = class AdminController {
             return res.status(201).json({ message: 'Supplier created successfully.', user: result, });
             return res.status(error.statusCode || 500).json({ message: error.message });
         } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
 
@@ -110,19 +113,97 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+
+    /** Get Supplier By Their Id */
     async getSupplierById(req, res) {
         try {
             const userId = req?.params?.id;
-            const supplierData =    await supplierService.getSupplierById(userId);
-            return res.status(200).send({ message: 'Supplier get successfully', data: supplierData }); 
+            const supplierData = await supplierService.getSupplierById(userId);
+            return res.status(200).json({ message: 'Supplier get successfully', data: supplierData });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
 
-    
 
-    
+    /** Admin Dashboard  **/
+    async dashboardData(req, res) {
+        try {
+            const data = await adminService.dashboardData(req);
+            res.send({ message: "", data: data });
+        } catch (error) {
+            res.send({ type: 'failure', message: error.message });
+        }
+    }
+
+    /** Logout Method **/
+    async logoutUser(req, res) {
+        try {
+            await userService.logoutUser(req);
+            return res.status(200).json({ message: 'Logout successfully', data: updatedUser });
+        } catch (error) {
+            return res.status(200).json({ type: 'failure', message: error.message });
+        }
+    }
+
+    /** Login User Method **/
+    async loginUser(req, res) {
+        try {
+            req.body.for_which_role = 'admin';
+            const data = await userService.authenticateUser(req);
+            return res.status(200).json({ message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Forgot Password Method **/
+    async forgotPassword(req, res) {
+        try {
+            req.body.for_which_role = 'admin';
+            const token = await userService.forgotPassword(req);
+            forgotPasswordEmail(req, token);
+            return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Reset Password Method **/
+    async resetPassword(req, res) {
+        try {
+            req.body.for_which_role = 'admin';
+            await userService.resetPassword(req);
+            return res.status(200).json({ message: 'Password reset successfully' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /*********************verified email******/
+    async verifyEmail(req, res) {
+        try {
+            await adminService.verifyEmail(req);
+            return res.json({ type: "success", message: "Email verified successfully" });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
+        }
+    }
+
+
+    /*********************Resend email******/
+    async resendEmail(req, res) {
+        try {
+            await adminService.resendEmail(req);
+            return res.json({ type: "success", message: "Email resend successfully" });
+        } catch (error) {
+            return res.json({ type: "failure", message: error.message });
+        }
+    }
+
+
+
+
     /** Update User Profile */
     async updateUserProfile(req, res) {
         try {
@@ -181,81 +262,5 @@ module.exports = class AdminController {
     }
 
 
-    /** Admin Dashboard  **/
-    async dashboardData(req, res) {
-        try {
-            const data = await adminService.dashboardData(req);
-            res.send({ message: "", data: data });
-        } catch (error) {
-            res.send({ type: 'failure', message: error.message });
-        }
-    }
-
-    /*********************Logou User ANd Update Column ******/
-    async logoutUser(req, res) {
-        try {
-            await userService.logoutUser(req);
-            res.status(200).send({ message: "Admin logout successfully" });
-        } catch (error) {
-            res.status(200).send({ type: 'failure', message: error.message });
-        }
-    }
-
-
-
-    async loginUser(req, res) {
-        try {
-            req.body.for_admin = true;
-            const data = await userService.authenticateUser(req);
-            res.status(200).send({ message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
-        } catch (error) {
-            res.status(401).send({ type: 'failure', message: error.message });
-        }
-    }
-
-
-
-    async forgotPassword(req, res) {
-        try {
-            req.body.for_admin = true;
-            const token = await userService.forgotPassword(req);
-            forgotPasswordEmail(req, token);
-            res.status(200).send({ status: 200, message: 'Password reset email sent successfully' });
-        } catch (error) {
-            res.status(404).send({ status: 404, type: 'failure', message: error.message });
-        }
-    }
-
-
-    async resetPassword(req, res) {
-        try {
-            req.body.for_admin = false;
-            await userService.resetPassword(req);
-            res.send({ message: 'Password reset successfully' });
-        } catch (error) {
-            res.send({ type: 'failure', message: error.message });
-        }
-    }
-
-    /*********************verified email******/
-    async verifyEmail(req, res) {
-        try {
-            await adminService.verifyEmail(req);
-            return res.json({ type: "success", message: "Email verified successfully" });
-        } catch (error) {
-            return res.json({ type: "failure", message: error.message });
-        }
-    }
-
-
-    /*********************Resend email******/
-    async resendEmail(req, res) {
-        try {
-            await adminService.resendEmail(req);
-            return res.json({ type: "success", message: "Email resend successfully" });
-        } catch (error) {
-            return res.json({ type: "failure", message: error.message });
-        }
-    }
 
 };
