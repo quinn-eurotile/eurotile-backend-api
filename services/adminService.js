@@ -239,7 +239,49 @@ class AdminService {
             };
         }
     }
-
+    async updateTeamMemberStatusById(req) {
+        try {
+          const { status } = req.body
+          const { id } = req.params
+      
+          // Validate ID
+          if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw {
+              message: 'Invalid team member ID',
+              statusCode: 400
+            }
+          }
+      
+          // Validate status value (0 or 1 only)
+          if (![0, 1].includes(status)) {
+            throw {
+              message: 'Invalid status value. Allowed values are 0 (Inactive) or 1 (Active)',
+              statusCode: 400
+            }
+          }
+      
+          const updatedUser = await userModel.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+          )
+      
+          if (!updatedUser) {
+            throw {
+              message: 'User not found',
+              statusCode: 404
+            }
+          }
+      
+          return updatedUser
+        } catch (error) {
+          throw {
+            message: error?.message || 'Failed to update team member status',
+            statusCode: error?.statusCode || 500
+          }
+        }
+      }
+      
 
     async softDeleteTeamMember(userId) {
         try {

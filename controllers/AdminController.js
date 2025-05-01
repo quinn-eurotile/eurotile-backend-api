@@ -56,6 +56,14 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+    async updateTeamMemberStatus(req, res) {
+        try {
+          const updatedUser = await adminService.updateTeamMemberStatusById(req)
+          return res.status(200).send({ message: 'Team member status updated successfully', data: updatedUser })
+        } catch (error) {
+          return res.status(error.statusCode || 500).json({ message: error.message })
+        }
+      }
 
     /** Delete Team Member By Api Request */
     async deleteTeamMember(req, res) {
