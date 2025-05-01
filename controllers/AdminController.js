@@ -39,7 +39,8 @@ module.exports = class AdminController {
     async createTeamMember(req, res) {
         try {
             const user = await adminService.createTeamMember(req);
-            sendVerificationEmail(req, user?.token); //send email to the user
+           const verificationLink = `${process.env.CLIENT_URL}/reset-password/${user.token}`;
+            sendVerificationEmail(req, verificationLink); 
             return res.json({ type: "success", message: "Team member created successfully", data: user, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

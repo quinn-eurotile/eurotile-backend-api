@@ -8,6 +8,10 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+
+// Capitalize helper
+const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
 /** Send Email Verification Email ***/
 const sendVerificationEmail = (req, verificationLink) => {
 
@@ -15,7 +19,7 @@ const sendVerificationEmail = (req, verificationLink) => {
     const emailTemplate = require('fs').readFileSync('views/emails/send_verification_email_template.html', 'utf-8');
     const logo = `${process.env.CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
     // Replace placeholders in the template
-    const emailContent = emailTemplate.replace('[USER_NAME]', req.body.first_name + ` ` + req.body.last_name)
+    const emailContent = emailTemplate.replace('[USER_NAME]', capitalize(req.body.name))
         .replace('[LOGO]', logo)
         .replace('[CLIENT_URL]', process.env.CLIENT_URL)
         .replace('[APP_NAME]', process.env.APP_NAME)
