@@ -96,7 +96,6 @@ module.exports = class AdminController {
         try {
             const result = await supplierService.saveSupplier(req);
             return res.status(201).json({ message: 'Supplier created successfully.', user: result, });
-            return res.status(error.statusCode || 500).json({ message: error.message });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }

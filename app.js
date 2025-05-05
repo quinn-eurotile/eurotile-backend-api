@@ -12,7 +12,7 @@ const app = Express();
 const corsOptions = {
   origin: [
     'http://localhost:3000', 
-    'https://eurotiles-admin.netqom.com', 
+    'https://eurotiles-admin.myfileshosting.com', 
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
