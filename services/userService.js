@@ -175,7 +175,10 @@ class UserService {
 			const { email, for_which_role } = req.body;
 
 			if (!email) {
-				return res.status(400).json({ message: 'Email is required.' });
+				throw {
+                    message: 'Email is required.',
+                    statusCode: 400
+                };
 			}
 
 			const lowerCaseEmail = email.toLowerCase();
@@ -196,21 +199,21 @@ class UserService {
 			const user = await userModel.findOne(conditions);
 
 			if (!user) {
-				return res.status(404).json({ message: 'User not found.' });
+				throw {
+                    message: 'User not found.',
+                    statusCode: 404
+                };
 			}
 
 			const token = helpers.randomString(20);
 			user.token = token;
 			await user.save();
-
-			// You may also send email here using your mail service
-
-			return res.status(200).json({ message: 'Reset token generated successfully.', token });
+			return token;
 		} catch (error) {
-			console.error('Forgot Password Error:', error);
-			return res.status(500).json({
-				message: error.message || 'Something went wrong while generating the reset token.',
-			});
+			throw {
+                message: error?.message || 'Failed to update team member status',
+                statusCode: error?.statusCode || 500
+            };
 		}
 	}
 
@@ -221,13 +224,20 @@ class UserService {
 			const { token, password, for_admin } = req.body;
 
 			if (!token || !password) {
-				return res.status(400).json({ message: 'Token and password are required.' });
+				throw {
+                    message:  'Token and password are required.',
+                    statusCode: 400
+                };
+				
 			}
 
 			const user = await userModel.findOne({ token });
 
 			if (!user) {
-				return res.status(401).json({ message: 'Invalid or expired token.' });
+				throw {
+                    message:  'Invalid or expired token.',
+                    statusCode: 401
+                };
 			}
 
 			const salt = await bcrypt.genSalt(10);
@@ -236,14 +246,12 @@ class UserService {
 			user.password = hashedPassword;
 			user.token = null;
 
-			await user.save();
-
-			return res.status(200).json({ message: 'Password reset successful.' });
+			return await user.save();
 		} catch (error) {
-			console.error('Reset Password Error:', error);
-			return res.status(error.statusCode || 500).json({
-				message: error.message || 'Something went wrong while resetting the password.'
-			});
+			throw {
+                message: error?.message || 'Failed to update team member status',
+                statusCode: error?.statusCode || 500
+            };
 		}
 	}
 

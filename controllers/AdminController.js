@@ -2,7 +2,7 @@ const userService = require('../services/userService');
 const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
 const supplierService = require('../services/supplierService');
-const {getClientUrlByRole} = require('../_helpers/common');
+const { getClientUrlByRole } = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
 const writeFileAsync = util.promisify(Fs.writeFile);
@@ -38,7 +38,7 @@ module.exports = class AdminController {
 
     /*** Save New Team member Data ****/
     async createTeamMember(req, res) {
-        try {            
+        try {
             const user = await adminService.createTeamMember(req);
             const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
             const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
@@ -58,14 +58,15 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+    
     async updateTeamMemberStatus(req, res) {
         try {
-          const updatedUser = await adminService.updateTeamMemberStatusById(req)
-          return res.status(200).send({ message: 'Team member status updated successfully', data: updatedUser })
+            const updatedUser = await adminService.updateTeamMemberStatusById(req);
+            return res.status(200).send({ message: 'Team member status updated successfully', data: updatedUser });
         } catch (error) {
-          return res.status(error.statusCode || 500).json({ message: error.message })
+            return res.status(error.statusCode || 500).json({ message: error.message });
         }
-      }
+    }
 
     /** Delete Team Member By Api Request */
     async deleteTeamMember(req, res) {
@@ -168,8 +169,9 @@ module.exports = class AdminController {
     /** Forgot Password Method **/
     async forgotPassword(req, res) {
         try {
+           
             req.body.for_which_role = 'admin';
-            const token = await userService.forgotPassword(req);
+            const token = await userService.forgotPassword(req);            
             forgotPasswordEmail(req, token);
             return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });
         } catch (error) {

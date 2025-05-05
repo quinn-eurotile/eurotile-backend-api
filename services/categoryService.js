@@ -70,7 +70,17 @@ class Category {
 
         return builtQuery;
     }
-
+    async allCategoriesList() {
+        try {
+            return await categoryModel
+                .find({ isDeleted: false }) // optional filter
+                .sort({ _id: -1 })          // sort newest first
+                .populate('parent', '_id name');
+        } catch (error) {
+            throw error;
+        }
+    }
+    
     async categoriesList(query, options) {
         try {
             return await categoryModel.paginate(query, options);

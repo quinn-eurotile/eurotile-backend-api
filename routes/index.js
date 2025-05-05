@@ -17,6 +17,10 @@ routes.use(`/api/${API_V}/location`, locationRoutes);
 const categoryRoutes = require('./CategoryRoutes');
 routes.use(`/api/${API_V}/category`, categoryRoutes);
 
+/************* Categories route**************/
+const taxRoutes = require('./TaxRoutes');
+routes.use(`/api/${API_V}/admin`, taxRoutes);
+
 
 
 module.exports = routes;

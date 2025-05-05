@@ -1,8 +1,8 @@
 const categoryService = require('../services/categoryService');
-const mongoose = require('mongoose');
+const commonService = require('../services/commonService');
 const constants = require('../configs/constant');
 
-module.exports = class AdminController {
+module.exports = class CategoryController {
 
     /** Save Category **/
     async saveCategory(req, res) {
@@ -46,9 +46,9 @@ module.exports = class AdminController {
             const id = req.params.id;
             const category = await categoryService.getCategoryById(id);
             if (!category) return res.status(404).json({ message: 'Category not found' });
-            res.json({ data: category });
-        } catch (err) {
-            res.status(500).json({ success: false, message: err.message });
+            return res.status(200).json({ message: 'Category fetch successfully' });
+        } catch (error) {
+            return res.status(error?.statusCode || 500).json({ message: error?.message });
         }
     }
 
@@ -56,9 +56,29 @@ module.exports = class AdminController {
     async categoriesList(req, res) {
         try {
             const query = await categoryService.buildCategoriesListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
-            const teamMembers = await categoryService.categoriesList(query, options);
-            return res.status(200).json({ data: teamMembers, message: 'Category list get successfully.' });
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate: { path: 'parent', select: '_id name' } };
+            const data = await categoryService.categoriesList(query, options);
+            return res.status(200).json({ data: data, message: 'Category list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+    async allCategoriesList(req, res) {
+        try {          
+            const data = await categoryService.allCategoriesList(); 
+            return res.status(200).json({ data: data, message: 'Category list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+
+
+    /** Update Category Status **/
+    async updateCategoryStatus(req, res) {
+        try {
+            const data = await commonService.updateStatusById(req,'Category', [0, 1]);
+            return res.status(200).send({ message: 'Category status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }

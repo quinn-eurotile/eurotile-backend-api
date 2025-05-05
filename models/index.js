@@ -14,7 +14,8 @@ const SupportTicketMsg = require('./SupportTicketMsg');
 const UserBusiness = require('./UserBusiness');
 const UserBusinessDocument = require('./UserBusinessDocument');
 const Category = require('./Category');
+const Tax = require('./Tax');
 
 
 
-module.exports = { Category,SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketDoc, SupportTicketMsg, UserBusinessDocument, UserBusiness };
+module.exports = { Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketDoc, SupportTicketMsg, UserBusinessDocument, UserBusiness };
