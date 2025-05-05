@@ -10,10 +10,9 @@ module.exports = class AdminController {
             if (req.method === 'POST') {
                 data.createdBy = req?.user?.id;
                 const taxData = await taxService.saveTax(null, data);
-                return res.status(201).json({ data: taxData, message: 'Record saved successfully' });
+                return res.status(201).json({ data: taxData, message: 'Tax record created successfully.' });
             }
             if (req.method === 'PUT' && req?.params?.id) {
-                console.log('ttttt',req?.params?.id);
                 data.updatedBy = req?.user?.id;
                 const updated = await taxService.saveTax(req.params.id, data);
                 if (!updated) {

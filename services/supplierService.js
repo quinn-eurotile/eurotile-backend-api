@@ -202,6 +202,7 @@ class SupplierService {
             conditionArr.push({
                 $or: [
                     { companyName: new RegExp(query.search_string, "i") },
+                    { supplierId: new RegExp(query.search_string, "i") },
                     { companyEmail: new RegExp(query.search_string, "i") },
                     { companyPhone: new RegExp(query.search_string, "i") },
                 ],
