@@ -9,6 +9,7 @@ const userSchema = new Schema({
     password: { type: String },
     emailVerifiedAt: { type: Date, default: Date.now },
     status: { type: Number, default: 0 }, // 1 = Active, 0 = Inactive, 2 = Pending  
+    accept_term: { type: Number, default: 0 }, // 1 = Yes, 0 = No  
     lastLoginDate: { type: Date, default: Date.now },
     token: { type: String, default: null },
     addresses: {

@@ -21,6 +21,13 @@ routes.use(`/api/${API_V}/category`, categoryRoutes);
 const taxRoutes = require('./TaxRoutes');
 routes.use(`/api/${API_V}/admin`, taxRoutes);
 
+/************* Trade Professional route**************/
+const tradeProfessionalRoutes = require('./TradeProfessionalRoutes');
+routes.use(`/api/${API_V}`, tradeProfessionalRoutes);
+
+
+
+
 
 
 module.exports = routes;

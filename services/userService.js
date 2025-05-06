@@ -53,14 +53,19 @@ class UserService {
 		const user = await userModel.findOne(conditions).populate({ path: 'roles', select: '_id name module permissions', populate: { path: 'permissions', select: "_id name slug" } }).select("+password");
 
 
-		if (!user) throw new Error("User not found");
-		if (user.status === 0) throw new Error("Your account is inactive");
+		if (!user) {
+			throw { message: 'User not found', statusCode: 404 };
+		}
+
+		if (user.status === 0 || user.status === 2) {
+			throw { message: `${user.status === 0 ? 'Your account is inactive' : 'Your account is pending for verification'}`, statusCode: 403 };
+		}
 
 		const match = await bcrypt.compare(password.trim(), user.password.trim());
-		if (!match) throw new Error("Passwords do not match");
-		if (user.status === 2) {
-			throw new Error("Your account is inactive");
+		if (!match) {
+			throw { message: 'Passwords do not match', statusCode: 401 };
 		}
+
 		// Generate JWT token
 		const token = jwt.sign(
 			{
@@ -176,9 +181,9 @@ class UserService {
 
 			if (!email) {
 				throw {
-                    message: 'Email is required.',
-                    statusCode: 400
-                };
+					message: 'Email is required.',
+					statusCode: 400
+				};
 			}
 
 			const lowerCaseEmail = email.toLowerCase();
@@ -200,9 +205,9 @@ class UserService {
 
 			if (!user) {
 				throw {
-                    message: 'User not found.',
-                    statusCode: 404
-                };
+					message: 'User not found.',
+					statusCode: 404
+				};
 			}
 
 			const token = helpers.randomString(20);
@@ -211,9 +216,9 @@ class UserService {
 			return token;
 		} catch (error) {
 			throw {
-                message: error?.message || 'Failed to update team member status',
-                statusCode: error?.statusCode || 500
-            };
+				message: error?.message || 'Failed to update team member status',
+				statusCode: error?.statusCode || 500
+			};
 		}
 	}
 
@@ -225,19 +230,19 @@ class UserService {
 
 			if (!token || !password) {
 				throw {
-                    message:  'Token and password are required.',
-                    statusCode: 400
-                };
-				
+					message: 'Token and password are required.',
+					statusCode: 400
+				};
+
 			}
 
 			const user = await userModel.findOne({ token });
 
 			if (!user) {
 				throw {
-                    message:  'Invalid or expired token.',
-                    statusCode: 401
-                };
+					message: 'Invalid or expired token.',
+					statusCode: 401
+				};
 			}
 
 			const salt = await bcrypt.genSalt(10);
@@ -249,9 +254,9 @@ class UserService {
 			return await user.save();
 		} catch (error) {
 			throw {
-                message: error?.message || 'Failed to update team member status',
-                statusCode: error?.statusCode || 500
-            };
+				message: error?.message || 'Failed to update team member status',
+				statusCode: error?.statusCode || 500
+			};
 		}
 	}
 

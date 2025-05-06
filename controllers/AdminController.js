@@ -2,6 +2,7 @@ const userService = require('../services/userService');
 const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
 const supplierService = require('../services/supplierService');
+const tradeProfessionalService = require('../services/tradeProfessionalService');
 const { getClientUrlByRole } = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
@@ -11,6 +12,40 @@ const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 
 module.exports = class AdminController {
+
+    /** Get Trade Professional List **/
+    async tradeProfessionalList(req, res) {
+        try {
+            const query = await tradeProfessionalService.buildTradeProfessionalListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const data = await tradeProfessionalService.tradeProfessionalList(query, options);
+            return res.status(200).json({ data: data, message: 'Trade professional list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Trade Professional By Their Id */
+    async getTradeProfessionalById(req, res) {
+        try {
+            const userId = req?.params?.id;
+            const data = await tradeProfessionalService.getTradeProfessionalById(userId);
+            return res.status(200).json({ message: 'Trade professional get successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Delete Trade Professional By Api Request */
+    async deleteTradeProfessional(req, res) {
+        try {
+            const userId = req?.params?.id;
+            await tradeProfessionalService.softDeleteTradeProfessional(userId);
+            return res.status(200).json({ message: "Trade professional deleted successfully." });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
 
     /*** Register New Admin **/
     async registerAdmin(req, res) {

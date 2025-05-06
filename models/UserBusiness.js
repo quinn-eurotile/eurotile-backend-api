@@ -2,12 +2,12 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const userBusinessSchema = new Schema({
-    name: { type: String, required: true, maxlength: 200 },
-    email: { type: String, required: true },
-    phone: { type: String, required: true },
-    isVerified: { type: Boolean, default: false },
-    verifyStatus: { type: Number, default: 0 },
-    status: { type: Number, default: 0 },
+    businessName: { type: String, required: true, maxlength: 200 },
+    businessEmail: { type: String, required: true },
+    businessPhone: { type: String, required: true },
+    businessIsVerified: { type: Boolean, default: false },
+    businessVerifyStatus: { type: Number, default: 0 },
+    businessStatus: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
