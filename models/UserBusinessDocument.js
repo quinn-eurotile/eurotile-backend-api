@@ -7,7 +7,12 @@ const userBusinessDocumentSchema = new Schema({
   fileType: {
     type: String,
     enum: ['image', 'video', 'pdf', 'doc', 'spreadsheet', 'other'],
-    required: true,
+    default: 'other',
+  },
+  docType: {
+    type: String,
+    enum: ['business_documnets', 'registration_certificate', 'trade_license', 'proof_of_business','other'],
+    default: 'other',
   },
   filePath: { type: String, required: true },
   fileSize: { type: Number, default: 0 },
