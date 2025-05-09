@@ -203,9 +203,9 @@ module.exports = class AdminController {
     /** Forgot Password Method **/
     async forgotPassword(req, res) {
         try {
-           
             req.body.for_which_role = 'admin';
-            const token = await userService.forgotPassword(req);            
+            console.log('req admin controller',req.body)
+            const token = await userService.forgotPassword(req);
             forgotPasswordEmail(req, token);
             return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });
         } catch (error) {

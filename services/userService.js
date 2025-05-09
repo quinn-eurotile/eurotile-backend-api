@@ -179,6 +179,7 @@ class UserService {
 		try {
 			const { email, for_which_role } = req.body;
 
+
 			if (!email) {
 				throw {
 					message: 'Email is required.',
@@ -215,6 +216,7 @@ class UserService {
 			await user.save();
 			return token;
 		} catch (error) {
+			console.log('Bingo',error)
 			throw {
 				message: error?.message || 'Failed to update team member status',
 				statusCode: error?.statusCode || 500

@@ -32,7 +32,7 @@ const saveTeamMember = (req, res, next) => {
     let validationRule = {
         "name": "required|string",
         "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
-        "phone": id ? `required|numeric|exist_update:User,phone,${id}` : "required|numeric|exist:User,phone",
+        "phone": id ? `required|exist_update:User,phone,${id}` : "required|exist:User,phone",
     };
     
 
@@ -92,10 +92,10 @@ const saveSupplier = (req, res, next) => {
     let validationRule = {
         "companyName": "required|string",
         "companyEmail": id ? `required|email|exist_update:Supplier,companyEmail,${id}` : "required|email|exist:Supplier,companyEmail",
-        "companyPhone": id ? `required|numeric|exist_update:Supplier,companyPhone,${id}` : "required|numeric|exist:Supplier,companyPhone",
-        "addresses.addressLine1": `required|string`,
-        "addresses.city": `required|string`,
-        "addresses.country": `required|string`,
+        "companyPhone": id ? `required|exist_update:Supplier,companyPhone,${id}` : "required|exist:Supplier,companyPhone",
+        "addresses.addressLine1":  `required|string`,
+        "addresses.city":  `required|string`,
+        "addresses.country":  `required|string`, 
     };
 
     if (req.body.companyEmail && typeof req.body.companyEmail === 'string') {

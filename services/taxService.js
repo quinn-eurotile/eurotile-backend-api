@@ -5,24 +5,24 @@ class Tax {
 
     async saveTax(id, data) {
         try {
-          if (!id) {
-            // CREATE
-            return await taxModel.create(data);
-          } else {
-            // VALIDATE ID
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                throw { message: 'Invalid Tax ID', statusCode: 400 };
+            if (!id) {
+                // CREATE
+                return await taxModel.create(data);
+            } else {
+                // VALIDATE ID
+                if (!mongoose.Types.ObjectId.isValid(id)) {
+                    throw { message: 'Invalid Tax ID', statusCode: 400 };
+                }
+
+                // UPDATE
+                const updatedTax = await taxModel.findByIdAndUpdate(id, data, { new: true });
+
+                if (!updatedTax) {
+                    throw { message: 'Tax entry not found', statusCode: 404 };
+                }
+
+                return updatedTax;
             }
-    
-            // UPDATE
-            const updatedTax = await taxModel.findByIdAndUpdate(id, data, { new: true });
-    
-            if (!updatedTax) {
-              throw { message: 'Tax entry not found', statusCode: 404 };
-            }
-    
-            return updatedTax;
-          }
         } catch (error) {
             throw {
                 message: error?.message || 'Error creating team member',
@@ -53,8 +53,8 @@ class Tax {
     }
 
     async getTaxById(id) {
-         // Validate ObjectId format
-         if (!mongoose.Types.ObjectId.isValid(id)) {
+        // Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             throw {
                 message: 'Invalid supplier ID',
                 statusCode: 400
@@ -65,6 +65,8 @@ class Tax {
 
     async buildTaxListQuery(req) {
         const query = req.query;
+
+        // console.log('query build',query)
         const conditionArr = [{ isDeleted: false },];
         if (query.status !== undefined) {
             if (query.status === "0" || query.status === 0) {
@@ -76,13 +78,24 @@ class Tax {
 
         // Add search conditions if 'search_string' is provided
         if (query.search_string !== undefined && query.search_string !== "") {
-            conditionArr.push({
-                $or: [
-                    { customerType: new RegExp(query.search_string, "i") },
-                    { taxPercentage: new RegExp(query.search_string, "i") },
-                ],
-            });
+            const searchString = query.search_string;
+            const searchConditions = [
+                { customerType: new RegExp(searchString, "i") }
+            ];
+
+            // Check if the search string is a valid number
+            const parsedNumber = Number(searchString);
+            if (!isNaN(parsedNumber)) {
+                searchConditions.push({ taxPercentage: parsedNumber });
+            }
+
+            conditionArr.push({ $or: searchConditions });
         }
+
+        console.log('conditionArr', [
+            { customerType: new RegExp(query.search_string, "i") },
+            { taxPercentage: new RegExp(query.search_string, "i") },
+        ]);
 
         // Construct the final query
         let builtQuery = {};
@@ -94,9 +107,10 @@ class Tax {
 
         return builtQuery;
     }
-    
+
     async taxList(query, options) {
         try {
+            console.log('query', query);
             return await taxModel.paginate(query, options);
         } catch (error) {
             throw error;
