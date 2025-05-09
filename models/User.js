@@ -2,6 +2,11 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const userSchema = new Schema({
+     userId: {
+        type: String,
+        unique: true,
+        // required: true
+      },
     email: { type: String, unique: true, required: true, },
     name: { type: String, required: true, },
     phone: { type: String, required: true, },
@@ -33,7 +38,11 @@ const userSchema = new Schema({
     toObject: { virtuals: true },
 });
 
-
+const generateId = () => {
+    const prefix = 'EUR'; // You can change this prefix if needed
+    const randomDigits = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+    return `${prefix}${randomDigits}`;
+  };
 // Sets the created_at parameter equal to the current time
 userSchema.pre("save", async function (next) {
     try {
@@ -41,6 +50,18 @@ userSchema.pre("save", async function (next) {
         this.updatedAt = now;
         if (this.isNew) {
             this.createdAt = now;
+                // Only set userId if not already set
+            if (!this.userId) {
+                let newUserId = generateId();
+
+                // Use this.constructor instead of calling mongoose.model()
+                const UserModel = this.constructor;
+                while (await UserModel.exists({ userId: newUserId })) {
+                    newUserId = generateId();
+                }
+
+                this.userId = newUserId;
+            }
         }
         next();
     } catch (err) {

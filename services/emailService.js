@@ -63,27 +63,33 @@ const sendWelcomeEmail = (req) => {
 
 
 /** Forgot Password Send Email ***/
-const forgotPasswordEmail = (req, token) => {
-    const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
-    // Read the HTML template
-    const emailTemplate = require('fs').readFileSync('views/emails/forgot_password_template.html', 'utf-8');
-    const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
-    let resetPassLink = `${CLIENT_URL}/reset-password/${token}`;
-    // Replace placeholders in the template
-    const emailContent = emailTemplate.replace('[USER_NAME]', 'User')
-        .replace('[LOGO]', logo)
-        .replace('[CLIENT_URL]', CLIENT_URL)
-        .replace('[APP_NAME]', process.env.APP_NAME)
-        .replace('[RESET_PASSWORD_LINK]', resetPassLink);
+const forgotPasswordEmail = async(req, token) => {
+    try {
+        const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/forgot_password_template.html', 'utf-8');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+        let resetPassLink = `${CLIENT_URL}/reset-password/${token}`;
+        // Replace placeholders in the template
+        const emailContent = emailTemplate.replace('[USER_NAME]', 'User')
+            .replace('[LOGO]', logo)
+            .replace('[CLIENT_URL]', CLIENT_URL)
+            .replace('[APP_NAME]', process.env.APP_NAME)
+            .replace('[RESET_PASSWORD_LINK]', resetPassLink);
 
-    // Send the email
-    const mailOptions = {
-        from: `<${process.env.SMTP_USER}>`,
-        to: req.body.email,
-        subject: 'RESET PASSWORD',
-        html: emailContent
-    };
-    return sendEmailCommon(mailOptions);
+        // Send the email
+        const mailOptions = {
+            from: `<${process.env.SMTP_USER}>`,
+            to: req.body.email,
+            subject: 'RESET PASSWORD',
+            html: emailContent
+        };
+        const result = await sendEmailCommon(mailOptions);
+        return result;
+    } catch (error) {
+        console.error('Error in forgotPasswordEmail:', error);
+        return false; // or rethrow or handle however you need
+    }
 
 };
 

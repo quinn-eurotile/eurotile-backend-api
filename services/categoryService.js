@@ -13,8 +13,8 @@ class Category {
 
     async deleteCategory(id) {
         try {
-            // const isUserAssignToCase = await caseModal.findOne({ case_team: { $in: [id] } });
-            // if (isUserAssignToCase) throw new Error("Category is already assigned to another case");
+            const isAssigned = await categoryModel.findOne({ parent: id ,isDeleted:false}); 
+            if (isAssigned) throw new Error("Category is already assigned to another case");
             // Find the user and update the `deleted_at` field
 
             // Validate ObjectId format
@@ -73,7 +73,7 @@ class Category {
     async allCategoriesList() {
         try {
             return await categoryModel
-                .find({ isDeleted: false }) // optional filter
+                .find({ isDeleted: false,status:1 }) // optional filter
                 .sort({ _id: -1 })          // sort newest first
                 .populate('parent', '_id name');
         } catch (error) {
