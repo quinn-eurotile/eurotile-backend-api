@@ -2,12 +2,18 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const userBusinessDocumentSchema = new Schema({
+  businessId: { type: Schema.Types.ObjectId, ref: 'UserBusiness', required: true },
   type: { type: String, required: true },
   fileName: { type: String, required: true },
   fileType: {
     type: String,
     enum: ['image', 'video', 'pdf', 'doc', 'spreadsheet', 'other'],
-    required: true,
+    default: 'other',
+  },
+  docType: {
+    type: String,
+    enum: ['business_documnets', 'registration_certificate', 'trade_license', 'proof_of_business','other'],
+    default: 'other',
   },
   filePath: { type: String, required: true },
   fileSize: { type: Number, default: 0 },
