@@ -12,12 +12,12 @@ const userBusinessDocumentSchema = new Schema({
   },
   docType: {
     type: String,
-    enum: ['business_documnets', 'registration_certificate', 'trade_license', 'proof_of_business','other'],
+    enum: ['business_documents', 'registration_certificate', 'trade_license', 'proof_of_business','other'],
     default: 'other',
   },
   filePath: { type: String, required: true },
   fileSize: { type: Number, default: 0 },
-  status: { type: Number, default: 0 },
+  status: { type: Number, default: 2 }, //1 = Verified, 0 = UnVerified, 2 = Pending
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },

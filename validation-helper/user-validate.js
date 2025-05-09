@@ -6,6 +6,11 @@ const register = (req, res, next) => {
         "name": "required|string",
         "email": "required|email|exist:User,email",
     };
+    
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
             res.status(422)
@@ -29,6 +34,42 @@ const saveTeamMember = (req, res, next) => {
         "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
         "phone": id ? `required|numeric|exist_update:User,phone,${id}` : "required|numeric|exist:User,phone",
     };
+    
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
+    validator(req.body, validationRule, {}, (err, status) => {
+        if (!status) {
+            res.status(422)
+                .send({
+                    type: 'validation_error',
+                    message: 'You form data is invalid',
+                    data: err
+                });
+        } else {
+            next();
+        }
+    });
+};
+
+const saveTradeProfessional = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
+
+    console.log(req.body,'test')
+
+    let validationRule = {
+        "name": "required|string",
+        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
+        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:User,phone",
+        "password": "required",
+    };
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
 
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
@@ -52,11 +93,16 @@ const saveSupplier = (req, res, next) => {
         "companyName": "required|string",
         "companyEmail": id ? `required|email|exist_update:Supplier,companyEmail,${id}` : "required|email|exist:Supplier,companyEmail",
         "companyPhone": id ? `required|numeric|exist_update:Supplier,companyPhone,${id}` : "required|numeric|exist:Supplier,companyPhone",
-        "addresses.addressLine1":  `required|string`,
-        "addresses.city":  `required|string`,
-        "addresses.country":  `required|string`, 
+        "addresses.addressLine1": `required|string`,
+        "addresses.city": `required|string`,
+        "addresses.country": `required|string`,
     };
-    
+
+    if (req.body.companyEmail && typeof req.body.companyEmail === 'string') {
+        req.body.companyEmail = req.body.companyEmail.trim().toLowerCase();
+    }
+
+
 
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
@@ -74,7 +120,7 @@ const saveSupplier = (req, res, next) => {
 
 
 const userRoleValidate = (req, res, next) => {
-    console.log('I am here');
+    
 
     // Check if id is provided, if yes, skip validation for the current record
     const roleId = req.params.id ? `,${req.params.id}` : '';
@@ -106,6 +152,11 @@ const login = (req, res, next) => {
         "email": "required|email",
         "password": "required",
     };
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
             res.status(422)
@@ -188,6 +239,11 @@ const forgotPassword = (req, res, next) => {
     const validationRule = {
         "email": "required|email",
     };
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+    
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
             res.status(422)
@@ -224,4 +280,23 @@ const resetPassword = (req, res, next) => {
 
 
 
-module.exports = { saveTeamMember,saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+const updateTradeProfessional = async (req, res, next) => {
+    try {
+        const schema = Joi.object({
+            name: Joi.string().required(),
+            email: Joi.string().email().required(),
+            phone: Joi.string().required(),
+            status: Joi.number(),
+            business_name: Joi.string().required(),
+            business_email: Joi.string().email().required(),
+            business_phone: Joi.string().required(),
+        });
+
+        await schema.validateAsync(req.body);
+        next();
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

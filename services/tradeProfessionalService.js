@@ -1,4 +1,6 @@
 const tradeProfessionalModel = require('../models/User');
+const userBusinessModel = require('../models/UserBusiness');
+const userBusinessDocumentModel = require('../models/UserBusinessDocument');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
@@ -84,36 +86,182 @@ class TradeProfessional {
         }
     }
 
-    /** Create Trade Professional */
-    async createTradeProfessional(req) {
+    async mapMimeType(mime) {
+        if (mime.includes('image')) return 'image';
+        if (mime.includes('video')) return 'video';
+        if (mime.includes('pdf')) return 'pdf';
+        if (mime.includes('spreadsheet')) return 'spreadsheet';
+        if (mime.includes('word')) return 'doc';
+        return 'other';
+    }
+
+    // Transaction Wrapper
+    runTransaction = async (fn) => {
+        const session = await mongoose.startSession();
         try {
-            const { name, email, phone, status } = req.body;
-            const lowerCaseEmail = email.trim().toLowerCase();
-            const token = helpers.randomString(20);
+            session.startTransaction();
+            const result = await fn(session);
+            await session.commitTransaction();
+            return result;
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
+    };
 
-            const newTradeProfessional = new tradeProfessionalModel({
-                name,
-                phone,
-                token,
-                email: lowerCaseEmail,
-                roles: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))],
-                status: status ?? 0,
-                createdBy: req?.user?.id || null,
-                updatedBy: req?.user?.id || null,
+    // MIME type mapping
+    mapMimeType = (mime) => {
+        if (mime.startsWith('image')) return 'image';
+        if (mime.startsWith('video')) return 'video';
+        if (mime === 'application/pdf') return 'pdf';
+        if (mime.includes('spreadsheet')) return 'spreadsheet';
+        if (mime.includes('msword') || mime.includes('word')) return 'doc';
+        return 'other';
+    };
+
+    // File processing
+    extractDocumentEntries = (files = {}, businessId, userId) => {
+        const entries = [];
+    
+        const handleFiles = (fieldName, docType) => {
+            (files?.[fieldName] || []).forEach(file => {
+                if (!file.path) {
+                    throw new Error(`File path not found for ${fieldName}`);
+                }
+                entries.push({
+                    businessId,
+                    type: file.mimetype.split('/')[0],
+                    fileName: file.originalname,
+                    fileType: this.mapMimeType(file.mimetype),
+                    docType,
+                    filePath: file.path,  // This will now be properly set
+                    fileSize: file.size,
+                    status: 2,
+                    createdBy: userId,
+                    updatedBy: userId,
+                });
             });
+        };
+    
+        handleFiles('business_documents', 'business_documents');
+        handleFiles('registration_certificate', 'registration_certificate');
+        handleFiles('trade_license', 'trade_license');
+        handleFiles('proof_of_business', 'proof_of_business');
+    
+        return entries;
+    };
 
-            await newTradeProfessional.save();
+    // Update Trade Professional
+    updateTradeProfessional = async (req) => {
+        return this.runTransaction(async (session) => {
+            const userId = req.params.id;
+            const {
+                name,
+                email,
+                phone,
+                status,
+                business_name,
+                business_email,
+                business_phone,
+            } = req.body;
 
-            if (!newTradeProfessional) {
-                throw { message: 'Failed to create trade professional', statusCode: 500 };
+            // Step 1: Update User
+            const user = await tradeProfessionalModel.findByIdAndUpdate(
+                userId,
+                {
+                    name,
+                    email,
+                    phone,
+                    status: status ?? 2,
+                    updatedBy: req?.user?.id || null,
+                },
+                { new: true, session }
+            );
+
+            if (!user) throw { message: 'User not found', statusCode: 404 };
+
+            // Step 2: Update Business
+            const business = await userBusinessModel.findOneAndUpdate(
+                { createdBy: userId },
+                {
+                    name: business_name,
+                    email: business_email,
+                    phone: business_phone,
+                    updatedBy: user._id,
+                },
+                { new: true, session }
+            );
+
+            if (!business) throw { message: 'Business not found', statusCode: 404 };
+
+            // Step 3: Handle New Document Uploads
+            if (req.files && Object.keys(req.files).length > 0) {
+                const documentEntries = this.extractDocumentEntries(req.files, business._id, user._id);
+                if (documentEntries.length > 0) {
+                    await userBusinessDocumentModel.insertMany(documentEntries, { session });
+                }
             }
 
-            return newTradeProfessional;
+            return user;
+        });
+    };
 
-        } catch (error) {
-            throw { message: error?.message || 'Error creating team member', statusCode: error?.statusCode || 500 };
-        }
-    }
+    // Main function
+    createTradeProfessional = async (req) => {
+        return this.runTransaction(async (session) => {
+            const {
+                name,
+                email,
+                phone,
+                status,
+                password,
+                accept_term,
+                business_name,
+                business_email,
+                business_phone,
+            } = req.body;
+
+            const token = helpers.randomString(20);
+
+            // Step 1: Create User
+            const [user] = await tradeProfessionalModel.create([{
+                name,
+                email,
+                phone,
+                password,
+                token,
+                accept_term: accept_term ?? 0,
+                roles: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))],
+                status: status ?? 2,
+                createdBy: req?.user?.id || null,
+                updatedBy: req?.user?.id || null,
+            }], { session });
+
+            if (!user) throw { message: 'Failed to create user', statusCode: 500 };
+
+            // Step 2: Create Business
+            const [business] = await userBusinessModel.create([{
+                name: business_name,
+                email: business_email,
+                phone: business_phone,
+                status: 2,
+                createdBy: user._id,
+                updatedBy: user._id,
+            }], { session });
+
+            // Step 3: Process Uploaded Files
+            const documentEntries = this.extractDocumentEntries(req.files, business._id, user._id);
+
+            if (documentEntries.length > 0) {
+                await userBusinessDocumentModel.insertMany(documentEntries, { session });
+            }
+
+            return user;
+        });
+    };
+
 
     /** Build Quert To Get Trade Professional */
     async buildTradeProfessionalListQuery(req) {
@@ -182,6 +330,8 @@ class TradeProfessional {
     async getTradeProfessionalById(id) {
         return await tradeProfessionalModel.findById({ _id: id, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] } });
     }
+
+    
 
 }
 

@@ -4,17 +4,14 @@ const tradeProfessionalService = require('../services/tradeProfessionalService')
 const { getClientUrlByRole } = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
-const writeFileAsync = util.promisify(Fs.writeFile);
-const RoleModel = require("../models/Role");
-const mongoose = require('mongoose');
-const constants = require('../configs/constant');
+const { log } = require('console');
 
 module.exports = class TradeProfessionalController {
 
 
     /*** Save New Trade Professional Data ****/
     async createTradeProfessional(req, res) {
-        try {
+        try {       
             const user = await tradeProfessionalService.createTradeProfessional(req);
             /* const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
             const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
@@ -50,6 +47,15 @@ module.exports = class TradeProfessionalController {
             const userId = req?.params?.id;
             await adminService.softDeleteTeamMember(userId);
             return res.status(200).json({ message: "Team member deleted successfully." });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    async updateTradeProfessional(req, res) {
+        try {       
+            const user = await tradeProfessionalService.updateTradeProfessional(req);
+            return res.json({ type: "success", message: "Trade professional updated successfully", data: user });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
