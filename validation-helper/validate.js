@@ -47,7 +47,6 @@ const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 //         return passes(false, err.message || 'Validation error');
 //     }
 // });
-
 Validator.registerAsync('exist', async function (value, attribute, req, passes) {
     try {
         const [table, column] = attribute.split(",");
@@ -123,6 +122,32 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
         passes(false, err.message || 'Validation error');
     }
 });
+Validator.registerAsync('exist_update2', async function (value, attribute, req, passes) {
+    try {
+        const [table, column, updateId] = attribute.split(",");
+        if (!table || !column || !updateId) {
+            return passes(false, 'Invalid format. Use: exist_update:Table,field,id');
+        }
+
+        const Model = Models[table];
+        if (!Model) return passes(false, `Model "${table}" not found`);
+
+        const conditions = {
+            [column]: value,
+            isDeleted: false // Add soft-delete check
+        };
+
+        const existing = await Model.findOne(conditions);
+        if (existing && String(existing._id) !== updateId) {
+            return passes(false, `${capitalize(column)} already exists in ${table}`);
+        }
+
+        passes();
+    } catch (err) {
+        passes(false, err.message || 'Validation error');
+    }
+});
+
 
 
 

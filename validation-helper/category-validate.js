@@ -12,8 +12,8 @@ const saveCategory = (req, res, next) => {
 
     const validationRule = {
         name: id
-            ? `required|string|max:255|exist_update:Category,name,${id}`
-            : "required|string|max:255|exist:Category,name",
+            ? `required|string|max:255|exist_update2:Category,name,${id}`
+            : "required|string|max:255|exist2:Category,name",
         parent: "isMongoIdOrNull",
     };
 
