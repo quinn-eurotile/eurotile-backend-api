@@ -74,26 +74,52 @@ Validator.registerAsync('exist', async function (value, attribute, req, passes) 
 });
 
 // Check if the field value exists for another document during update
+// Validator.registerAsync('exist_update', async function (value, attribute, req, passes) {
+//     try {
+//         if (!attribute) throw { message: 'Specify requirements like fieldName:exist_update:table,column,id' };
+
+//         const [table, column, updateId] = attribute.split(",");
+//         if (!table || !column || !updateId) throw { message: `Invalid format for validation rule: "${attribute}"`};
+
+//         const Model = Models[table];
+//         if (!Model) throw { message: `Model "${table}" not found`};
+
+//         const msg = `${capitalize(column)} has already been taken by another ${table}`;
+
+//         const existing = await Model.findOne({ [column]: value });
+//         if (existing && String(existing._id) !== updateId) {
+//             return passes(false,  msg);
+//         }
+
+//         passes();
+//     } catch (err) {
+//         return passes(false,  err.message || 'Validation error');
+//     }
+// });
+
 Validator.registerAsync('exist_update', async function (value, attribute, req, passes) {
     try {
-        if (!attribute) throw { message: 'Specify requirements like fieldName:exist_update:table,column,id' };
-
         const [table, column, updateId] = attribute.split(",");
-        if (!table || !column || !updateId) throw { message: `Invalid format for validation rule: "${attribute}"`};
+        if (!table || !column || !updateId) {
+            return passes(false, 'Invalid format. Use: exist_update:Table,field,id');
+        }
 
         const Model = Models[table];
-        if (!Model) throw { message: `Model "${table}" not found`};
+        if (!Model) return passes(false, `Model "${table}" not found`);
 
-        const msg = `${capitalize(column)} has already been taken by another ${table}`;
+        const conditions = {
+            [column]: value,
+            isDeleted: false // Check only non-deleted records
+        };
 
-        const existing = await Model.findOne({ [column]: value });
+        const existing = await Model.findOne(conditions);
         if (existing && String(existing._id) !== updateId) {
-            return passes(false,  msg);
+            return passes(false, `${capitalize(column)} has already been taken by another ${table}`);
         }
 
         passes();
     } catch (err) {
-        return passes(false,  err.message || 'Validation error');
+        passes(false, err.message || 'Validation error');
     }
 });
 Validator.registerAsync('exist_update2', async function (value, attribute, req, passes) {
@@ -121,6 +147,7 @@ Validator.registerAsync('exist_update2', async function (value, attribute, req, 
         passes(false, err.message || 'Validation error');
     }
 });
+
 
 
 

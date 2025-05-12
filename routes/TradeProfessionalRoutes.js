@@ -1,16 +1,45 @@
 const router = require('express').Router();
 const auth = require("../middleware/authMiddleware");
-const user_validation = require('../validation-helper/user-validate');
+const userValidation = require('../validation-helper/user-validate');
 const TradeProfessionalController = require('../controllers').TradeProfessionalController;
-const tradeProfessionalController = new TradeProfessionalController(); 
-const multer = require("multer");
+const tradeProfessionalController = new TradeProfessionalController();
+const multer = require('multer');
+const fs = require('fs').promises;
+const path = require('path');
+const { saveFiles } = require('../middleware/fileUploadMiddleware');
 
-// /* Trade Professional Management */
-// router.get('/user/trade-professional', multer().any(), auth, tradeProfessionalController.tradeProfessionalList);
-router.post('/user/trade-professional', multer().any(), auth,  tradeProfessionalController.createTradeProfessional);
-// router.put('/user/trade-professional/:id', multer().any(), auth, user_validation.saveTradeProfessional, tradeProfessionalController.updateTradeProfessional);
-// router.delete('/user/trade-professional/:id', multer().any(), auth, tradeProfessionalController.deleteTradeProfessional);
-// router.patch('/user/trade-professional/:id/status', multer().any(), auth, tradeProfessionalController.updateTradeProfessionalStatus);
+// Configure Multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
+// Register Trade Professional Route
+router.post(
+  '/user/trade-professional',
+  upload.fields([
+    { name: 'business_documents', maxCount: 10 },
+    { name: 'registration_certificate', maxCount: 1 },
+    { name: 'trade_license', maxCount: 1 },
+    { name: 'proof_of_business', maxCount: 10 },
+  ]),
+  auth,
+  userValidation.saveTradeProfessional,
+  saveFiles,
+  tradeProfessionalController.createTradeProfessional
+);
+
+// Update Trade Professional Route
+router.put(
+  '/user/trade-professional/:id',
+  upload.fields([
+    { name: 'business_documents', maxCount: 10 },
+    { name: 'registration_certificate', maxCount: 1 },
+    { name: 'trade_license', maxCount: 1 },
+    { name: 'proof_of_business', maxCount: 10 },
+  ]),
+  auth,
+  /* userValidation.updateTradeProfessional, */
+  saveFiles,
+  tradeProfessionalController.updateTradeProfessional
+);
 
 module.exports = router;

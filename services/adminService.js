@@ -205,8 +205,6 @@ class AdminService {
         try {
             const { name, email, phone, status } = req.body;
 
-            console.log({ name, email, phone }, 'lllllllllll');
-
             const { id } = req.params;
 
             // Validate ObjectId format
