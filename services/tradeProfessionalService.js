@@ -362,9 +362,39 @@ class TradeProfessional {
         }
     }
 
-    /** Get Trade Professional */
+    /** Get Trade Professional By Id with specific columns */
     async getTradeProfessionalById(id) {
-        return await tradeProfessionalModel.findById({ _id: id, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] } });
+        return await tradeProfessionalModel.findOne(
+            { 
+                _id: id, 
+                roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] }
+            }
+        )
+        .select('name email phone status createdAt updatedAt') // Select specific columns from User
+        .populate({
+            path: 'roles',
+            select: '_id name' // Select specific columns from Role
+        })
+        .populate({
+            // Get business information
+            path: 'business',
+            select: 'name email phone status createdAt updatedAt',
+            options: { lean: true },
+            foreignField: 'createdBy',
+            localField: '_id',
+            justOne: true,
+            model: 'UserBusiness'
+        })
+        .populate({
+            // Get business documents
+            path: 'documents',
+            select: 'fileName fileType docType filePath status createdAt',
+            options: { lean: true },
+            foreignField: 'createdBy',
+            localField: '_id',
+            model: 'UserBusinessDocument'
+        })
+        .lean(); // Convert to plain JavaScript object for better performance
     }
 
     

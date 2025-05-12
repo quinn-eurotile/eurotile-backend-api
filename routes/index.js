@@ -23,11 +23,7 @@ routes.use(`/api/${API_V}/admin`, taxRoutes);
 
 /************* Trade Professional route**************/
 const tradeProfessionalRoutes = require('./TradeProfessionalRoutes');
-routes.use(`/api/${API_V}`, tradeProfessionalRoutes);
-
-
-
-
+routes.use(`/api/${API_V}/user`, tradeProfessionalRoutes);
 
 
 module.exports = routes;

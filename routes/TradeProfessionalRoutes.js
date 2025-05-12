@@ -14,7 +14,7 @@ const upload = multer({ storage });
 
 // Register Trade Professional Route
 router.post(
-  '/user/trade-professional',
+  '/trade-professional',
   upload.fields([
     { name: 'business_documents', maxCount: 10 },
     { name: 'registration_certificate', maxCount: 1 },
@@ -29,7 +29,7 @@ router.post(
 
 // Update Trade Professional Route
 router.put(
-  '/user/trade-professional/:id',
+  '/trade-professional/:id',
   upload.fields([
     { name: 'business_documents', maxCount: 10 },
     { name: 'registration_certificate', maxCount: 1 },
@@ -41,5 +41,6 @@ router.put(
   saveFiles,
   tradeProfessionalController.updateTradeProfessional
 );
+
 
 module.exports = router;

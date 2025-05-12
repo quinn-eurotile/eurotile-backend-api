@@ -10,6 +10,7 @@ const writeFileAsync = util.promisify(Fs.writeFile);
 const RoleModel = require("../models/Role");
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
+const commonService = require('../services/commonService');
 
 module.exports = class AdminController {
 
@@ -31,6 +32,16 @@ module.exports = class AdminController {
             const userId = req?.params?.id;
             const data = await tradeProfessionalService.getTradeProfessionalById(userId);
             return res.status(200).json({ message: 'Trade professional get successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Update Status For Trade Professional */
+    async updateTradeProfessionalStatus(req, res) {
+        try {
+            const data = await commonService.updateStatusById(req,'User', [0, 1]);
+            return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
