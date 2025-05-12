@@ -11,7 +11,7 @@ module.exports = class TradeProfessionalController {
 
     /*** Save New Trade Professional Data ****/
     async createTradeProfessional(req, res) {
-        try {       
+        try {
             const user = await tradeProfessionalService.createTradeProfessional(req);
             /* const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
             const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
@@ -31,7 +31,7 @@ module.exports = class TradeProfessionalController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
-    
+
     async updateTeamMemberStatus(req, res) {
         try {
             const updatedUser = await adminService.updateTeamMemberStatusById(req);
@@ -53,7 +53,10 @@ module.exports = class TradeProfessionalController {
     }
 
     async updateTradeProfessional(req, res) {
-        try {       
+        try {
+            /* console.log(req.body, 'test');
+            console.log(req.files, 'test');
+            return res.json({ type: "success", message: "Trade professional updated successfully", data: req.body }); */
             const user = await tradeProfessionalService.updateTradeProfessional(req);
             return res.json({ type: "success", message: "Trade professional updated successfully", data: user });
         } catch (error) {
@@ -61,7 +64,7 @@ module.exports = class TradeProfessionalController {
         }
     }
 
-  
+
     /** Admin Dashboard  **/
     async dashboardData(req, res) {
         try {

@@ -19,15 +19,15 @@ class TradeProfessional {
 
                 // Example $lookup - adjust this according to your schema
                 // Country lookup
-                {
-                    $lookup: {
-                        from: 'userbusinesses', // collection name (lowercase plural usually)
-                        localField: '_id',
-                        foreignField: 'createdBy',
-                        as: 'userbusinesses'
-                    }
-                },
-                { $unwind: { path: '$userbusinesses', preserveNullAndEmptyArrays: true } },
+                // {
+                //     $lookup: {
+                //         from: 'userbusinesses', // collection name (lowercase plural usually)
+                //         localField: '_id',
+                //         foreignField: 'createdBy',
+                //         as: 'userbusinesses'
+                //     }
+                // },
+                // { $unwind: { path: '$userbusinesses', preserveNullAndEmptyArrays: true } },
 
                 // Optional sort
                 { $sort: sort },
@@ -40,6 +40,7 @@ class TradeProfessional {
                         email: 1,
                         phone: 1,
                         status: 1,
+                        userId:1,
                         isDeleted: 1,
                         lastLoginDate: 1,
                         createdAt: 1,
@@ -165,6 +166,7 @@ class TradeProfessional {
                 business_name,
                 business_email,
                 business_phone,
+                documents_to_remove, // Array of document IDs to remove
             } = req.body;
 
             // Step 1: Update User
@@ -196,7 +198,41 @@ class TradeProfessional {
 
             if (!business) throw { message: 'Business not found', statusCode: 404 };
 
-            // Step 3: Handle New Document Uploads
+            // Step 3: Remove old documents if specified
+            if (documents_to_remove && documents_to_remove.length > 0) {
+                // Convert string IDs to ObjectIds
+                const documentIds = Array.isArray(documents_to_remove) 
+                    ? documents_to_remove.map(id => new mongoose.Types.ObjectId(id))
+                    : JSON.parse(documents_to_remove).map(id => new mongoose.Types.ObjectId(id));
+
+                // First, get the documents to be removed
+                const docsToRemove = await userBusinessDocumentModel.find({
+                    _id: { $in: documentIds },
+                    businessId: business._id
+                }, null, { session });
+
+                // Store file paths for cleanup
+                const filesToDelete = docsToRemove.map(doc => doc.filePath);
+
+                // Remove documents from database
+                await userBusinessDocumentModel.deleteMany({
+                    _id: { $in: documentIds },
+                    businessId: business._id
+                }, { session });
+
+                // Delete physical files after transaction commits
+                session.addListener('afterCommit', async () => {
+                    for (const filePath of filesToDelete) {
+                        try {
+                            await fs.unlink(filePath);
+                        } catch (error) {
+                            console.error(`Failed to delete file ${filePath}:`, error);
+                        }
+                    }
+                });
+            }
+
+            // Step 4: Handle New Document Uploads
             if (req.files && Object.keys(req.files).length > 0) {
                 const documentEntries = this.extractDocumentEntries(req.files, business._id, user._id);
                 if (documentEntries.length > 0) {

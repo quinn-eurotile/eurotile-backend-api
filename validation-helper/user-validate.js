@@ -299,4 +299,4 @@ const updateTradeProfessional = async (req, res, next) => {
     }
 };
 
-module.exports = { saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { updateTradeProfessional,saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
