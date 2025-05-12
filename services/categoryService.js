@@ -73,9 +73,9 @@ class Category {
     async allCategoriesList() {
         try {
             return await categoryModel
-                .find({ isDeleted: false,status:1 }) // optional filter
+                .find({ isDeleted: false  }) // optional filter
                 .sort({ _id: -1 })          // sort newest first
-                .populate('parent', '_id name');
+                .populate('parent', '_id name status');
         } catch (error) {
             throw error;
         }
