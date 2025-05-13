@@ -92,6 +92,7 @@ class TradeProfessional {
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';
+        if (mime.includes('csv')) return 'csv';
         if (mime.includes('spreadsheet')) return 'spreadsheet';
         if (mime.includes('word')) return 'doc';
         if (mime.includes('excel') || mime.includes('vnd.ms-excel')) return 'xls';  // For Excel files (.xls, .xlsx)

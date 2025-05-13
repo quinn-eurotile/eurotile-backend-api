@@ -1,7 +1,7 @@
 const taxService = require('../services/taxService');
 const commonService = require('../services/commonService');
 
-module.exports = class AdminController {
+module.exports = class TaxController {
 
     /** Save Tax **/
     async saveTax(req, res) {

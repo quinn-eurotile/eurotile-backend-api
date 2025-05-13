@@ -4,6 +4,16 @@ const constants = require('../configs/constant');
 
 module.exports = class CategoryController {
 
+    /** Get Nested Categories  */
+    async getNestedCategories(req, res) {
+        try {
+            const categories = await categoryService.getNestedCategories(req);
+            return res.status(200).json({ data: categories, message: 'Categories fetched successfully' });
+        } catch (error) {
+            return res.status(error?.statusCode || 500).json({ message: error?.message });
+        }
+    }
+
     /** Save Category **/
     async saveCategory(req, res) {
         try {

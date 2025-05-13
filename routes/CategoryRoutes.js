@@ -11,6 +11,7 @@ router.put('/:id', auth, categoryValidation.saveCategory, categoryController.sav
 router.patch('/:id/status', auth, categoryController.updateCategoryStatus);
 router.get('/', auth, categoryController.categoriesList);
 router.get('/:id', auth, categoryController.getCategory);
+router.get('/nested/wise', auth, categoryController.getNestedCategories);
 router.delete('/:id', auth, categoryController.deleteCategory);
 router.get('/cate/all', categoryController.allCategoriesList);
 
