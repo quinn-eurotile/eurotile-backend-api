@@ -67,8 +67,6 @@ class SupplierService {
             throw { message: error?.message || 'Failed to save supplier', statusCode: error?.statusCode || 500 };
         }
     }
-
-
     /** Get Supplier List */
     async supplierList(query, options) {
         try {
@@ -177,8 +175,6 @@ class SupplierService {
             };
         }
     }
-
-
     async buildSupplierListQuery(req) {
         const query = req.query;
         const conditionArr = [
@@ -249,9 +245,6 @@ class SupplierService {
     async getSupplierById(id) {
         return await supplierModel.findById(id).populate(['discounts', 'country', 'city', 'state']);
     }
-
-
-
 }
 
 module.exports = new SupplierService();

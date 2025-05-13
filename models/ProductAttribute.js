@@ -2,10 +2,10 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const productAttributeSchema = new Schema({
+    externalId: { type: String, default: null },
     name: { type: String, required: true },
-    alias: { type: String, required: true, unique: true },
-    type: { type: String, required: true, enum: ['type', 'material', 'measure', 'surface', 'color'] },
-    product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    alias: { type: String, required: true },
+    type: { type: String, required: true, enum: ['type', 'material', 'measure', 'surface', 'color', 'shape', 'measurementSize'] },
     isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
