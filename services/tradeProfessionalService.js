@@ -40,7 +40,7 @@ class TradeProfessional {
                         email: 1,
                         phone: 1,
                         status: 1,
-                        userId:1,
+                        userId: 1,
                         isDeleted: 1,
                         lastLoginDate: 1,
                         createdAt: 1,
@@ -87,14 +87,18 @@ class TradeProfessional {
         }
     }
 
-    async mapMimeType(mime) {
+    mapMimeType(mime) {
+        console.log(mime,'mimemimemimemime')
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';
         if (mime.includes('spreadsheet')) return 'spreadsheet';
         if (mime.includes('word')) return 'doc';
-        return 'other';
+        if (mime.includes('excel') || mime.includes('vnd.ms-excel')) return 'xls';  // For Excel files (.xls, .xlsx)
+        if (mime.includes('csv')) return 'csv';  // For CSV files
+        return 'other';  // Default fallback
     }
+
 
     // Transaction Wrapper
     runTransaction = async (fn) => {
@@ -112,20 +116,12 @@ class TradeProfessional {
         }
     };
 
-    // MIME type mapping
-    mapMimeType = (mime) => {
-        if (mime.startsWith('image')) return 'image';
-        if (mime.startsWith('video')) return 'video';
-        if (mime === 'application/pdf') return 'pdf';
-        if (mime.includes('spreadsheet')) return 'spreadsheet';
-        if (mime.includes('msword') || mime.includes('word')) return 'doc';
-        return 'other';
-    };
+
 
     // File processing
     extractDocumentEntries = (files = {}, businessId, userId) => {
         const entries = [];
-    
+
         const handleFiles = (fieldName, docType) => {
             (files?.[fieldName] || []).forEach(file => {
                 if (!file.path) {
@@ -145,12 +141,12 @@ class TradeProfessional {
                 });
             });
         };
-    
+
         handleFiles('business_documents', 'business_documents');
         handleFiles('registration_certificate', 'registration_certificate');
         handleFiles('trade_license', 'trade_license');
         handleFiles('proof_of_business', 'proof_of_business');
-    
+
         return entries;
     };
 
@@ -201,7 +197,7 @@ class TradeProfessional {
             // Step 3: Remove old documents if specified
             if (documents_to_remove && documents_to_remove.length > 0) {
                 // Convert string IDs to ObjectIds
-                const documentIds = Array.isArray(documents_to_remove) 
+                const documentIds = Array.isArray(documents_to_remove)
                     ? documents_to_remove.map(id => new mongoose.Types.ObjectId(id))
                     : JSON.parse(documents_to_remove).map(id => new mongoose.Types.ObjectId(id));
 
@@ -365,39 +361,39 @@ class TradeProfessional {
     /** Get Trade Professional By Id with specific columns */
     async getTradeProfessionalById(id) {
         return await tradeProfessionalModel.findOne(
-            { 
-                _id: id, 
+            {
+                _id: id,
                 roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] }
             }
         )
-        .select('name email phone status createdAt updatedAt') // Select specific columns from User
-        .populate({
-            path: 'roles',
-            select: '_id name' // Select specific columns from Role
-        })
-        .populate({
-            // Get business information
-            path: 'business',
-            select: 'name email phone status createdAt updatedAt',
-            options: { lean: true },
-            foreignField: 'createdBy',
-            localField: '_id',
-            justOne: true,
-            model: 'UserBusiness'
-        })
-        .populate({
-            // Get business documents
-            path: 'documents',
-            select: 'fileName fileType docType filePath status createdAt',
-            options: { lean: true },
-            foreignField: 'createdBy',
-            localField: '_id',
-            model: 'UserBusinessDocument'
-        })
-        .lean(); // Convert to plain JavaScript object for better performance
+            .select('name email phone status createdAt updatedAt') // Select specific columns from User
+            .populate({
+                path: 'roles',
+                select: '_id name' // Select specific columns from Role
+            })
+            .populate({
+                // Get business information
+                path: 'business',
+                select: 'name email phone status createdAt updatedAt',
+                options: { lean: true },
+                foreignField: 'createdBy',
+                localField: '_id',
+                justOne: true,
+                model: 'UserBusiness'
+            })
+            .populate({
+                // Get business documents
+                path: 'documents',
+                select: 'fileName fileType docType filePath status createdAt',
+                options: { lean: true },
+                foreignField: 'createdBy',
+                localField: '_id',
+                model: 'UserBusinessDocument'
+            })
+            .lean(); // Convert to plain JavaScript object for better performance
     }
 
-    
+
 
 }
 

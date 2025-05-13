@@ -7,7 +7,7 @@ class CommonService {
     /** Update Status Of Any Model Using Proper Arguments Pass */
     async updateStatusById(req, model, allowedStatuses = [0, 1]) {
         try {
-            console.log('  const { id } = req.params;',  req.params);
+            console.log('  const { id } = req.params;',  req.params, req.body);
             
             if (!modelInstance[model]) throw { message: `Model "${model}" not found` , statusCode: 404 };
             const { status } = req.body;

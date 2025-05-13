@@ -7,7 +7,7 @@ const userBusinessDocumentSchema = new Schema({
   fileName: { type: String, required: true },
   fileType: {
     type: String,
-    enum: ['image', 'video', 'pdf', 'doc', 'spreadsheet', 'other'],
+    enum: ['image', 'video', 'pdf', 'doc', 'spreadsheet', 'xls', 'csv', 'other'],
     default: 'other',
   },
   docType: {
@@ -39,6 +39,16 @@ userBusinessDocumentSchema.pre("save", async function (next) {
   } catch (err) {
       next(err);
   }
+});
+
+userBusinessDocumentSchema.virtual('docTypeLabel').get(function () {
+    if (!this.docType) return null;
+ 
+    // Convert snake_case to "Title Case"
+    return this.docType
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
 });
 
 userBusinessDocumentSchema.plugin(mongoosePaginate);
