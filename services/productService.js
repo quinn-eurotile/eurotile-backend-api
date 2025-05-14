@@ -86,7 +86,6 @@ class Product {
 
     /** Create Product Attribute Variation */
     async createProductAttributeVariation(data) {
-        console.log(data);
         try {
             const newVariation = new productAttributeVariationModel(data);
             return await newVariation.save();
@@ -128,6 +127,52 @@ class Product {
             const pipeline = [
                 { $match: query },
                 {
+                    $lookup: {
+                        from: 'productattributevariations',
+                        let: { attributeId: '$_id' },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ['$productAttribute', '$$attributeId'] },
+                                            { $eq: ['$isDeleted', false] },
+                                            { $eq: ['$status', 1] }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                $lookup: {
+                                    from: 'productmeasurementunits',
+                                    localField: 'productMeasurementUnit',
+                                    foreignField: '_id',
+                                    as: 'measurementUnit'
+                                }
+                            },
+                            {
+                                $unwind: {
+                                    path: '$measurementUnit',
+                                    preserveNullAndEmptyArrays: true
+                                }
+                            },
+                            {
+                                $project: {
+                                    _id: 1,
+                                    metaKey: 1,
+                                    metaValue: 1,
+                                    measurementUnit: {
+                                        _id: 1,
+                                        name: 1,
+                                        symbol: 1
+                                    }
+                                }
+                            }
+                        ],
+                        as: 'variations'
+                    }
+                },
+                {
                     $facet: {
                         metadata: [
                             { $count: "totalDocs" }
@@ -138,9 +183,13 @@ class Product {
                             { $limit: limit },
                             {
                                 $project: {
+                                    _id: 1,
                                     name: 1,
                                     slug: 1,
+                                    externalId: 1,
+                                    status: 1,
                                     isDeleted: 1,
+                                    variations: 1,
                                 }
                             }
                         ]
@@ -149,8 +198,7 @@ class Product {
                 {
                     $project: {
                         data: 1,
-                        totalDocs: { $ifNull: [{ $arrayElemAt: ["$metadata.totalDocs", 0] }, 0] },
-                        statusCounts: 1
+                        totalDocs: { $ifNull: [{ $arrayElemAt: ["$metadata.totalDocs", 0] }, 0] }
                     }
                 }
             ];
@@ -166,7 +214,7 @@ class Product {
                 hasNextPage: page * limit < result.totalDocs,
                 hasPrevPage: page > 1,
                 nextPage: page * limit < result.totalDocs ? page + 1 : null,
-                prevPage: page > 1 ? page - 1 : null,
+                prevPage: page > 1 ? page - 1 : null
             };
         } catch (error) {
             throw {
