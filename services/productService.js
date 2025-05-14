@@ -1,17 +1,15 @@
 const productModel = require('../models/Product');
 const productAttributeModel = require('../models/ProductAttribute');
+const productAttributeVariationModel = require('../models/ProductAttributeVariation');
 const supplierModel = require('../models/Supplier');
 const categoryService = require('./categoryService');
 
 class Product {
-
-    async getProductRawData(req){
+    async getProductRawData(req) {
         try {
-            // Get all suppliers
             const suppliers = await supplierModel.find({ isDeleted: false }).select('_id companyName companyEmail companyPhone');
-            // Get all nested categories
             const nestedCategories = await categoryService.getNestedCategories(req);
-            // Get all product attributes grouped by type
+
             const productAttributes = await productAttributeModel.aggregate([
                 { $match: { isDeleted: false } },
                 {
@@ -21,7 +19,6 @@ class Product {
                             $push: {
                                 _id: "$_id",
                                 name: "$name",
-                                alias: "$alias",
                                 type: "$type",
                                 externalId: "$externalId"
                             }
@@ -36,6 +33,7 @@ class Product {
                     }
                 }
             ]);
+
             return {
                 nestedCategories,
                 suppliers,
@@ -51,20 +49,32 @@ class Product {
             };
         }
     }
+
     /** Create Product Attribute */
     async createProductAttribute(req) {
         try {
             const payload = {
                 externalId: req.body?.externalId ?? null,
                 name: req.body?.name,
-                alias: req.body?.alias,
-                type: req.body?.type,
-                product: req.body?.product ?? null,
+                slug: req.body?.slug,
                 createdBy: req.user?.id || null,
                 updatedBy: req.user?.id || null,
             };
 
             const createdAttribute = await productAttributeModel.create(payload);
+            if (!createdAttribute) {
+                throw { message: 'Product attribute not created', statusCode: 404 };
+            }
+
+            // Handle attribute variations if provided
+            const variations = req.body?.variations ?? [];
+            for (const variation of variations) {
+                variation.productAttribute = createdAttribute._id;
+                variation.createdBy = req.user?.id || null;
+                variation.updatedBy = req.user?.id || null;
+                await this.createProductAttributeVariation(variation);
+            }
+
             return createdAttribute;
         } catch (error) {
             throw {
@@ -74,37 +84,42 @@ class Product {
         }
     }
 
+    /** Create Product Attribute Variation */
+    async createProductAttributeVariation(data) {
+        console.log(data);
+        try {
+            const newVariation = new productAttributeVariationModel(data);
+            return await newVariation.save();
+        } catch (error) {
+            throw new Error(`Error creating attribute variation: ${error.message}`);
+        }
+    }
+
     /** Create Query For Product Attribute */
     async buildProductAttributeListQuery(req) {
         const query = req.query;
-        const conditionArr = [{ isDeleted: false, },];
+        const conditionArr = [{ isDeleted: false }];
 
-        // Add type filter if provided
-        if (query.type !== undefined && query.type !== "") {
-            conditionArr.push({ type: query.type });
-        }
-
-        // Add search conditions if 'search_string' is provided
         if (query.search_string !== undefined && query.search_string !== "") {
             conditionArr.push({
                 $or: [
                     { name: new RegExp(query.search_string, "i") },
-                    { alias: new RegExp(query.search_string, "i") },
-                    { type: new RegExp(query.search_string, "i") },
+                    { slug: new RegExp(query.search_string, "i") },
                 ],
             });
         }
-        // Construct the final query
+
         let builtQuery = {};
         if (conditionArr.length === 1) {
             builtQuery = conditionArr[0];
         } else if (conditionArr.length > 1) {
             builtQuery = { $and: conditionArr };
         }
+
         return builtQuery;
     }
 
-    /** Get List Of Product Attribute */
+    /** Get List Of Product Attributes */
     async productAttributeList(query, options) {
         try {
             const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
@@ -112,7 +127,6 @@ class Product {
 
             const pipeline = [
                 { $match: query },
-
                 {
                     $facet: {
                         metadata: [
@@ -125,10 +139,8 @@ class Product {
                             {
                                 $project: {
                                     name: 1,
-                                    alias: 1,
-                                    type: 1,
+                                    slug: 1,
                                     isDeleted: 1,
-                                    // Only include fields needed in UI
                                 }
                             }
                         ]
@@ -174,16 +186,63 @@ class Product {
                 throw { message: 'Product attribute not found', statusCode: 404 };
             }
 
-            // Build updated payload
             const updateData = {
                 externalId: req.body?.externalId ?? existingAttribute.externalId,
                 name: req.body?.name ?? existingAttribute.name,
-                alias: req.body?.alias ?? existingAttribute.alias,
-                type: req.body?.type ?? existingAttribute.type,
-                product: req.body?.product ?? existingAttribute.product,
+                slug: req.body?.slug ?? existingAttribute.slug,
                 updatedBy: req.user?.id || existingAttribute.updatedBy,
                 updatedAt: new Date(),
             };
+
+            // Get existing variations
+            const existingVariations = await productAttributeVariationModel.find({
+                productAttribute: attributeId,
+                isDeleted: false
+            });
+
+            // Get variations to remove (if specified in request)
+            const variationsToRemove = req.body?.variationsToRemove ?? [];
+            if (variationsToRemove.length > 0) {
+                await productAttributeVariationModel.updateMany(
+                    {
+                        _id: { $in: variationsToRemove },
+                        productAttribute: attributeId // Ensure variations belong to this attribute
+                    },
+                    {
+                        isDeleted: true,
+                        updatedBy: req.user?.id || null,
+                        updatedAt: new Date()
+                    }
+                );
+            }
+
+            // Update or add variations
+            const variations = req.body?.variations ?? [];
+            for (const variation of variations) {
+                if (variation._id) {
+                    // Verify the variation belongs to this attribute
+                    const existingVariation = existingVariations.find(v => v._id.toString() === variation._id);
+                    if (existingVariation) {
+                        // Update existing variation
+                        await productAttributeVariationModel.findByIdAndUpdate(
+                            variation._id,
+                            {
+                                ...variation,
+                                productAttribute: attributeId,
+                                updatedBy: req.user?.id || null,
+                                updatedAt: new Date()
+                            },
+                            { new: true }
+                        );
+                    }
+                } else {
+                    // Create new variation
+                    variation.productAttribute = attributeId;
+                    variation.createdBy = req.user?.id || null;
+                    variation.updatedBy = req.user?.id || null;
+                    await this.createProductAttributeVariation(variation);
+                }
+            }
 
             const updatedAttribute = await productAttributeModel.findByIdAndUpdate(attributeId, updateData, { new: true });
             return updatedAttribute;
@@ -195,7 +254,7 @@ class Product {
         }
     }
 
-    /** Create Product **/
+    /** Create Product */
     async createProduct(req) {
         try {
             const product = await productModel.create(req.body);
@@ -208,7 +267,7 @@ class Product {
         }
     }
 
-    /** Update Product **/
+    /** Update Product */
     async updateProduct(req) {
         try {
             const updated = await productModel.findByIdAndUpdate(req.params.id, req.body, { new: true });

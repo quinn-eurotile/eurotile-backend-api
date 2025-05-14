@@ -48,7 +48,7 @@ module.exports = class ProductController {
     /** Delete Product attribute **/
     async deleteProductAttribute(req, res) {
         try {
-            const product = await commonService.updateIsDeletedById(req, 'ProductAttribute', false);
+            const product = await commonService.updateIsDeletedById(req, 'ProductAttribute', true);
             return res.status(200).send({ message: 'Product attribute deleted successfully', data: product });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

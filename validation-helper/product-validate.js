@@ -6,6 +6,28 @@ Validator.register('isMongoIdOrNull', function (value) {
     return /^[0-9a-fA-F]{24}$/.test(value);
 }, 'The :attribute must be a valid MongoDB ObjectId or null.');
 
+
+/** saveAttribute */
+const saveAttribute = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
+    const validationRule = {
+        "name": id ? `required|exist_update:ProductAttribute,name,${id}` : "required|exist:ProductAttribute,name",
+        "slug": id ? `required|exist_update:ProductAttribute,slug,${id}` : "required|exist:ProductAttribute,slug",
+    };
+
+    const validation = new Validator(req.body, validationRule);
+
+    validation.checkAsync(
+        () => next(), // success
+        () => {
+            res.status(422).send({
+                type: 'validation_error',
+                message: 'Your form data is invalid',
+                data: validation.errors.all(),
+            });
+        }
+    );
+}
 /** Validate Tax Before Save or Update */
 const saveTax = (req, res, next) => {
     const validationRule = {
@@ -27,4 +49,4 @@ const saveTax = (req, res, next) => {
     );
 };
 
-module.exports = { saveTax };
+module.exports = { saveAttribute,saveTax };

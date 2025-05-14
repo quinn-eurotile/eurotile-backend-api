@@ -5,12 +5,16 @@ const productMeasurementUnitSchema = new mongoose.Schema({
     name: { type: String, required: true },     // e.g., "Millimeter"
     symbol: { type: String, required: true },   // e.g., "mm"
     status: { type: Number, default: 1 }, // 1 = Active, 0 = Inactive
-    status: { type: Number, default: 1 }, // 1 = Active, 0 = Inactive
     isDeleted: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+});
+
+productMeasurementUnitSchema.plugin(mongoosePaginate);
+
 
 module.exports = mongoose.model('ProductMeasurementUnit', productMeasurementUnitSchema);

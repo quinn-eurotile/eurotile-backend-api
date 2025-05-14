@@ -4,14 +4,13 @@ const mongoosePaginate = require("mongoose-paginate-v2");
 const productAttributeSchema = new Schema({
     externalId: { type: String, default: null },
     name: { type: String, required: true },
-    alias: { type: String, required: true },
-    type: { type: String, required: true, enum: ['type', 'material', 'measure', 'surface', 'color', 'shape', 'measurementSize', 'Thickness'] },
+    slug: { type: String, required: true },
     isDeleted: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    status: { type: Number, default: 1 }, // 1 = Active, 0 = Inactive,  
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
+    timestamps : true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
