@@ -11,6 +11,7 @@ const productFileSchema = new Schema({
     },
     filePath: { type: String, required: true },
     fileSize: { type: Number, default: 0 },
+    isFeaturedImage : { type: Number, default: 0 }, // 1 = Yes, 0 = No 
     isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

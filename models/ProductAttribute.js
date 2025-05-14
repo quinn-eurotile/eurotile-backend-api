@@ -5,7 +5,7 @@ const productAttributeSchema = new Schema({
     externalId: { type: String, default: null },
     name: { type: String, required: true },
     alias: { type: String, required: true },
-    type: { type: String, required: true, enum: ['type', 'material', 'measure', 'surface', 'color', 'shape', 'measurementSize'] },
+    type: { type: String, required: true, enum: ['type', 'material', 'measure', 'surface', 'color', 'shape', 'measurementSize', 'Thickness'] },
     isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

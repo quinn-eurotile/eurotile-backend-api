@@ -2,8 +2,7 @@ const productService = require('../services/productService');
 const commonService = require('../services/commonService');
 
 module.exports = class ProductController {
-
-
+    
     /** Get Product Raw Data */
     async getProductRawData(req, res) {
         try {
