@@ -57,8 +57,6 @@ const saveTeamMember = (req, res, next) => {
 const saveTradeProfessional = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
 
-    console.log(req.body,'test')
-
     let validationRule = {
         "name": "required|string",
         "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",

@@ -122,6 +122,8 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
         passes(false, err.message || 'Validation error');
     }
 });
+
+
 Validator.registerAsync('exist_update2', async function (value, attribute, req, passes) {
     try {
         const [table, column, updateId] = attribute.split(",");

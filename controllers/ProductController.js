@@ -29,7 +29,7 @@ module.exports = class ProductController {
     async createProductAttribute(req, res) {
         try {
             const data = await productService.createProductAttribute(req);
-            return res.json({ type: "success", message: "Product attribute created successfully", data: data, });
+            return res.status(201).json({ type: "success", message: "Product attribute created successfully", data: data, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -39,7 +39,7 @@ module.exports = class ProductController {
     async updateProductAttribute(req, res) {
         try {
             const data = await productService.updateProductAttribute(req);
-            return res.json({ type: "success", message: "Product attribute updated successfully", data: data, });
+            return res.status(200).json({ type: "success", message: "Product attribute updated successfully", data: data, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -59,7 +59,7 @@ module.exports = class ProductController {
     async createProduct(req, res) {
         try {
             const product = await productService.createProduct(req);
-            return res.json({ type: "success", message: "Product created successfully", data: product, });
+            return res.status(201).json({ type: "success", message: "Product created successfully", data: product, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -69,7 +69,7 @@ module.exports = class ProductController {
     async updateProduct(req, res) {
         try {
             const product = await productService.updateProduct(req);
-            return res.json({ type: "success", message: "Product updated successfully", data: product, });
+            return res.status(200).json({ type: "success", message: "Product updated successfully", data: product, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }

@@ -7,6 +7,18 @@ Validator.register('isMongoIdOrNull', function (value) {
 }, 'The :attribute must be a valid MongoDB ObjectId or null.');
 
 
+const formatValidationErrors = (errors) => {
+    const formatted = {};
+    for (const [key, messages] of Object.entries(errors)) {
+        if (Array.isArray(messages)) {
+            formatted[key] = messages[0]; // Only show the first message
+        } else {
+            formatted[key] = messages;
+        }
+    }
+    return formatted;
+};
+
 /** saveAttribute */
 const saveAttribute = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
@@ -23,7 +35,7 @@ const saveAttribute = (req, res, next) => {
             res.status(422).send({
                 type: 'validation_error',
                 message: 'Your form data is invalid',
-                data: validation.errors.all(),
+                data: formatValidationErrors(validation.errors.all())
             });
         }
     );
