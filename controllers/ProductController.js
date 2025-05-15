@@ -2,7 +2,21 @@ const productService = require('../services/productService');
 const commonService = require('../services/commonService');
 
 module.exports = class ProductController {
+
     
+    async productMeasurementUnitsAll(req, res) {
+        try {
+            const model = 'ProductMeasurementUnit';
+            const projection = { name: 1, symbol: 1, status: 1, isDeleted: 1 };
+            const { page, limit, sortBy, sortOrder, ...filters } = req.query;
+            const sort = sortBy ? { [sortBy]: sortOrder === 'desc' ? -1 : 1 } : {};
+            const result = await commonService.getAllData(model, { filters, page: Number(page) || 1, limit: Number(limit) || 5000, sort, projection });
+            return res.status(200).json({ data: result, message: 'All records get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    };
+
     /** Get Product Raw Data */
     async getProductRawData(req, res) {
         try {
@@ -13,9 +27,8 @@ module.exports = class ProductController {
         }
     }
 
-
-     /** Get Attribute By Their Id */
-     async getAttributeById(req, res) {
+    /** Get Attribute By Their Id */
+    async getAttributeById(req, res) {
         try {
             const attributeId = req?.params?.id;
             const data = await productService.getAttributeById(attributeId);

@@ -20,4 +20,8 @@ router.delete('/attribute/:id', auth, productController.deleteProductAttribute);
 router.get('/attribute', auth, productController.productAttributeList);
 router.get('/attribute/:id', auth, productController.getAttributeById);
 
+
+/* These routes are for product measurments */
+router.get('/measurement-units/all', auth, productController.productMeasurementUnitsAll);
+
 module.exports = router;
