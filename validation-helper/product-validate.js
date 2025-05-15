@@ -14,7 +14,6 @@ const saveAttribute = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
     const validationRule = {
         "name": id ? `required|exist_update:ProductAttribute,name,${id}` : "required|exist:ProductAttribute,name",
-        "slug": id ? `required|exist_update:ProductAttribute,slug,${id}` : "required|exist:ProductAttribute,slug",
     };
 
     const validation = new Validator(req.body, validationRule);
