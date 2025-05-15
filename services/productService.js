@@ -28,11 +28,29 @@ class Product {
                                 }
                             },
                             {
+                                $lookup: {
+                                    from: 'productmeasurementunits',
+                                    localField: 'productMeasurementUnit',
+                                    foreignField: '_id',
+                                    as: 'measurementUnit'
+                                }
+                            },
+                            {
+                                $unwind: {
+                                    path: '$measurementUnit',
+                                    preserveNullAndEmptyArrays: true
+                                }
+                            },
+                            {
                                 $project: {
                                     _id: 1,
                                     metaKey: 1,
                                     metaValue: 1,
-                                    productMeasurementUnit: 1
+                                    measurementUnit: {
+                                        _id: '$measurementUnit._id',
+                                        name: '$measurementUnit.name',
+                                        symbol: '$measurementUnit.symbol',
+                                    }
                                 }
                             }
                         ],
@@ -44,7 +62,6 @@ class Product {
                         _id: 1,
                         name: 1,
                         slug: 1,
-                        externalId: 1,
                         variations: 1
                     }
                 }
