@@ -13,23 +13,39 @@ class Product {
             const productAttributes = await productAttributeModel.aggregate([
                 { $match: { isDeleted: false } },
                 {
-                    $group: {
-                        _id: "$type",
-                        attributes: {
-                            $push: {
-                                _id: "$_id",
-                                name: "$name",
-                                type: "$type",
-                                externalId: "$externalId"
+                    $lookup: {
+                        from: 'productattributevariations',
+                        let: { attributeId: '$_id' },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            { $eq: ['$productAttribute', '$$attributeId'] },
+                                            { $eq: ['$isDeleted', false] }
+                                        ]
+                                    }
+                                }
+                            },
+                            {
+                                $project: {
+                                    _id: 1,
+                                    metaKey: 1,
+                                    metaValue: 1,
+                                    productMeasurementUnit: 1
+                                }
                             }
-                        }
+                        ],
+                        as: 'variations'
                     }
                 },
                 {
                     $project: {
-                        _id: 0,
-                        type: "$_id",
-                        attributes: 1
+                        _id: 1,
+                        name: 1,
+                        slug: 1,
+                        externalId: 1,
+                        variations: 1
                     }
                 }
             ]);
@@ -37,10 +53,7 @@ class Product {
             return {
                 nestedCategories,
                 suppliers,
-                productAttributes: productAttributes.reduce((acc, curr) => {
-                    acc[curr.type] = curr.attributes;
-                    return acc;
-                }, {})
+                productAttributes
             };
         } catch (error) {
             throw {
@@ -106,6 +119,16 @@ class Product {
                     { slug: new RegExp(query.search_string, "i") },
                 ],
             });
+        }
+
+        if (query.status !== undefined) {
+            if (query.status === "0" || query.status === 0) {
+                conditionArr.push({ status: 0 });
+            } else if (query.status === "1" || query.status === 1) {
+                conditionArr.push({ status: 1 });
+            } else if (query.status === "2" || query.status === 2) {
+                conditionArr.push({ status: 2 });
+            }
         }
 
         let builtQuery = {};
