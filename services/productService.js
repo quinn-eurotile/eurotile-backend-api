@@ -17,7 +17,7 @@ class Product {
                 statusCode: 400
             };
         }
-        
+
         const attribute = await productAttributeModel.aggregate([
             { $match: { _id: new mongoose.Types.ObjectId(id) } },
             {

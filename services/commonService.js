@@ -58,6 +58,38 @@ class CommonService {
         }
     }
 
+    /** Get all documents of any model with optional filters, pagination, sorting */
+    async getAllData(model, {
+        filters = {},
+        projection = null,
+        sort = {},
+        page = 1,
+        limit = 10,
+    } = {}) {
+        try {
+            if (!modelInstance[model]) {
+                throw { message: `Model "${model}" not found`, statusCode: 404 };
+            }
+
+            const skip = (page - 1) * limit;
+
+            const data = await modelInstance[model]
+                .find(filters, projection)
+                .sort(sort)
+                .skip(skip)
+                .limit(limit);
+
+            const total = await modelInstance[model].countDocuments(filters);
+
+            return data
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to fetch data',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
 
 }
 

@@ -63,14 +63,14 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
         if (!Model) return passes(false, `Model "${table}" not found`);
 
         const conditions = {
-            // [column]: value,
-            [column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
+            [column]: value,
+            //[column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
             isDeleted: false // Check only non-deleted records
         };
 
         const existing = await Model.findOne(conditions);
-        if (existing && String(existing._id) !== updateId) {
-            return passes(false, `${capitalize(column)} has already been taken by another ${table}`);
+        if (existing && String(existing._id) !== String(updateId)) {
+            return passes(false, `${capitalize(column)} has ${String(existing._id) !== String(updateId)} already been taken by another ${table}`);
         }
 
         passes();
@@ -91,13 +91,13 @@ Validator.registerAsync('exist_update2', async function (value, attribute, req, 
         if (!Model) return passes(false, `Model "${table}" not found`);
 
         const conditions = {
-            [column]: value,
-            // [column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
+            // [column]: value,
+            [column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
             isDeleted: false // Add soft-delete check
         };
 
         const existing = await Model.findOne(conditions);
-        if (existing && String(existing._id) !== updateId) {
+        if (existing && String(existing._id) !== String(updateId)) {
             return passes(false, `${capitalize(column)} already exists in ${table}`);
         }
 
