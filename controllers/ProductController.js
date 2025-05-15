@@ -13,6 +13,18 @@ module.exports = class ProductController {
         }
     }
 
+
+     /** Get Attribute By Their Id */
+     async getAttributeById(req, res) {
+        try {
+            const attributeId = req?.params?.id;
+            const data = await productService.getAttributeById(attributeId);
+            return res.status(200).json({ message: 'Attribute get successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /** Get Product attribute List **/
     async productAttributeList(req, res) {
         try {
