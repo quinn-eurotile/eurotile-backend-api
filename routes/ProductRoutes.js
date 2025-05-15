@@ -19,6 +19,7 @@ router.put('/attribute/:id', auth, productValidation.saveAttribute, productContr
 router.delete('/attribute/:id', auth, productController.deleteProductAttribute);
 router.get('/attribute', auth, productController.productAttributeList);
 router.get('/attribute/:id', auth, productController.getAttributeById);
+router.patch('/attribute/:id/status', auth, productController.updateAttributeStatus);
 
 
 /* These routes are for product measurments */

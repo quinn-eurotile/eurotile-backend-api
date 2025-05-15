@@ -3,7 +3,16 @@ const commonService = require('../services/commonService');
 
 module.exports = class ProductController {
 
-    
+    /** Update Status For Attribute */
+    async updateAttributeStatus(req, res) {
+        try {
+            const data = await commonService.updateStatusById(req,'ProductAttribute', [0, 1]);
+            return res.status(200).send({ message: 'Attribute status updated successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     async productMeasurementUnitsAll(req, res) {
         try {
             const model = 'ProductMeasurementUnit';
