@@ -1,4 +1,5 @@
 const Validator = require('validatorjs');
+const { formatValidationErrors } = require('../_helpers/common');
 
 // Custom rule: allow null or MongoDB ObjectId
 Validator.register('isMongoIdOrNull', function (value) {
@@ -7,17 +8,6 @@ Validator.register('isMongoIdOrNull', function (value) {
 }, 'The :attribute must be a valid MongoDB ObjectId or null.');
 
 
-const formatValidationErrors = (errors) => {
-    const formatted = {};
-    for (const [key, messages] of Object.entries(errors)) {
-        if (Array.isArray(messages)) {
-            formatted[key] = messages[0]; // Only show the first message
-        } else {
-            formatted[key] = messages;
-        }
-    }
-    return formatted;
-};
 
 /** saveAttribute */
 const saveAttribute = (req, res, next) => {
