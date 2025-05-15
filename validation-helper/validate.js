@@ -63,8 +63,8 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
         if (!Model) return passes(false, `Model "${table}" not found`);
 
         const conditions = {
-            [column]: value,
-            //[column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
+            // [column]: value,
+            [column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
             isDeleted: false // Check only non-deleted records
         };
 
