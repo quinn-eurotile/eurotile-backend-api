@@ -18,5 +18,6 @@ router.post('/attribute', auth, productValidation.saveAttribute, productControll
 router.put('/attribute/:id', auth, productValidation.saveAttribute, productController.updateProductAttribute);
 router.delete('/attribute/:id', auth, productController.deleteProductAttribute);
 router.get('/attribute', auth, productController.productAttributeList);
+router.get('/attribute/:id', auth, productController.getAttributeById);
 
 module.exports = router;

@@ -1,10 +1,90 @@
 const productModel = require('../models/Product');
+const mongoose = require('mongoose');
 const productAttributeModel = require('../models/ProductAttribute');
 const productAttributeVariationModel = require('../models/ProductAttributeVariation');
 const supplierModel = require('../models/Supplier');
 const categoryService = require('./categoryService');
 
 class Product {
+
+
+    /** Get Attribute Data */
+    async getAttributeById(id) {
+        // Validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw {
+                message: 'Invalid attribute ID',
+                statusCode: 400
+            };
+        }
+        
+        const attribute = await productAttributeModel.aggregate([
+            { $match: { _id: new mongoose.Types.ObjectId(id) } },
+            {
+                $lookup: {
+                    from: 'productattributevariations',
+                    let: { attributeId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$productAttribute', '$$attributeId'] },
+                                        { $eq: ['$isDeleted', false] }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'productmeasurementunits',
+                                localField: 'productMeasurementUnit',
+                                foreignField: '_id',
+                                as: 'measurementUnit'
+                            }
+                        },
+                        {
+                            $unwind: {
+                                path: '$measurementUnit',
+                                preserveNullAndEmptyArrays: true
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                metaKey: 1,
+                                metaValue: 1,
+                                measurementUnit: {
+                                    _id: '$measurementUnit._id',
+                                    name: '$measurementUnit.name',
+                                    symbol: '$measurementUnit.symbol'
+                                }
+                            }
+                        }
+                    ],
+                    as: 'variations'
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    slug: 1,
+                    variations: 1
+                }
+            }
+        ]);
+
+        if (!attribute || attribute.length === 0) {
+            throw {
+                message: 'Product attribute not found',
+                statusCode: 404
+            };
+        }
+
+        return attribute[0];
+    }
+    /** Get Product Raw Data */
     async getProductRawData(req) {
         try {
             const suppliers = await supplierModel.find({ isDeleted: false }).select('_id companyName companyEmail companyPhone');
