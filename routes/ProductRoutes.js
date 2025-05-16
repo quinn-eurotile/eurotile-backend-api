@@ -12,7 +12,8 @@ router.get('/', multer().any(), auth, productController.productList);
 router.put('/:id', upload.fields([{ name: 'productImages', maxCount: 10 }, { name: 'productFeaturedImage', maxCount: 1 }]), auth, productController.updateProduct);
 router.patch('/:id/status', multer().any(), auth, productController.updateProductStatus);
 router.get('/raw/data', multer().any(), auth, productController.getProductRawData);
-/*router.delete('/:id', multer().any(),auth, productController.deleteTax); */
+router.delete('/:id', multer().any(),auth, productController.deleteProduct);
+router.get('/:id', multer().any(), auth, productController.getProduct);
 
 
 /* These routes are for product attributes */

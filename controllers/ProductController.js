@@ -99,6 +99,28 @@ module.exports = class ProductController {
         }
     }
 
+    /** Get Product By Id **/
+    async getProduct(req, res) {
+        try {
+            const id = req.params.id;
+            const product = await productService.getProductById(id);
+            if (!product) return res.status(404).json({ message: 'Product not found' });
+            return res.status(200).json({ message: 'Product fetch successfully', data: product });
+        } catch (error) {
+            return res.status(error?.statusCode || 500).json({ message: error?.message });
+        }
+    }
+
+    /** Delete Product By Api Request */
+    async deleteProduct(req, res) {
+        try {
+            const product = await commonService.updateIsDeletedById(req, 'Product', true);
+            return res.status(200).json({ message: "Product deleted successfully.", data: product });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /** Update Product **/
     async updateProduct(req, res) {
         try {
