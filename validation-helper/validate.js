@@ -79,36 +79,4 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
     }
 });
 
-
-Validator.registerAsync('exist_update2', async function (value, attribute, req, passes) {
-    try {
-        const [table, column, updateId] = attribute.split(",");
-        if (!table || !column || !updateId) {
-            return passes(false, 'Invalid format. Use: exist_update:Table,field,id');
-        }
-
-        const Model = Models[table];
-        if (!Model) return passes(false, `Model "${table}" not found`);
-
-        const conditions = {
-            // [column]: value,
-            [column]: { $regex: `^${value}$`, $options: 'i' }, // Case-insensitive match
-            isDeleted: false // Add soft-delete check
-        };
-
-        const existing = await Model.findOne(conditions);
-        if (existing && String(existing._id) !== String(updateId)) {
-            return passes(false, `${capitalize(column)} already exists in ${table}`);
-        }
-
-        passes();
-    } catch (err) {
-        passes(false, err.message || 'Validation error');
-    }
-});
-
-
-
-
-
 module.exports = validator;

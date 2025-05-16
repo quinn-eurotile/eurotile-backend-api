@@ -1,9 +1,13 @@
-const productModel = require('../models/Product');
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
+const productModel = require('../models/Product');
+const productVariationModel = require('../models/ProductVariation');
 const productAttributeModel = require('../models/ProductAttribute');
 const productAttributeVariationModel = require('../models/ProductAttributeVariation');
 const supplierModel = require('../models/Supplier');
 const categoryService = require('./categoryService');
+const productFileModel = require('../models/ProductFile');
 
 class Product {
 
@@ -425,15 +429,112 @@ class Product {
     /** Create Product */
     async createProduct(req) {
         try {
-            const product = await productModel.create(req.body);
+            let {
+                productVariations = [],
+                categories = [],
+                attributeVariations = [],
+                supplier,
+                ...productData
+            } = req.body;
+            // console.log('req.files.productImages', req.files);
+            // console.log('req.files.productFeaturedImage', req.files);
+
+            // return req.files;
+
+            // Parse stringified arrays if sent as strings
+            productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
+            categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+            attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
+
+            // Clean and cast supplier to ObjectId
+            if (typeof supplier === 'string') {
+                supplier = supplier.replace(/^"+|"+$/g, '');
+                productData.supplier = new mongoose.Types.ObjectId(supplier);
+            }
+
+            // Convert category and attributeVariation IDs to ObjectId
+            productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
+            productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+
+            // Step 1: Create the product
+            const product = await productModel.create(productData);
+            const productId = product._id.toString();
+
+            // Step 2: Create upload folder
+            const uploadDir = path.join(__dirname, '..', 'uploads', productId);
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+
+            // Step 3: Handle file uploads
+            const savedImageIds = [];
+
+            if (req.files?.productImages) {
+
+                for (const file of req.files.productImages) {
+                    const filePath = path.join(uploadDir, file.originalname);
+                    fs.writeFileSync(filePath, file.buffer);
+
+                    const fileDoc = await productFileModel.create({
+                        product: product._id,
+                        fileName: file.originalname,
+                        fileType: file.mimetype.split('/')[0] || 'other',
+                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        fileSize: file.size,
+                        isFeaturedImage: 0
+                    });
+
+                    savedImageIds.push(fileDoc._id);
+                }
+            }
+
+            // Step 4: Save featured image
+            let featuredImageId = null;
+            if (req.files?.productFeaturedImage?.length > 0) {
+                const file = req.files.productFeaturedImage[0];
+                const filePath = path.join(uploadDir, file.originalname);
+                fs.writeFileSync(filePath, file.buffer);
+
+                const fileDoc = await productFileModel.create({
+                    product: product._id,
+                    fileName: file.originalname,
+                    fileType: file.mimetype.split('/')[0] || 'other',
+                    filePath: `/uploads/${productId}/${file.originalname}`,
+                    fileSize: file.size,
+                    isFeaturedImage: 1
+                });
+
+                featuredImageId = fileDoc._id;
+            }
+
+            // Step 5: Save product variations
+            const variationIds = [];
+            for (const variationData of productVariations) {
+                const variation = await productVariationModel.create({
+                    ...variationData,
+                    product: productId
+                });
+                variationIds.push(variation._id);
+            }
+
+            // Step 6: Update product with relationships
+            product.productVariations = variationIds.map(id => new mongoose.Types.ObjectId(id));
+            product.productImages = savedImageIds.map(id => new mongoose.Types.ObjectId(id));
+            product.productFeaturedImage = featuredImageId ? new mongoose.Types.ObjectId(featuredImageId) : null;
+
+            await product.save();
+
             return product;
+
         } catch (error) {
+            console.error(error);
             throw {
                 message: error?.message || 'Failed to create product.',
                 statusCode: error?.statusCode || 500
             };
         }
     }
+
 
     /** Update Product */
     async updateProduct(req) {
@@ -446,6 +547,169 @@ class Product {
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to update product.',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    /** Build Query For Product List */
+    async buildProductListQuery(req) {
+        const query = req.query;
+        const conditionArr = [{ isDeleted: false }];
+
+        // For TEst Status
+        if (query.status !== undefined) {
+            if (query.status === "0" || query.status === 0) {
+                conditionArr.push({ status: 0 });
+            } else if (query.status === "1" || query.status === 1) {
+                conditionArr.push({ status: 1 });
+            }
+        }
+
+        // Add stock Status filter
+        if (query.stockStatus !== undefined) {
+            if (query.stockStatus === "in_stock") {
+                conditionArr.push({ stockStatus: 'in_stock' });
+            } else if (query.stockStatus === "out_of_stock") {
+                conditionArr.push({ stockStatus: "out_of_stock" });
+            }
+        }
+
+        // Add search conditions if 'search_string' is provided
+        if (query.search_string !== undefined && query.search_string !== "") {
+            conditionArr.push({
+                $or: [
+                    { name: new RegExp(query.search_string, "i") },
+                    { sku: new RegExp(query.search_string, "i") },
+                    { slug: new RegExp(query.search_string, "i") },
+                    { description: new RegExp(query.search_string, "i") },
+                    { shortDescription: new RegExp(query.search_string, "i") }
+                ]
+            });
+        }
+
+        // Filter by supplier if provided
+        if (query.supplier) {
+            conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
+        }
+
+        // Filter by category if provided
+        if (query.categories) {
+            conditionArr.push({ categories: new mongoose.Types.ObjectId(query.categories) });
+        }
+
+        // Construct the final query
+        let builtQuery = {};
+        if (conditionArr.length === 1) {
+            builtQuery = conditionArr[0];
+        } else if (conditionArr.length > 1) {
+            builtQuery = { $and: conditionArr };
+        }
+
+        return builtQuery;
+    }
+
+    /** Get Product List */
+    async productList(query, options) {
+        try {
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const skip = (page - 1) * limit;
+
+            // Build aggregation pipeline
+            const pipeline = [
+                { $match: query },
+                // Lookup supplier
+                {
+                    $lookup: {
+                        from: 'suppliers',
+                        localField: 'supplier',
+                        foreignField: '_id',
+                        as: 'supplier'
+                    }
+                },
+                { $unwind: { path: '$supplier', preserveNullAndEmptyArrays: true } },
+
+                // Lookup categories
+                {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'categories',
+                        foreignField: '_id',
+                        as: 'categories'
+                    }
+                },
+
+                // Lookup featured image
+                {
+                    $lookup: {
+                        from: 'productfiles',
+                        localField: 'productFeaturedImage',
+                        foreignField: '_id',
+                        as: 'featuredImage'
+                    }
+                },
+                { $unwind: { path: '$featuredImage', preserveNullAndEmptyArrays: true } },
+
+                // Optional sort
+                { $sort: sort },
+
+                // Project fields
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        sku: 1,
+                        defaultPrice: 1,
+                        stockStatus: 1,
+                        shortDescription: 1,
+                        supplier: {
+                            _id: '$supplier._id',
+                            companyName: '$supplier.companyName'
+                        },
+                        categories: {
+                            _id: 1,
+                            name: 1
+                        },
+                        featuredImage: {
+                            _id: 1,
+                            filePath: 1
+                        },
+                        productImages: {
+                            _id: 1,
+                            filePath: 1
+                        },
+                        createdAt: 1,
+                        updatedAt: 1
+                    }
+                },
+                // Pagination
+                { $skip: skip },
+                { $limit: limit }
+            ];
+
+            // Run aggregation
+            const data = await productModel.aggregate(pipeline);
+
+            // Get total count
+            const totalCountAgg = await productModel.aggregate([
+                { $match: query },
+                { $count: 'total' }
+            ]);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            return {
+                docs: data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+
+        } catch (error) {
+            throw {
+                message: error?.message || 'Something went wrong while fetching products',
                 statusCode: error?.statusCode || 500
             };
         }

@@ -6,7 +6,7 @@ module.exports = class ProductController {
     /** Update Status For Attribute */
     async updateAttributeStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req,'ProductAttribute', [0, 1]);
+            const data = await commonService.updateStatusById(req, 'ProductAttribute', [0, 1]);
             return res.status(200).send({ message: 'Attribute status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -93,7 +93,7 @@ module.exports = class ProductController {
     async createProduct(req, res) {
         try {
             const product = await productService.createProduct(req);
-            return res.status(201).json({ type: "success", message: "Product created successfully", data: product, });
+            return res.status(201).json({ type: "success", message: "Product created successfully", data: product });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -119,5 +119,16 @@ module.exports = class ProductController {
         }
     }
 
+    /** Get Product List **/
+    async productList(req, res) {
+        try {
+            const query = await productService.buildProductListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const data = await productService.productList(query, options);
+            return res.status(200).json({ data: data, message: 'Product list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
 
 };
