@@ -16,7 +16,9 @@ const UserBusinessDocument = require('./UserBusinessDocument');
 const Category = require('./Category');
 const Tax = require('./Tax');
 const ProductMeasurementUnit = require('./ProductMeasurementUnit');
+const ProductAttributeVariation = require('./ProductAttributeVariation');
+const ProductVariation = require('./ProductVariation');
 
 
 
-module.exports = { ProductMeasurementUnit,Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketDoc, SupportTicketMsg, UserBusinessDocument, UserBusiness };
+module.exports = { ProductVariation,ProductAttributeVariation,ProductMeasurementUnit,Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketDoc, SupportTicketMsg, UserBusinessDocument, UserBusiness };
