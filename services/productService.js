@@ -693,7 +693,7 @@ class Product {
         const conditionArr = [{ isDeleted: false }];
 
         // For TEst Status
-        if (query.status !== undefined) {
+        if (query.status !== undefined && query.status !== "") {
             if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
             } else if (query.status === "1" || query.status === 1) {
@@ -702,7 +702,7 @@ class Product {
         }
 
         // Add stock Status filter
-        if (query.stockStatus !== undefined) {
+        if (query.stockStatus !== undefined && query.stockStatus !== "") {
             if (query.stockStatus === "in_stock") {
                 conditionArr.push({ stockStatus: 'in_stock' });
             } else if (query.stockStatus === "out_of_stock") {
@@ -728,7 +728,7 @@ class Product {
             conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
         }
         // Filter by category if provided
-        if (query.categories !== undefined) {
+        if (query.categories !== undefined && query.categories !== "" && query.categories.length  !== 0) {
             const parsedCategories = JSON.parse(query.categories);
             if (Array.isArray(parsedCategories)) {
                 const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
