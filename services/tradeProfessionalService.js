@@ -306,10 +306,10 @@ class TradeProfessional {
             if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
             } else if (query.status === "1" || query.status === 1) {
-                conditionArr.push({ status: 1 });
+                conditionArr.push({ status: { $in: [1, 3] } })
             } else if (query.status === "2" || query.status === 2) {
                 conditionArr.push({ status: 2 });
-            }
+            } 
         }
 
 
