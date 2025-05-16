@@ -443,7 +443,7 @@ class Product {
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
 
-            console.log('productVariations create',productVariations)
+            console.log('productVariations create', productVariations);
             // Clean and cast supplier to ObjectId
             if (typeof supplier === 'string') {
                 supplier = supplier.replace(/^"+|"+$/g, '');
@@ -537,7 +537,7 @@ class Product {
     /** Update Product */
     async updateProduct(req) {
         try {
-            
+
             let {
                 productVariations = [],
                 categories = [],
@@ -545,44 +545,44 @@ class Product {
                 supplier,
                 ...productData
             } = req.body;
-console.log(typeof productVariations === 'string')
+            console.log(typeof productVariations === 'string');
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
 
-            console.log('productVariations update',productVariations)
-    
+            console.log('productVariations update', productVariations);
+
             // Convert string IDs to ObjectIds
             if (supplier) {
                 supplier = supplier.replace(/^"+|"+$/g, '');
                 productData.supplier = new mongoose.Types.ObjectId(supplier);
             }
-    
+
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
-    
+
             const productId = req.params.id;
             const existingProduct = await productModel.findById(productId);
-    
+
             if (!existingProduct) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
-    
+
             // Create upload directory
             const uploadDir = path.join(__dirname, '..', 'uploads', productId);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
-    
+
             // Handle new product images
             if (req.files?.productImages?.length > 0) {
                 const savedImageIds = [];
-    
+
                 for (const file of req.files.productImages) {
                     const filePath = path.join(uploadDir, file.originalname);
                     fs.writeFileSync(filePath, file.buffer);
-    
+
                     const fileDoc = await productFileModel.create({
                         product: existingProduct._id,
                         fileName: file.originalname,
@@ -591,22 +591,22 @@ console.log(typeof productVariations === 'string')
                         fileSize: file.size,
                         isFeaturedImage: 0,
                     });
-    
+
                     savedImageIds.push(fileDoc._id);
                 }
-    
+
                 productData.productImages = [
                     ...(existingProduct.productImages || []),
                     ...savedImageIds
                 ];
             }
-           
+
             // Handle featured image
             if (req.files?.productFeaturedImage?.length > 0) {
                 const file = req.files.productFeaturedImage[0];
                 const filePath = path.join(uploadDir, file.originalname);
                 fs.writeFileSync(filePath, file.buffer);
-    
+
                 const fileDoc = await productFileModel.create({
                     product: existingProduct._id,
                     fileName: file.originalname,
@@ -615,24 +615,24 @@ console.log(typeof productVariations === 'string')
                     fileSize: file.size,
                     isFeaturedImage: 1,
                 });
-    
+
                 productData.productFeaturedImage = fileDoc._id;
             }
 
-           
-           
+
+
             // Update/Create product variations
             if (Array.isArray(productVariations)) {
                 const variationIds = [];
-            
+
                 for (const variationData of productVariations) {
-                    console.log('TEST DATA  variationData',typeof variationData)
+                    console.log('TEST DATA  variationData', typeof variationData);
                     let variation;
-            
+
                     if (variationData._id) {
                         // Get existing variation first
                         const existingVariation = await productVariationModel.findById(variationData._id);
-                        
+
                         if (existingVariation) {
                             // Merge existing data with new data to preserve required fields
                             const mergedData = {
@@ -641,10 +641,10 @@ console.log(typeof productVariations === 'string')
                                 product: productId,
                                 updatedAt: new Date()
                             };
-            
+
                             // Remove _id from mergedData to avoid MongoDB error
                             delete mergedData._id;
-            
+
                             // Update with merged data
                             variation = await productVariationModel.findByIdAndUpdate(
                                 variationData._id,
@@ -659,27 +659,27 @@ console.log(typeof productVariations === 'string')
                             product: productId
                         });
                     }
-            
+
                     if (variation) {
                         variationIds.push(variation._id);
                     }
                 }
-            
+
                 productData.productVariations = variationIds;
             }
-            console.log('I am having ')
-           
+            console.log('I am having ');
+
             // Update product
             const updatedProduct = await productModel.findByIdAndUpdate(
                 productId,
                 { ...productData, updatedAt: new Date() },
                 { new: true, runValidators: false }
             );
-    
+
             return updatedProduct;
-    
+
         } catch (error) {
-           // console.error('Update product error:', error);
+            // console.error('Update product error:', error);
             throw {
                 message: error?.message || 'Failed to update product.',
                 statusCode: error?.statusCode || 500
@@ -747,6 +747,47 @@ console.log(typeof productVariations === 'string')
         return builtQuery;
     }
 
+    async getProductById(id) {
+        try {
+            const product = await productModel.findById(id)
+                .populate({
+                    path: 'supplier',
+                    select: '_id companyName companyEmail' // adjust fields as needed
+                })
+                .populate({
+                    path: 'categories',
+                    select: '_id name'
+                })
+                .populate({
+                    path: 'attributeVariations' // if this has nested fields, you can add populate inside
+                })
+                .populate({
+                    path: 'productImages',
+                    select: '_id filePath fileName'
+                })
+                .populate({
+                    path: 'productVariations',
+                    select: '_id name stockQuantity price'
+                })
+                .populate({
+                    path: 'productFeaturedImage',
+                    select: '_id filePath fileName isFeaturedImage'
+                });
+
+            if (!product) {
+                throw { message: 'Product not found', statusCode: 404 };
+            }
+
+            return product;
+        } catch (error) {
+            throw {
+                message: error.message || 'Failed to fetch product details',
+                statusCode: error.statusCode || 500
+            };
+        }
+    }
+
+
     /** Get Product List */
     async productList(query, options) {
         try {
@@ -788,6 +829,31 @@ console.log(typeof productVariations === 'string')
                 },
                 { $unwind: { path: '$featuredImage', preserveNullAndEmptyArrays: true } },
 
+
+                {
+                    $lookup: {
+                        from: 'productvariations',
+                        localField: '_id',
+                        foreignField: 'product',
+                        as: 'productVariations'
+                    }
+                },
+
+                // Add total quantity from variations
+                {
+                    $addFields: {
+                        totalQuantity: {
+                            $sum: {
+                                $map: {
+                                    input: '$productVariations',
+                                    as: 'variation',
+                                    in: { $ifNull: ['$$variation.stockQuantity', 0] }
+                                }
+                            }
+                        }
+                    }
+                },
+
                 // Optional sort
                 { $sort: sort },
 
@@ -798,7 +864,9 @@ console.log(typeof productVariations === 'string')
                         name: 1,
                         sku: 1,
                         defaultPrice: 1,
+                        totalQuantity: 1,
                         stockStatus: 1,
+                        status: 1,
                         shortDescription: 1,
                         supplier: {
                             _id: '$supplier._id',
