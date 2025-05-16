@@ -87,7 +87,7 @@ module.exports = class CategoryController {
     /** Update Category Status **/
     async updateCategoryStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req,'Category', [0, 1]);
+            const data = await commonService.updateStatusById(req,'Category','status', [0, 1]);
             return res.status(200).send({ message: 'Category status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
