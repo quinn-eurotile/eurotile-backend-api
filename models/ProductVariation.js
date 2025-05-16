@@ -3,7 +3,7 @@ const mongoosePaginate = require("mongoose-paginate-v2");
 
 const ProductVariationSchema = new Schema({
     product: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
-    description: { type: String, required: true },
+    description: { type: String, default: true },
     stockStatus: {
         type: String,
         enum: ['in_stock', 'out_of_stock', 'on_backorder'],
