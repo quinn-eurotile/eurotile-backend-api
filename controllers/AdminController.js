@@ -40,7 +40,7 @@ module.exports = class AdminController {
     /** Update Status For Trade Professional */
     async updateTradeProfessionalStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req,'User', [0, 1,2,3,4]);
+            const data = await commonService.updateStatusById(req,'User', 'status', [0, 1,2,3,4]);
             return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

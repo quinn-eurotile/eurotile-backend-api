@@ -6,7 +6,7 @@ module.exports = class ProductController {
     /** Update Status For Attribute */
     async updateAttributeStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req, 'ProductAttribute', [0, 1]);
+            const data = await commonService.updateStatusById(req, 'ProductAttribute', 'status' [0, 1]);
             return res.status(200).send({ message: 'Attribute status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -134,7 +134,7 @@ module.exports = class ProductController {
     /** Update Product Status **/
     async updateProductStatus(req, res) {
         try {
-            const product = await commonService.updateStatusById(req, 'Product', [0, 1]);
+            const product = await commonService.updateStatusById(req, 'Product', 'status' [0, 1]);
             return res.status(200).send({ message: 'Product status updated successfully', data: product });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
