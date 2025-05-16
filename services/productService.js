@@ -8,6 +8,7 @@ const productAttributeVariationModel = require('../models/ProductAttributeVariat
 const supplierModel = require('../models/Supplier');
 const categoryService = require('./categoryService');
 const productFileModel = require('../models/ProductFile');
+const { isArray } = require('util');
 
 class Product {
 
@@ -436,16 +437,13 @@ class Product {
                 supplier,
                 ...productData
             } = req.body;
-            // console.log('req.files.productImages', req.files);
-            // console.log('req.files.productFeaturedImage', req.files);
-
-            // return req.files;
 
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
 
+            console.log('productVariations create',productVariations)
             // Clean and cast supplier to ObjectId
             if (typeof supplier === 'string') {
                 supplier = supplier.replace(/^"+|"+$/g, '');
@@ -539,12 +537,149 @@ class Product {
     /** Update Product */
     async updateProduct(req) {
         try {
-            const updated = await productModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
-            if (!updated) {
+            
+            let {
+                productVariations = [],
+                categories = [],
+                attributeVariations = [],
+                supplier,
+                ...productData
+            } = req.body;
+console.log(typeof productVariations === 'string')
+            // Parse stringified arrays if sent as strings
+            productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
+            categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+            attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
+
+            console.log('productVariations update',productVariations)
+    
+            // Convert string IDs to ObjectIds
+            if (supplier) {
+                supplier = supplier.replace(/^"+|"+$/g, '');
+                productData.supplier = new mongoose.Types.ObjectId(supplier);
+            }
+    
+            productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
+            productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+    
+            const productId = req.params.id;
+            const existingProduct = await productModel.findById(productId);
+    
+            if (!existingProduct) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
-            return updated;
+    
+            // Create upload directory
+            const uploadDir = path.join(__dirname, '..', 'uploads', productId);
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+            }
+    
+            // Handle new product images
+            if (req.files?.productImages?.length > 0) {
+                const savedImageIds = [];
+    
+                for (const file of req.files.productImages) {
+                    const filePath = path.join(uploadDir, file.originalname);
+                    fs.writeFileSync(filePath, file.buffer);
+    
+                    const fileDoc = await productFileModel.create({
+                        product: existingProduct._id,
+                        fileName: file.originalname,
+                        fileType: file.mimetype.split('/')[0] || 'other',
+                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        fileSize: file.size,
+                        isFeaturedImage: 0,
+                    });
+    
+                    savedImageIds.push(fileDoc._id);
+                }
+    
+                productData.productImages = [
+                    ...(existingProduct.productImages || []),
+                    ...savedImageIds
+                ];
+            }
+           
+            // Handle featured image
+            if (req.files?.productFeaturedImage?.length > 0) {
+                const file = req.files.productFeaturedImage[0];
+                const filePath = path.join(uploadDir, file.originalname);
+                fs.writeFileSync(filePath, file.buffer);
+    
+                const fileDoc = await productFileModel.create({
+                    product: existingProduct._id,
+                    fileName: file.originalname,
+                    fileType: file.mimetype.split('/')[0] || 'other',
+                    filePath: `/uploads/${productId}/${file.originalname}`,
+                    fileSize: file.size,
+                    isFeaturedImage: 1,
+                });
+    
+                productData.productFeaturedImage = fileDoc._id;
+            }
+
+           
+           
+            // Update/Create product variations
+            if (Array.isArray(productVariations)) {
+                const variationIds = [];
+            
+                for (const variationData of productVariations) {
+                    console.log('TEST DATA  variationData',typeof variationData)
+                    let variation;
+            
+                    if (variationData._id) {
+                        // Get existing variation first
+                        const existingVariation = await productVariationModel.findById(variationData._id);
+                        
+                        if (existingVariation) {
+                            // Merge existing data with new data to preserve required fields
+                            const mergedData = {
+                                ...existingVariation.toObject(),
+                                ...variationData,
+                                product: productId,
+                                updatedAt: new Date()
+                            };
+            
+                            // Remove _id from mergedData to avoid MongoDB error
+                            delete mergedData._id;
+            
+                            // Update with merged data
+                            variation = await productVariationModel.findByIdAndUpdate(
+                                variationData._id,
+                                mergedData,
+                                { new: true }
+                            );
+                        }
+                    } else {
+                        // For new variations, ensure all required fields are present
+                        variation = await productVariationModel.create({
+                            ...variationData,
+                            product: productId
+                        });
+                    }
+            
+                    if (variation) {
+                        variationIds.push(variation._id);
+                    }
+                }
+            
+                productData.productVariations = variationIds;
+            }
+            console.log('I am having ')
+           
+            // Update product
+            const updatedProduct = await productModel.findByIdAndUpdate(
+                productId,
+                { ...productData, updatedAt: new Date() },
+                { new: true, runValidators: false }
+            );
+    
+            return updatedProduct;
+    
         } catch (error) {
+           // console.error('Update product error:', error);
             throw {
                 message: error?.message || 'Failed to update product.',
                 statusCode: error?.statusCode || 500
@@ -592,10 +727,13 @@ class Product {
         if (query.supplier) {
             conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
         }
-
         // Filter by category if provided
-        if (query.categories) {
-            conditionArr.push({ categories: new mongoose.Types.ObjectId(query.categories) });
+        if (query.categories !== undefined) {
+            const parsedCategories = JSON.parse(query.categories);
+            if (Array.isArray(parsedCategories)) {
+                const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
+                conditionArr.push({ categories: { $in: categoryIds } });
+            }
         }
 
         // Construct the final query

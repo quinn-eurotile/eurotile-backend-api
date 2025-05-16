@@ -148,3 +148,4 @@ dist
 yarn.lock
 .well-known/
 package-lock.json
+!/uploads/.gitkeep
