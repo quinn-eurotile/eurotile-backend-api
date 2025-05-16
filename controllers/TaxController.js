@@ -68,7 +68,7 @@ module.exports = class TaxController {
     /** Update Tax Record Status **/
     async updateTaxStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req,'Tax','status' [0, 1]);
+            const data = await commonService.updateStatusById(req,'Tax','status', [0, 1]);
             return res.status(200).send({ message: 'Tax status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
