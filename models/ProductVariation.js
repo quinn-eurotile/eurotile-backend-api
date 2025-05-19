@@ -23,6 +23,7 @@ const ProductVariationSchema = new Schema({
     purchasedPrice: { type: Number, default: 0 },
     customImageUrl: { type: String, default: null },
     shippingClass: { type: String, default: null },
+    isDeleted: { type: Boolean, default: false },
     taxClass: {
         type: String,
         enum: ['Taxable', 'Non-Taxable'],

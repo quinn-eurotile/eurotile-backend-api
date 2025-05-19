@@ -678,18 +678,7 @@ class Product {
             }
 
             // Return updated product with populated fields
-            const updatedProduct = await productModel
-                .findById(productId)
-                .populate('categories')
-                .populate('supplier')
-                .populate('attributeVariations')
-                .populate('featuredImage')
-                .populate({
-                    path: 'variations',
-                    populate: {
-                        path: 'productVariationImages'
-                    }
-                });
+            const updatedProduct = await productModel.findById(productId)
 
             return updatedProduct;
         } catch (error) {
@@ -765,32 +754,39 @@ class Product {
             const product = await productModel.findById(id)
                 .populate({
                     path: 'supplier',
-                    select: '_id companyName companyEmail' // adjust fields as needed
+                    match: { isDeleted: false },
+                    select: '_id companyName companyEmail'
                 })
                 .populate({
                     path: 'categories',
+                    match: { isDeleted: false },
                     select: '_id name'
                 })
                 .populate({
-                    path: 'attributeVariations' // if this has nested fields, you can add populate inside
+                    path: 'attributeVariations',
+                    match: { isDeleted: false },
                 })
                 .populate({
                     path: 'productVariations',
+                    match: { isDeleted: false },
                     populate: [
                         {
                             path: 'variationImages',
+                            match: { isDeleted: false },
+                            select: '_id filePath fileName'
                         }
                     ]
                 })
                 .populate({
                     path: 'productFeaturedImage',
+                    match: { isDeleted: false },
                     select: '_id filePath fileName isFeaturedImage'
                 });
-
+    
             if (!product) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
-
+    
             return product;
         } catch (error) {
             throw {
@@ -799,6 +795,7 @@ class Product {
             };
         }
     }
+    
 
 
     /** Get Product List */
