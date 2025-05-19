@@ -11,24 +11,24 @@ const app = Express();
 
 const corsOptions = {
   origin: [
-    'http://localhost:3000', 
-    'https://eurotiles-admin.myfileshosting.com', 
+    'http://localhost:3000',
+    'https://eurotiles-admin.myfileshosting.com',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
-  
-  app.use(cors(corsOptions)); 
-    
-  // app.use(cors()); 
+
+app.use(cors(corsOptions));
+
+// app.use(cors()); 
 /***** for parsing Cookie Parser ****/
 app.use(cookieParser());
 /***for parsing application/json***/
 //app.use(BodyParser.json());
 app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 /*****for parsing application/xwww-*****/
-app.use(BodyParser.urlencoded({ limit: "50mb", extended: true}));
+app.use(BodyParser.urlencoded({ limit: "50mb", extended: true }));
 // Setting the app router and static folder
 app.use(Express.static(path.resolve('uploads')));
 

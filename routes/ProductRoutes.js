@@ -20,7 +20,7 @@ router.get('/:id', multer().any(), auth, productController.getProduct);
 router.post('/attribute', multer().any(), auth, productValidation.saveAttribute, productController.createProductAttribute);
 router.put('/attribute/:id', multer().any(), auth, productValidation.saveAttribute, productController.updateProductAttribute);
 router.delete('/attribute/:id', multer().any(), auth, productController.deleteProductAttribute);
-router.get('/attribute', multer().any(), auth, productController.productAttributeList);
+router.get('/attribute/list', multer().any(), auth, productController.productAttributeList);
 router.get('/attribute/:id', multer().any(), auth, productController.getAttributeById);
 router.patch('/attribute/:id/status', multer().any(), auth, productController.updateAttributeStatus);
 
