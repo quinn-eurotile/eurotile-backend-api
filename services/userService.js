@@ -19,9 +19,12 @@ class UserService {
 	/*** Create User ***/
 	async createUser(req) {
 
-		const { first_name, last_name, email, role } = req.body;
-		const genSalt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash('123456789', genSalt); // Hash the password
+		const { first_name, last_name, email, role, password } = req.body;
+		// const genSalt = await bcrypt.genSalt(10);
+		// const hashedPassword = await bcrypt.hash('123456789', genSalt); // Hash the password
+
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
 
 		// Create a new user in the database
 		const newUser = new userModel({ first_name, last_name, email, role, password: hashedPassword, status: 1 });
