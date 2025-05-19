@@ -524,7 +524,7 @@ class Product {
                 variationIds.push(variation._id);
             }
 
-            // Step 6: Update product with relationships
+            // Step 5: Update product with relationships
             product.productVariations = variationIds.map(id => new mongoose.Types.ObjectId(id));
             product.productFeaturedImage = featuredImageId ? new mongoose.Types.ObjectId(featuredImageId) : null;
 
