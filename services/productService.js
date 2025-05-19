@@ -545,6 +545,7 @@ class Product {
                 supplier,
                 ...productData
             } = req.body;
+            
             console.log(typeof productVariations === 'string');
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
@@ -728,7 +729,7 @@ class Product {
             conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
         }
         // Filter by category if provided
-        if (query.categories !== undefined && query.categories !== "" && query.categories.length  !== 0) {
+        if (query.categories !== undefined && query.categories !== "" && query.categories.length !== 0) {
             const parsedCategories = JSON.parse(query.categories);
             if (Array.isArray(parsedCategories)) {
                 const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));

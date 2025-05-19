@@ -3,23 +3,23 @@ const mongoosePaginate = require("mongoose-paginate-v2");
 
 const ProductVariationSchema = new Schema({
     product: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
-    description: { type: String, default: true },
+    description: { type: String, default: null },
     stockStatus: {
         type: String,
         enum: ['in_stock', 'out_of_stock', 'on_backorder'],
-        required: true
+        default: 'in_stock'
     },
-    stockQuantity: { type: Number, required: true },
+    stockQuantity: { type: Number, default: 0 },
     allowBackorders: { type: Boolean, default: false },
-    weight: { type: Number, required: true },
+    weight: { type: Number, default: 0 },
     dimensions: {
-        length: { type: Number, required: true },
-        width: { type: Number, required: true },
-        height: { type: Number, required: true }
+        length: { type: Number, default: 0 },
+        width: { type: Number, default: 0 },
+        height: { type: Number, default: 0 }
     },
-    regularPrice: { type: Number, required: true },
-    salePrice: { type: Number, required: true },
-    purchasedPrice: { type: Number, required: true },
+    regularPrice: { type: Number, default: 0 },
+    salePrice: { type: Number, default: 0 },
+    purchasedPrice: { type: Number, default: 0 },
     customImageUrl: { type: String, default: null },
     image: { type: Schema.Types.ObjectId, ref: 'Image', default: null },
     shippingClass: { type: String, default: null },
