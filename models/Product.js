@@ -16,7 +16,6 @@ const productSchema = new Schema({
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
     productVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductVariation', default: [] }],
-    productImages: [{ type: Schema.Types.ObjectId, ref: 'ProductFile', default: [] }],
     productFeaturedImage: { type: Schema.Types.ObjectId, ref: 'ProductFile', default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },

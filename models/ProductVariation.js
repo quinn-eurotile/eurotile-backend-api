@@ -17,6 +17,7 @@ const ProductVariationSchema = new Schema({
         width: { type: Number, default: 0 },
         height: { type: Number, default: 0 }
     },
+    variationImages: [{ type: Schema.Types.ObjectId, ref: 'ProductFile', default: [] }],
     regularPrice: { type: Number, default: 0 },
     salePrice: { type: Number, default: 0 },
     purchasedPrice: { type: Number, default: 0 },

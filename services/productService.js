@@ -464,29 +464,8 @@ class Product {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
 
-            // Step 3: Handle file uploads
-            const savedImageIds = [];
 
-            if (req.files?.productImages) {
-
-                for (const file of req.files.productImages) {
-                    const filePath = path.join(uploadDir, file.originalname);
-                    fs.writeFileSync(filePath, file.buffer);
-
-                    const fileDoc = await productFileModel.create({
-                        product: product._id,
-                        fileName: file.originalname,
-                        fileType: file.mimetype.split('/')[0] || 'other',
-                        filePath: `/uploads/${productId}/${file.originalname}`,
-                        fileSize: file.size,
-                        isFeaturedImage: 0
-                    });
-
-                    savedImageIds.push(fileDoc._id);
-                }
-            }
-
-            // Step 4: Save featured image
+            // Step 3: Save featured image
             let featuredImageId = null;
             if (req.files?.productFeaturedImage?.length > 0) {
                 const file = req.files.productFeaturedImage[0];
@@ -505,19 +484,48 @@ class Product {
                 featuredImageId = fileDoc._id;
             }
 
-            // Step 5: Save product variations
+            // Step 4: Save product variations
             const variationIds = [];
-            for (const variationData of productVariations) {
+            for (let index = 0; index < productVariations.length; index++) {
+                const variationData = productVariations[index];
+
+                // Collect variation image(s)
+                let variationImageIds = [];
+                const variationFiles = req.files?.variationImages;
+
+                if (Array.isArray(variationFiles) && variationFiles[index]) {
+                    const files = Array.isArray(variationFiles[index])
+                        ? variationFiles[index]
+                        : [variationFiles[index]];
+
+                    for (const file of files) {
+                        const filePath = path.join(uploadDir, file.originalname);
+                        fs.writeFileSync(filePath, file.buffer);
+
+                        const fileDoc = await productFileModel.create({
+                            product: product._id,
+                            fileName: file.originalname,
+                            fileType: file.mimetype.split('/')[0] || 'other',
+                            filePath: `/uploads/${productId}/${file.originalname}`,
+                            fileSize: file.size,
+                            isFeaturedImage: 0
+                        });
+
+                        variationImageIds.push(fileDoc._id);
+                    }
+                }
+
                 const variation = await productVariationModel.create({
                     ...variationData,
-                    product: productId
+                    product: productId,
+                    variationImages: variationImageIds
                 });
+
                 variationIds.push(variation._id);
             }
 
             // Step 6: Update product with relationships
             product.productVariations = variationIds.map(id => new mongoose.Types.ObjectId(id));
-            product.productImages = savedImageIds.map(id => new mongoose.Types.ObjectId(id));
             product.productFeaturedImage = featuredImageId ? new mongoose.Types.ObjectId(featuredImageId) : null;
 
             await product.save();
@@ -545,7 +553,7 @@ class Product {
                 supplier,
                 ...productData
             } = req.body;
-            
+
             console.log(typeof productVariations === 'string');
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
