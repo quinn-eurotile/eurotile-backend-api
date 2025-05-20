@@ -26,6 +26,15 @@ const productSchema = new Schema({
     toObject: { virtuals: true },
 });
 
+// In your Mongoose model
+productSchema.virtual('statusLabel').get(function () {
+    return this.status === 1 ? 'Published' : 'Draft';
+});
+
+productSchema.virtual('stockStatusLabel').get(function () {
+    return this.stockStatus === 'in_stock' ? 'In Stock' : 'Out of Stock';
+});
+
 // Sets the created_at parameter equal to the current time
 productSchema.pre("save", async function (next) {
     try {
