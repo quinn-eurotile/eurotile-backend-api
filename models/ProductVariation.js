@@ -24,7 +24,6 @@ const ProductVariationSchema = new Schema({
     NumberOfTiles: { type: Number, default: 0 },
     BoxSize: { type: Number, default: 0 },
     PalletSize: { type: Number, default: 0 },
-    image: { type: Schema.Types.ObjectId, ref: 'Image', default: null },
     shippingClass: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
     taxClass: {
