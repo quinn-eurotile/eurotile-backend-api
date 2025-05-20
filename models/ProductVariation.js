@@ -21,7 +21,9 @@ const ProductVariationSchema = new Schema({
     regularPrice: { type: Number, default: 0 },
     salePrice: { type: Number, default: 0 },
     purchasedPrice: { type: Number, default: 0 },
-    customImageUrl: { type: String, default: null },
+    NumberOfTiles: { type: Number, default: 0 },
+    BoxSize: { type: Number, default: 0 },
+    PalletSize: { type: Number, default: 0 },
     image: { type: Schema.Types.ObjectId, ref: 'Image', default: null },
     shippingClass: { type: String, default: null },
     taxClass: {

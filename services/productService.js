@@ -438,6 +438,9 @@ class Product {
                 ...productData
             } = req.body;
 
+            console.log('asxsax', req.body);
+            console.log('files', req.files);
+
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
@@ -770,14 +773,7 @@ class Product {
                 .populate({
                     path: 'attributeVariations' // if this has nested fields, you can add populate inside
                 })
-                .populate({
-                    path: 'productImages',
-                    select: '_id filePath fileName'
-                })
-                .populate({
-                    path: 'productVariations',
-                    select: '_id name stockQuantity price'
-                })
+                .populate({ path: 'productVariations'})
                 .populate({
                     path: 'productFeaturedImage',
                     select: '_id filePath fileName isFeaturedImage'
