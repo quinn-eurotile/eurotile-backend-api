@@ -548,150 +548,143 @@ class Product {
     /** Update Product */
     async updateProduct(req) {
         try {
-
+            const productId = req.params.id;
             let {
                 productVariations = [],
                 categories = [],
                 attributeVariations = [],
                 supplier,
+                variationsToRemove = [], // Add this to handle variation deletion
+                variationsImagesToRemove = [], // Add this to handle any particular variation image deletion
                 ...productData
             } = req.body;
 
-            console.log(typeof productVariations === 'string');
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
+            variationsToRemove = typeof variationsToRemove === 'string' ? JSON.parse(variationsToRemove) : variationsToRemove;
 
-            console.log('productVariations update', productVariations);
-
-            // Convert string IDs to ObjectIds
-            if (supplier) {
+            // Clean and cast supplier to ObjectId
+            if (typeof supplier === 'string') {
                 supplier = supplier.replace(/^"+|"+$/g, '');
                 productData.supplier = new mongoose.Types.ObjectId(supplier);
             }
 
+            // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
 
-            const productId = req.params.id;
-            const existingProduct = await productModel.findById(productId);
-
-            if (!existingProduct) {
+            // Step 1: Update the product
+            const product = await productModel.findByIdAndUpdate(productId, productData, { new: true });
+            if (!product) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
 
-            // Create upload directory
+            // Step 2: Ensure upload folder exists
             const uploadDir = path.join(__dirname, '..', 'uploads', productId);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
 
-            // Handle new product images
-            if (req.files?.productImages?.length > 0) {
-                const savedImageIds = [];
-
-                for (const file of req.files.productImages) {
-                    const filePath = path.join(uploadDir, file.originalname);
-                    fs.writeFileSync(filePath, file.buffer);
-
-                    const fileDoc = await productFileModel.create({
-                        product: existingProduct._id,
-                        fileName: file.originalname,
-                        fileType: file.mimetype.split('/')[0] || 'other',
-                        filePath: `/uploads/${productId}/${file.originalname}`,
-                        fileSize: file.size,
-                        isFeaturedImage: 0,
-                    });
-
-                    savedImageIds.push(fileDoc._id);
-                }
-
-                productData.productImages = [
-                    ...(existingProduct.productImages || []),
-                    ...savedImageIds
-                ];
-            }
-
-            // Handle featured image
+            // Step 3: Handle featured image if provided
             if (req.files?.productFeaturedImage?.length > 0) {
                 const file = req.files.productFeaturedImage[0];
                 const filePath = path.join(uploadDir, file.originalname);
                 fs.writeFileSync(filePath, file.buffer);
 
                 const fileDoc = await productFileModel.create({
-                    product: existingProduct._id,
+                    product: product._id,
                     fileName: file.originalname,
                     fileType: file.mimetype.split('/')[0] || 'other',
                     filePath: `/uploads/${productId}/${file.originalname}`,
                     fileSize: file.size,
-                    isFeaturedImage: 1,
+                    isFeaturedImage: 1
                 });
 
-                productData.productFeaturedImage = fileDoc._id;
+                // Update product with new featured image
+                await productModel.findByIdAndUpdate(productId, { featuredImage: fileDoc._id });
             }
 
-
-
-            // Update/Create product variations
-            if (Array.isArray(productVariations)) {
-                const variationIds = [];
-
-                for (const variationData of productVariations) {
-                    console.log('TEST DATA  variationData', typeof variationData);
-                    let variation;
-
-                    if (variationData._id) {
-                        // Get existing variation first
-                        const existingVariation = await productVariationModel.findById(variationData._id);
-
-                        if (existingVariation) {
-                            // Merge existing data with new data to preserve required fields
-                            const mergedData = {
-                                ...existingVariation.toObject(),
-                                ...variationData,
-                                product: productId,
-                                updatedAt: new Date()
-                            };
-
-                            // Remove _id from mergedData to avoid MongoDB error
-                            delete mergedData._id;
-
-                            // Update with merged data
-                            variation = await productVariationModel.findByIdAndUpdate(
-                                variationData._id,
-                                mergedData,
-                                { new: true }
-                            );
-                        }
-                    } else {
-                        // For new variations, ensure all required fields are present
-                        variation = await productVariationModel.create({
-                            ...variationData,
-                            product: productId
-                        });
+            // Step 4: Handle variations to remove
+            if (variationsToRemove.length > 0) {
+                await productVariationModel.updateMany({ _id: { $in: variationsToRemove } }, { $set: { isDeleted: true } });
+                // Also remove associated variation images
+                await productFileModel.updateMany(
+                    {
+                        isFeaturedImage: 0,
+                        _id: { $in: variationsToRemove.map(v => v.productVariationImages).flat() }
+                    },
+                    {
+                        $set: { isDeleted: true }
                     }
+                );
+            }
 
-                    if (variation) {
-                        variationIds.push(variation._id);
+            // Step 5: Update or create variations
+            for (let index = 0; index < productVariations.length; index++) {
+                const variationData = productVariations[index];
+                let variationImageIds = [];
+
+                // Handle variation images if provided
+                const variationFiles = req.files?.variationImages;
+                if (Array.isArray(variationFiles) && variationFiles[index]) {
+                    const files = Array.isArray(variationFiles[index])
+                        ? variationFiles[index]
+                        : [variationFiles[index]];
+
+                    for (const file of files) {
+                        const filePath = path.join(uploadDir, file.originalname);
+                        fs.writeFileSync(filePath, file.buffer);
+
+                        const fileDoc = await productFileModel.create({
+                            product: product._id,
+                            fileName: file.originalname,
+                            fileType: file.mimetype.split('/')[0] || 'other',
+                            filePath: `/uploads/${productId}/${file.originalname}`,
+                            fileSize: file.size,
+                            isFeaturedImage: 0
+                        });
+
+                        variationImageIds.push(fileDoc._id);
                     }
                 }
 
-                productData.productVariations = variationIds;
-            }
-            console.log('I am having ');
+                if (variationData._id) {
+                    // Update existing variation
+                    const updateData = {
+                        ...variationData,
+                        product: product._id
+                    };
 
-            // Update product
-            const updatedProduct = await productModel.findByIdAndUpdate(
-                productId,
-                { ...productData, updatedAt: new Date() },
-                { new: true, runValidators: false }
-            );
+                    // Add new images if any were uploaded
+                    if (variationImageIds.length > 0) {
+                        updateData.productVariationImages = [
+                            ...(variationData.productVariationImages || []),
+                            ...variationImageIds
+                        ];
+                    }
+
+                    await productVariationModel.findByIdAndUpdate(
+                        variationData._id,
+                        updateData,
+                        { new: true }
+                    );
+                } else {
+                    // Create new variation
+                    await productVariationModel.create({
+                        ...variationData,
+                        product: product._id,
+                        productVariationImages: variationImageIds
+                    });
+                }
+            }
+
+            // Return updated product with populated fields
+            const updatedProduct = await productModel.findById(productId)
 
             return updatedProduct;
-
         } catch (error) {
-            // console.error('Update product error:', error);
             throw {
                 message: error?.message || 'Failed to update product.',
                 statusCode: error?.statusCode || 500
@@ -764,25 +757,39 @@ class Product {
             const product = await productModel.findById(id)
                 .populate({
                     path: 'supplier',
-                    select: '_id companyName companyEmail' // adjust fields as needed
+                    match: { isDeleted: false },
+                    select: '_id companyName companyEmail'
                 })
                 .populate({
                     path: 'categories',
+                    match: { isDeleted: false },
                     select: '_id name'
                 })
                 .populate({
-                    path: 'attributeVariations' // if this has nested fields, you can add populate inside
+                    path: 'attributeVariations',
+                    match: { isDeleted: false },
                 })
-                .populate({ path: 'productVariations'})
+                .populate({
+                    path: 'productVariations',
+                    match: { isDeleted: false },
+                    populate: [
+                        {
+                            path: 'variationImages',
+                            match: { isDeleted: false },
+                            select: '_id filePath fileName'
+                        }
+                    ]
+                })
                 .populate({
                     path: 'productFeaturedImage',
+                    match: { isDeleted: false },
                     select: '_id filePath fileName isFeaturedImage'
                 });
-
+    
             if (!product) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
-
+    
             return product;
         } catch (error) {
             throw {
@@ -791,6 +798,7 @@ class Product {
             };
         }
     }
+    
 
 
     /** Get Product List */
