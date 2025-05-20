@@ -89,6 +89,17 @@ module.exports = class ProductController {
         }
     }
 
+     /** Delete Product variation **/
+     async deleteProductVariation(req, res) {
+        try {
+            const product = await commonService.updateIsDeletedById(req, 'ProductVariation', true);
+            return res.status(200).send({ message: 'Product variation deleted successfully', data: product });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+
     /** Create Product **/
     async createProduct(req, res) {
         try {

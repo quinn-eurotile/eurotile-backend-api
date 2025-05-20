@@ -456,6 +456,8 @@ class Product {
             // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+            productData.createdBy = req?.user?.id;
+            productData.updatedBy = req?.user?.id;
 
             // Step 1: Create the product
             const product = await productModel.create(productData);
@@ -574,6 +576,7 @@ class Product {
             // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+            productData.updatedBy = req?.user?.id;
 
             // Step 1: Update the product
             const product = await productModel.findByIdAndUpdate(productId, productData, { new: true });
@@ -627,13 +630,10 @@ class Product {
                 let variationImageIds = [];
 
                 // Handle variation images if provided
-                const variationFiles = req.files?.variationImages;
-                if (Array.isArray(variationFiles) && variationFiles[index]) {
-                    const files = Array.isArray(variationFiles[index])
-                        ? variationFiles[index]
-                        : [variationFiles[index]];
+                const variationFiles = variationData?.variationImages;
+                if (Array.isArray(variationFiles)) {
 
-                    for (const file of files) {
+                    for (const file of variationFiles) {
                         const filePath = path.join(uploadDir, file.originalname);
                         fs.writeFileSync(filePath, file.buffer);
 
@@ -681,7 +681,7 @@ class Product {
             }
 
             // Return updated product with populated fields
-            const updatedProduct = await productModel.findById(productId)
+            const updatedProduct = await productModel.findById(productId);
 
             return updatedProduct;
         } catch (error) {
@@ -770,6 +770,16 @@ class Product {
                     match: { isDeleted: false },
                 })
                 .populate({
+                    path: 'createdBy',
+                    match: { isDeleted: false },
+                    select: '_id name email phone'
+                })
+                .populate({
+                    path: 'updatedBy',
+                    match: { isDeleted: false },
+                    select: '_id name email phone'
+                })
+                .populate({
                     path: 'productVariations',
                     match: { isDeleted: false },
                     populate: [
@@ -777,6 +787,11 @@ class Product {
                             path: 'variationImages',
                             match: { isDeleted: false },
                             select: '_id filePath fileName'
+                        },
+                        {
+                            path: 'product',
+                            match: { isDeleted: false },
+                            select: '_id name shortDescription'
                         }
                     ]
                 })
@@ -785,11 +800,22 @@ class Product {
                     match: { isDeleted: false },
                     select: '_id filePath fileName isFeaturedImage'
                 });
-    
+
             if (!product) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
-    
+
+            // Calculate totalQuantity from productVariations
+            const totalQuantity = product.productVariations?.reduce((sum, variation) => {
+                return sum + (variation.stockQuantity || 0);
+            }, 0) || 0;
+
+            // Add totalQuantity to the returned product object
+            const productObject = product.toObject();
+            productObject.totalQuantity = totalQuantity;
+
+            return productObject;
+
             return product;
         } catch (error) {
             throw {
@@ -798,7 +824,7 @@ class Product {
             };
         }
     }
-    
+
 
 
     /** Get Product List */

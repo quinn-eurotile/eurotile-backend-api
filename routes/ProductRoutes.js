@@ -25,6 +25,9 @@ router.get('/attribute/:id', multer().any(), auth, productController.getAttribut
 router.patch('/attribute/:id/status', multer().any(), auth, productController.updateAttributeStatus);
 
 
+/** Product variation Routes */
+router.delete('/variation/:id', multer().any(), auth, productController.deleteProductVariation);
+
 /* These routes are for product measurments */
 router.get('/measurement-units/all', multer().any(), auth, productController.productMeasurementUnitsAll);
 
