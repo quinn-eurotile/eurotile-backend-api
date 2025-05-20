@@ -438,15 +438,14 @@ class Product {
                 ...productData
             } = req.body;
 
-            console.log('asxsax', req.body);
-            console.log('files', req.files);
+            // console.log('asxsax', req.body);
+            // console.log('files ......................nasheel', req.files);
 
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
 
-            console.log('productVariations create', productVariations);
             // Clean and cast supplier to ObjectId
             if (typeof supplier === 'string') {
                 supplier = supplier.replace(/^"+|"+$/g, '');
@@ -472,54 +471,57 @@ class Product {
 
             // Step 3: Save featured image
             let featuredImageId = null;
-            if (req.files?.productFeaturedImage?.length > 0) {
-                const file = req.files.productFeaturedImage[0];
-                const filePath = path.join(uploadDir, file.originalname);
-                fs.writeFileSync(filePath, file.buffer);
-
-                const fileDoc = await productFileModel.create({
-                    product: product._id,
-                    fileName: file.originalname,
-                    fileType: file.mimetype.split('/')[0] || 'other',
-                    filePath: `/uploads/${productId}/${file.originalname}`,
-                    fileSize: file.size,
-                    isFeaturedImage: 1
-                });
-
-                featuredImageId = fileDoc._id;
-            }
-
-            // Step 4: Save product variations
-            const variationIds = [];
-            for (let index = 0; index < productVariations.length; index++) {
-                const variationData = productVariations[index];
-
-                // Collect variation image(s)
-                let variationImageIds = [];
-                const variationFiles = req.files?.variationImages;
-
-                if (Array.isArray(variationFiles) && variationFiles[index]) {
-                    const files = Array.isArray(variationFiles[index])
-                        ? variationFiles[index]
-                        : [variationFiles[index]];
-
-                    for (const file of files) {
-                        const filePath = path.join(uploadDir, file.originalname);
-                        fs.writeFileSync(filePath, file.buffer);
-
-                        const fileDoc = await productFileModel.create({
-                            product: product._id,
-                            fileName: file.originalname,
-                            fileType: file.mimetype.split('/')[0] || 'other',
-                            filePath: `/uploads/${productId}/${file.originalname}`,
-                            fileSize: file.size,
-                            isFeaturedImage: 0
-                        });
-
-                        variationImageIds.push(fileDoc._id);
-                    }
+            if (req.files.length > 0) {
+                const productFeaturedImage = req.files.filter((file) => file?.fieldname === "productFeaturedImage");
+                if (productFeaturedImage.length) {
+                    const file = productFeaturedImage[0];
+                    const filePath = path.join(uploadDir, file.originalname);
+                    fs.writeFileSync(filePath, file.buffer);
+                    const fileDoc = await productFileModel.create({
+                        product: product._id,
+                        fileName: file.originalname,
+                        fileType: file.mimetype.split('/')[0] || 'other',
+                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        fileSize: file.size,
+                        isFeaturedImage: 1
+                    });
+                    featuredImageId = fileDoc._id;
                 }
 
+            }
+
+            const variationIds = [];
+
+            // Step 4: Save product variations
+
+            for (let index = 0; index < productVariations.length; index++) {
+                const variationData = productVariations[index];
+                const variationImageIds = [];
+
+                // Filter images that belong to this variation index
+                const variationImageFiles = req.files.filter(file => {
+                    const match = file.fieldname.match(/^productVariations\[(\d+)\]\.variationImages\[\d+\]$/);
+                    return match && parseInt(match[1]) === index;
+                });
+
+                // Process and save each variation image
+                for (const file of variationImageFiles) {
+                    const filePath = path.join(uploadDir, file.originalname);
+                    fs.writeFileSync(filePath, file.buffer);
+
+                    const fileDoc = await productFileModel.create({
+                        product: product._id,
+                        fileName: file.originalname,
+                        fileType: file.mimetype.split('/')[0] || 'other',
+                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        fileSize: file.size,
+                        isFeaturedImage: 0
+                    });
+
+                    variationImageIds.push(fileDoc._id);
+                }
+
+                // Save the variation with associated image IDs
                 const variation = await productVariationModel.create({
                     ...variationData,
                     product: productId,
@@ -528,6 +530,7 @@ class Product {
 
                 variationIds.push(variation._id);
             }
+
 
             // Step 5: Update product with relationships
             product.productVariations = variationIds.map(id => new mongoose.Types.ObjectId(id));
@@ -561,6 +564,8 @@ class Product {
                 ...productData
             } = req.body;
 
+            console.log(req.files,'.............................................')
+
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
@@ -576,6 +581,7 @@ class Product {
             // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+            delete productData?.createdBy;
             productData.updatedBy = req?.user?.id;
 
             // Step 1: Update the product
@@ -591,27 +597,31 @@ class Product {
             }
 
             // Step 3: Handle featured image if provided
-            if (req.files?.productFeaturedImage?.length > 0) {
-                const file = req.files.productFeaturedImage[0];
-                const filePath = path.join(uploadDir, file.originalname);
-                fs.writeFileSync(filePath, file.buffer);
+            if (req.files.length > 0) {
+                const productFeaturedImage = req.files.filter((file) => file?.fieldname === "productFeaturedImage");
+                if (productFeaturedImage.length) {
+                    const file = productFeaturedImage[0];
+                    const filePath = path.join(uploadDir, file.originalname);
+                    fs.writeFileSync(filePath, file.buffer);
+                    const fileDoc = await productFileModel.create({
+                        product: product._id,
+                        fileName: file.originalname,
+                        fileType: file.mimetype.split('/')[0] || 'other',
+                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        fileSize: file.size,
+                        isFeaturedImage: 1
+                    });
+                    // Update product with new featured image
+                    await productModel.findByIdAndUpdate(productId, { productFeaturedImage: fileDoc._id });
+                }
 
-                const fileDoc = await productFileModel.create({
-                    product: product._id,
-                    fileName: file.originalname,
-                    fileType: file.mimetype.split('/')[0] || 'other',
-                    filePath: `/uploads/${productId}/${file.originalname}`,
-                    fileSize: file.size,
-                    isFeaturedImage: 1
-                });
-
-                // Update product with new featured image
-                await productModel.findByIdAndUpdate(productId, { featuredImage: fileDoc._id });
             }
 
+
             // Step 4: Handle variations to remove
-            if (variationsToRemove.length > 0) {
+            if (variationsToRemove.length) {
                 await productVariationModel.updateMany({ _id: { $in: variationsToRemove } }, { $set: { isDeleted: true } });
+                
                 // Also remove associated variation images
                 await productFileModel.updateMany(
                     {
@@ -624,16 +634,29 @@ class Product {
                 );
             }
 
-            // Step 5: Update or create variations
             for (let index = 0; index < productVariations.length; index++) {
                 const variationData = productVariations[index];
                 let variationImageIds = [];
 
-                // Handle variation images if provided
-                const variationFiles = variationData?.variationImages;
-                if (Array.isArray(variationFiles)) {
+                // ✅ First, check if req.files has any valid "productVariations" fields
+                let variationImageFiles = [];
+                if (
+                    Array.isArray(req.files) &&
+                    req.files.some(file => file.fieldname.startsWith(`productVariations[${index}]`))
+                ) {
+                    variationImageFiles = req.files.filter(file => {
+                        const match = file.fieldname.match(/^productVariations\[(\d+)\]\.variationImages\[\d+\]$/);
+                        return match && parseInt(match[1]) === index;
+                    });
+                } else {
+                    delete variationData?.variationImages;
+                }
 
-                    for (const file of variationFiles) {
+
+
+                // ✅ Process and upload files if they exist
+                if (variationImageFiles.length > 0) {
+                    for (const file of variationImageFiles) {
                         const filePath = path.join(uploadDir, file.originalname);
                         fs.writeFileSync(filePath, file.buffer);
 
@@ -650,16 +673,18 @@ class Product {
                     }
                 }
 
-                if (variationData._id) {
-                    // Update existing variation
-                    const updateData = {
-                        ...variationData,
-                        product: product._id
-                    };
 
-                    // Add new images if any were uploaded
+
+                // ✅ Construct variation data object
+                const baseVariationData = {
+                    ...variationData,
+                    product: product._id
+                };
+
+                if (variationData._id) {
+                    // ✅ Append images only if new ones are uploaded
                     if (variationImageIds.length > 0) {
-                        updateData.productVariationImages = [
+                        baseVariationData.productVariationImages = [
                             ...(variationData.productVariationImages || []),
                             ...variationImageIds
                         ];
@@ -667,18 +692,19 @@ class Product {
 
                     await productVariationModel.findByIdAndUpdate(
                         variationData._id,
-                        updateData,
+                        baseVariationData,
                         { new: true }
                     );
+
                 } else {
-                    // Create new variation
-                    await productVariationModel.create({
-                        ...variationData,
-                        product: product._id,
-                        productVariationImages: variationImageIds
-                    });
+                    // ✅ Always set image array on create (empty or not)
+                    baseVariationData.productVariationImages = variationImageIds;
+
+                    await productVariationModel.create(baseVariationData);
                 }
             }
+
+
 
             // Return updated product with populated fields
             const updatedProduct = await productModel.findById(productId);
