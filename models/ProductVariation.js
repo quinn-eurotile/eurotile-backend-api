@@ -24,6 +24,8 @@ const ProductVariationSchema = new Schema({
     NumberOfTiles: { type: Number, default: 0 },
     BoxSize: { type: Number, default: 0 },
     PalletSize: { type: Number, default: 0 },
+    TierAddOn: { type: Number, default: 0 },
+    TierMultiplyBy: { type: Number, default: 0 },
     shippingClass: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
     taxClass: {
