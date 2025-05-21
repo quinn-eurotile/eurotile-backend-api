@@ -8,10 +8,52 @@ const transporter = nodemailer.createTransport({
         pass: process.env.SMTP_PASSWORD
     }
 });
+const capitalize = (str) => {
+    return str?.charAt(0)?.toUpperCase() + str?.slice(1);
+};
+const APP_NAME = process?.env?.APP_NAME || 'Euro Tile';
 
+const sendAccountStatusEmail = async (req, link) => {
+    try {
+        const CLIENT_URL = getClientUrlByRole(req.body.userRole); // or user.role if it's a string
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+        const link = `${CLIENT_URL}/en/login`;
+        const isRejected = req?.body?.status === 4; // or any logic you use
+        const rejectionReason = req?.body?.reason || '';
 
-// Capitalize helper
-const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+        const rejectionBlock = isRejected
+            ?
+            `<div style="background: #fcebea; padding: 15px; border-left: 5px solid #e3342f; margin: 20px 0; font-size: 14px; color: #cc1f1a;">
+                <strong>Account Rejected:</strong> ${rejectionReason}
+            </div>`
+            :
+            '';
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/send_account_status_email_template.html', 'utf-8');
+        // Replace placeholders in the template
+        const emailContent = emailTemplate
+            .replace('[USER_NAME]', capitalize(req?.body?.name))
+            .replace('[LOGO]', logo)
+            .replace(/\[CLIENT_URL\]/g, process.env.CLIENT_URL)
+            .replace(/\[APP_NAME\]/g, APP_NAME)
+            .replace('[LINK]', link)
+            .replace('[REJECTION_BLOCK]', rejectionBlock);
+
+        // Send the email
+        const mailOptions = {
+            from: `<${process?.env?.SMTP_USER}>`,
+            to: req?.body?.email,
+            subject: 'Account Status Notification',
+            html: emailContent
+        };
+        const result = await sendEmailCommon(mailOptions);
+        return result;
+    } catch (error) {
+        console.error('Error in sendAccountStatusEmail:', error);
+        return false; // or rethrow or handle however you need
+    }
+};
 
 /** Send Email Verification Email ***/
 const sendVerificationEmail = async (req, verificationLink) => {
@@ -24,7 +66,7 @@ const sendVerificationEmail = async (req, verificationLink) => {
         const emailContent = emailTemplate.replace('[USER_NAME]', capitalize(req?.body?.name))
             .replace('[LOGO]', logo)
             .replace('[CLIENT_URL]', process?.env?.CLIENT_URL)
-            .replace('[APP_NAME]', process?.env?.APP_NAME)
+            .replace('[APP_NAME]', APP_NAME)
             .replace('[VERIFICATION_LINK]', verificationLink);
 
         // Send the email
@@ -52,7 +94,7 @@ const sendWelcomeEmail = async (req) => {
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
         const emailContent = emailTemplate.replace('[USER_NAME]', req.body.first_name + ` ` + req.body.last_name)
             .replace('[CLIENT_URL]', CLIENT_URL)
-            .replace('[APP_NAME]', process.env.APP_NAME)
+            .replace('[APP_NAME]', APP_NAME)
             .replace('[EMAIL]', req.body.email)
             .replace('[PASSWORD]', req.body.password)
             .replace('[LOGO]', logo)
@@ -88,7 +130,7 @@ const forgotPasswordEmail = async (req, token) => {
         const emailContent = emailTemplate.replace('[USER_NAME]', 'User')
             .replace('[LOGO]', logo)
             .replace('[CLIENT_URL]', CLIENT_URL)
-            .replace('[APP_NAME]', process.env.APP_NAME)
+            .replace('[APP_NAME]', APP_NAME)
             .replace('[RESET_PASSWORD_LINK]', resetPassLink);
 
         // Send the email
@@ -124,4 +166,4 @@ const sendEmailCommon = (mailOptions) => {
     });
 };
 
-module.exports = { sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail };
+module.exports = { sendAccountStatusEmail, sendVerificationEmail, sendWelcomeEmail, forgotPasswordEmail };

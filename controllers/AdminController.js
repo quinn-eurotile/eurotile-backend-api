@@ -1,5 +1,5 @@
 const userService = require('../services/userService');
-const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
+const { sendVerificationEmail, forgotPasswordEmail, sendAccountStatusEmail } = require('../services/emailService');
 const adminService = require('../services/adminService');
 const supplierService = require('../services/supplierService');
 const tradeProfessionalService = require('../services/tradeProfessionalService');
@@ -39,11 +39,15 @@ module.exports = class AdminController {
 
     /** Update Status For Trade Professional */
     async updateTradeProfessionalStatus(req, res) {
+        
         try {
-            const data = await commonService.updateStatusById(req, 'User', 'status', [0, 1, 2, 3, 4]);
+            if(req.body.status === 3){
+                req.body.status = 1
+            }
+            const data = await commonService.updateStatusById(req, 'User', 'status', [0, 1, 2, 3, 4], { reason: req.body.reason, updated_by: req.user?._id });
             const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
-            const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
-            sendVerificationEmail(req, verificationLink);
+            const link = `${CLIENT_URL}`;
+            sendAccountStatusEmail(req, link);
             return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

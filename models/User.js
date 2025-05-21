@@ -11,7 +11,8 @@ const userSchema = new Schema({
     emailVerifiedAt: { type: Date, default: Date.now },
     status: { type: Number, default: 2 }, // 1 = Active, 0 = Inactive, 2 = Pending , 3 = Approve , 4 = Reject 
     accept_term: { type: Number, default: 0 }, // 1 = Yes, 0 = No  
-    lastLoginDate: { type: Date, default: Date.now },
+    lastLoginDate: { type: Date, default: Date.now },    
+    reason: { type: String, default: null },
     token: { type: String, default: null },
     addresses: {
         type: { type: String, default: null, },

@@ -26,20 +26,20 @@ class CommonService {
     //     }
     // }
 
-    async updateStatusById(req, modelName, column = 'status', allowedStatuses = [0, 1]) {
+    async updateStatusById(req, modelName, column = 'status', allowedStatuses = [0, 1], extraFields = null) {
         try {
             // Validate model existence
             const model = modelInstance[modelName];
             if (!model) throw { message: `Model "${modelName}" not found`, statusCode: 404 };
-    
+
             const { id } = req.params;
             const newStatus = req.body[column];
-    
+
             // Validate ID
             if (!mongoose.Types.ObjectId.isValid(id)) {
                 throw { message: 'Invalid ID', statusCode: 400 };
             }
-    
+
             // Validate new status value
             if (!allowedStatuses.includes(newStatus)) {
                 throw {
@@ -47,15 +47,20 @@ class CommonService {
                     statusCode: 400
                 };
             }
-    
-            // Build update object dynamically
+
+            // Build update object with status column
             const updateData = { [column]: newStatus };
-    
+
+            // Merge extra fields if provided and is an object
+            if (extraFields && typeof extraFields === 'object') {
+                Object.assign(updateData, extraFields);
+            }
+
             const updatedDoc = await model.findByIdAndUpdate(id, updateData, { new: true });
             if (!updatedDoc) {
                 throw { message: 'Document not found', statusCode: 404 };
             }
-    
+
             return updatedDoc;
         } catch (error) {
             throw {
@@ -64,7 +69,8 @@ class CommonService {
             };
         }
     }
-    
+
+
 
 
     /** Soft Delete Any Model Using Proper Arguments Passed */
@@ -121,7 +127,7 @@ class CommonService {
 
             const total = await modelInstance[model].countDocuments(filters);
 
-            return data
+            return data;
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to fetch data',
