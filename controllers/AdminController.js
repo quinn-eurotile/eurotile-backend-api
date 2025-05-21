@@ -40,7 +40,10 @@ module.exports = class AdminController {
     /** Update Status For Trade Professional */
     async updateTradeProfessionalStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req,'User', 'status', [0, 1,2,3,4]);
+            const data = await commonService.updateStatusById(req, 'User', 'status', [0, 1, 2, 3, 4]);
+            const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
+            const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
+            sendVerificationEmail(req, verificationLink);
             return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -104,7 +107,7 @@ module.exports = class AdminController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
-    
+
     async updateTeamMemberStatus(req, res) {
         try {
             const updatedUser = await adminService.updateTeamMemberStatusById(req);
@@ -215,7 +218,7 @@ module.exports = class AdminController {
     async forgotPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
-            console.log('req admin controller',req.body)
+            console.log('req admin controller', req.body);
             const token = await userService.forgotPassword(req);
             forgotPasswordEmail(req, token);
             return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });

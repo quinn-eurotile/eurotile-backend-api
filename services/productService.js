@@ -763,7 +763,7 @@ class Product {
             const parsedCategories = JSON.parse(query.categories);
             if (Array.isArray(parsedCategories)) {
                 const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
-                conditionArr.push({ categories: { $in: categoryIds } });
+                conditionArr.push({ categories: { $all: categoryIds } });
             }
         }
 
