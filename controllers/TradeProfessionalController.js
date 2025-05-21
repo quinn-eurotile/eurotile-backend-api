@@ -34,27 +34,6 @@ module.exports = class TradeProfessionalController {
         }
     }
 
-    /*** Update Team Member From Here ***/
-    async updateTeamMember(req, res) {
-        try {
-            const updatedUser = await adminService.updateTeamMemberById(req);
-            return res.status(200).send({ message: 'Team member updated successfully', data: updatedUser });
-        } catch (error) {
-            return res.status(error.statusCode || 500).json({ message: error.message });
-        }
-    }
-
-    /** Delete Team Member By Api Request */
-    async deleteTeamMember(req, res) {
-        try {
-            const userId = req?.params?.id;
-            await adminService.softDeleteTeamMember(userId);
-            return res.status(200).json({ message: "Team member deleted successfully." });
-        } catch (error) {
-            return res.status(error.statusCode || 500).json({ message: error.message });
-        }
-    }
-
     /** Admin Dashboard  **/
     async dashboardData(req, res) {
         try {
