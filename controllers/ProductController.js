@@ -82,6 +82,8 @@ module.exports = class ProductController {
     /** Delete Product attribute **/
     async deleteProductAttribute(req, res) {
         try {
+            // const isUserAssignToCase = await pro.findOne({ case_team: { $in: [userId] } });
+            // if (isUserAssignToCase) throw new Error("User is already assigned to another case");
             const product = await commonService.updateIsDeletedById(req, 'ProductAttribute', true);
             return res.status(200).send({ message: 'Product attribute deleted successfully', data: product });
         } catch (error) {

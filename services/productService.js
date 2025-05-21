@@ -96,7 +96,7 @@ class Product {
             const nestedCategories = await categoryService.getNestedCategories(req);
 
             const productAttributes = await productAttributeModel.aggregate([
-                { $match: { isDeleted: false } },
+                { $match: { isDeleted: false, status : 1 } },
                 {
                     $lookup: {
                         from: 'productattributevariations',
