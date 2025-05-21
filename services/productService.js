@@ -549,6 +549,14 @@ class Product {
         }
     }
 
+    async  checkProductIsOutOfStock(productVariations) {
+        const isAllOutOfStock = productVariations.every(variation => 
+          variation.stockStatus === 'out_of_stock' || Number(variation.stockQuantity) === 0
+        );
+      
+        return isAllOutOfStock ? 'out_of_stock' : 'in_stock';
+      }
+
 
     /** Update Product */
     async updateProduct(req) {
@@ -583,6 +591,9 @@ class Product {
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
             delete productData?.createdBy;
             productData.updatedBy = req?.user?.id;
+
+            const stockStatus = await this.checkProductIsOutOfStock(productVariations);
+            productData.stockStatus = stockStatus;
 
             // Step 1: Update the product
             const product = await productModel.findByIdAndUpdate(productId, productData, { new: true });
