@@ -592,7 +592,7 @@ class Product {
             delete productData?.createdBy;
             productData.updatedBy = req?.user?.id;
 
-            const stockStatus = await checkProductIsOutOfStock(productVariations);
+            const stockStatus = await this.checkProductIsOutOfStock(productVariations);
             productData.stockStatus = stockStatus;
 
             // Step 1: Update the product
