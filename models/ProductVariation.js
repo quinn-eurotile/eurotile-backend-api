@@ -24,6 +24,28 @@ const ProductVariationSchema = new Schema({
     numberOfTiles: { type: Number, default: 0 },
     boxSize: { type: Number, default: 0 },
     palletSize: { type: Number, default: 0 },
+    tierDiscount: {
+        tier_first: {
+            tierAddOn: { type: Number, default: 0 },
+            tierMultiplyBy: { type: Number, default: 0 },
+        },
+        tier_second: {
+            tierAddOn: { type: Number, default: 0 },
+            tierMultiplyBy: { type: Number, default: 0 },
+        },
+        tier_third: {
+            tierAddOn: { type: Number, default: 0 },
+            tierMultiplyBy: { type: Number, default: 0 },
+        },
+        tier_fourth: {
+            tierAddOn: { type: Number, default: 0 },
+            tierMultiplyBy: { type: Number, default: 0 },
+        },
+        tier_five: {
+            tierAddOn: { type: Number, default: 0 },
+            tierMultiplyBy: { type: Number, default: 0 },
+        },
+    },
     tierAddOn: { type: Number, default: 0 },
     tierMultiplyBy: { type: Number, default: 0 },
     shippingClass: { type: String, default: null },
