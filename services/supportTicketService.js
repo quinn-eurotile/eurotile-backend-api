@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 class SupportTicket {
 
-    async saveTax(id, data) {
+    async saveSupportTicket(id, data) {
         try {
             if (!id) {
                 // CREATE
@@ -31,39 +31,8 @@ class SupportTicket {
         }
     }
 
-    async deleteTax(id) {
-        try {
-            // Validate ObjectId format
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                throw {
-                    message: 'Invalid supplier ID',
-                    statusCode: 400
-                };
-            }
-            const taxData = await supportTicketModel.findById({ _id: id });
-            if (!taxData) throw new Error({ message: 'Tax record not found', statusCode: 404 });
-            taxData.isDeleted = true;
-            return await taxData.save();
-        } catch (error) {
-            throw {
-                message: error?.message || 'Something went wrong while fetching users',
-                statusCode: error?.statusCode || 500
-            };
-        }
-    }
 
-    async getTaxById(id) {
-        // Validate ObjectId format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw {
-                message: 'Invalid supplier ID',
-                statusCode: 400
-            };
-        }
-        return await supportTicketModel.findById(id);
-    }
-
-    async buildTaxListQuery(req) {
+    async buildSupportTicketListQuery(req) {
         const query = req.query;
 
         // console.log('query build',query)
@@ -103,9 +72,8 @@ class SupportTicket {
         return builtQuery;
     }
 
-    async taxList(query, options) {
+    async supportList(query, options) {
         try {
-            console.log('query', query);
             return await supportTicketModel.paginate(query, options);
         } catch (error) {
             throw error;

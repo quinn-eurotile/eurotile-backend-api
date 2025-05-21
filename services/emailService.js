@@ -19,15 +19,15 @@ const sendAccountStatusEmail = async (req, link) => {
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
         const link = `${CLIENT_URL}/en/login`;
         const isRejected = req?.body?.status === 4; // or any logic you use
-        const rejectionReason = req?.body?.reason || '';
+        const reason = req?.body?.reason || '';
 
-        const rejectionBlock = isRejected
-            ?
-            `<div style="background: #fcebea; padding: 15px; border-left: 5px solid #e3342f; margin: 20px 0; font-size: 14px; color: #cc1f1a;">
-                <strong>Account Rejected:</strong> ${rejectionReason}
-            </div>`
-            :
-            '';
+        const statusBlock = isRejected
+            ? `<div style="background: #fcebea; padding: 15px; border-left: 5px solid #e3342f; margin: 20px 0; font-size: 14px; color: #cc1f1a;">
+            <strong>Account Rejected:</strong> ${reason}
+        </div>`
+            : `<div style="background: #e6ffed; padding: 15px; border-left: 5px solid #38c172; margin: 20px 0; font-size: 14px; color: #1f9d55;">
+            <strong>Account Approved</strong>
+        </div>`;
 
         // Read the HTML template
         const emailTemplate = require('fs').readFileSync('views/emails/send_account_status_email_template.html', 'utf-8');
@@ -38,7 +38,7 @@ const sendAccountStatusEmail = async (req, link) => {
             .replace(/\[CLIENT_URL\]/g, process.env.CLIENT_URL)
             .replace(/\[APP_NAME\]/g, APP_NAME)
             .replace('[LINK]', link)
-            .replace('[REJECTION_BLOCK]', rejectionBlock);
+            .replace('[STATUS_BLOCK]', statusBlock);
 
         // Send the email
         const mailOptions = {
@@ -107,8 +107,8 @@ const sendWelcomeEmail = async (req) => {
             subject: 'Welcome to Our App!',
             html: emailContent
         };
-         const result = await sendEmailCommon(mailOptions);
-         return result;
+        const result = await sendEmailCommon(mailOptions);
+        return result;
     } catch (error) {
         console.error('Error in sendWelcomeEmail:', error);
         return false; // or rethrow or handle however you need

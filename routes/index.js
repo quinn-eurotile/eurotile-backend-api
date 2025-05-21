@@ -31,7 +31,7 @@ routes.use(`/api/${API_V}/product`, productRoutes);
 
 /************* Support Ticket route**************/
 const supportTicketRoutes = require('./SupportTicketRoutes');
-routes.use(`/api/${API_V}/admin`, supportTicketRoutes);
+routes.use(`/api/${API_V}/support-ticket`, supportTicketRoutes);
 
 
 module.exports = routes;

@@ -6,7 +6,7 @@ const supportTicketValidation = require('../validation-helper/support-ticket-val
 
 
 /* Support Ticket Management */
-router.post('/support-ticket', auth, supportTicketValidation.saveSupportTicket, supportTicketController.saveSupportTicket);
-router.get('/support-ticket', auth, supportTicketController.supportTicketList);
+router.post('/', auth, supportTicketValidation.saveSupportTicket, supportTicketController.saveSupportTicket);
+router.get('/', auth, supportTicketController.supportTicketList);
 
 module.exports = router;
