@@ -438,9 +438,6 @@ class Product {
                 ...productData
             } = req.body;
 
-            // console.log('asxsax', req.body);
-            // console.log('files ......................nasheel', req.files);
-
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
@@ -571,8 +568,6 @@ class Product {
                 variationsImagesToRemove = [], // Add this to handle any particular variation image deletion
                 ...productData
             } = req.body;
-
-            console.log(req.files,'.............................................')
 
             // Parse stringified arrays if sent as strings
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
@@ -731,6 +726,7 @@ class Product {
 
     /** Build Query For Product List */
     async buildProductListQuery(req) {
+        
         const query = req.query;
         const conditionArr = [{ isDeleted: false }];
 
@@ -769,12 +765,12 @@ class Product {
         if (query.supplier) {
             conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
         }
+        const parsedCategories = JSON.parse(query.categories);
         // Filter by category if provided
-        if (query.categories !== undefined && query.categories !== "" && query.categories.length !== 0) {
-            const parsedCategories = JSON.parse(query.categories);
+        if (parsedCategories !== undefined &&  parsedCategories.length !== 0) {
             if (Array.isArray(parsedCategories)) {
                 const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
-                conditionArr.push({ categories: { $all: categoryIds } });
+                conditionArr.push({ categories: { $in: categoryIds } });
             }
         }
 
