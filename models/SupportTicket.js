@@ -6,9 +6,8 @@ const supportTicketSchema = new Schema({
     issue: { type: String, required: true },
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     order: { type: Schema.Types.ObjectId, ref: 'Order', default: null },
-    status: { type: String, enum: ['open', 'awaiting response', 'resolved'], default: 'open' },
+    status: { type: String, enum: ['open', 'awaiting_response', 'resolved'], default: 'open' },
     requestDateTime: { type: Date, default: Date.now },
-    priority: { type: String, enum: ['low', 'medium', 'high', 'urgent'], default: 'medium' },
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

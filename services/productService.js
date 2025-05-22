@@ -96,7 +96,7 @@ class Product {
             const nestedCategories = await categoryService.getNestedCategories(req);
 
             const productAttributes = await productAttributeModel.aggregate([
-                { $match: { isDeleted: false, status : 1 } },
+                { $match: { isDeleted: false, status: 1 } },
                 {
                     $lookup: {
                         from: 'productattributevariations',
@@ -546,13 +546,13 @@ class Product {
         }
     }
 
-    async  checkProductIsOutOfStock(productVariations) {
-        const isAllOutOfStock = productVariations.every(variation => 
-          variation.stockStatus === 'out_of_stock' || Number(variation.stockQuantity) === 0
+    async checkProductIsOutOfStock(productVariations) {
+        const isAllOutOfStock = productVariations.every(variation =>
+            variation.stockStatus === 'out_of_stock' || Number(variation.stockQuantity) === 0
         );
-      
+
         return isAllOutOfStock ? 'out_of_stock' : 'in_stock';
-      }
+    }
 
 
     /** Update Product */
@@ -627,7 +627,7 @@ class Product {
             // Step 4: Handle variations to remove
             if (variationsToRemove.length) {
                 await productVariationModel.updateMany({ _id: { $in: variationsToRemove } }, { $set: { isDeleted: true } });
-                
+
                 // Also remove associated variation images
                 await productFileModel.updateMany(
                     {
@@ -726,7 +726,7 @@ class Product {
 
     /** Build Query For Product List */
     async buildProductListQuery(req) {
-        
+
         const query = req.query;
         const conditionArr = [{ isDeleted: false }];
 
@@ -767,7 +767,7 @@ class Product {
         }
         const parsedCategories = JSON.parse(query.categories);
         // Filter by category if provided
-        if (parsedCategories !== undefined &&  parsedCategories.length !== 0) {
+        if (parsedCategories !== undefined && parsedCategories.length !== 0) {
             if (Array.isArray(parsedCategories)) {
                 const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
                 conditionArr.push({ categories: { $in: categoryIds } });
@@ -917,7 +917,13 @@ class Product {
                         totalQuantity: {
                             $sum: {
                                 $map: {
-                                    input: '$productVariations',
+                                    input: {
+                                        $filter: {
+                                            input: '$productVariations',
+                                            as: 'variation',
+                                            cond: { $eq: ['$$variation.isDeleted', false] }
+                                        }
+                                    },
                                     as: 'variation',
                                     in: { $ifNull: ['$$variation.stockQuantity', 0] }
                                 }
