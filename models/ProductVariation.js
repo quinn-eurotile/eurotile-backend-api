@@ -10,7 +10,7 @@ const ProductVariationSchema = new Schema({
         default: 'in_stock'
     },
     stockQuantity: { type: Number, default: 0 },
-    allowBackorders: { type: Boolean, default: false },
+    status: { type: Boolean, default: false },
     weight: { type: Number, default: 0 },
     dimensions: {
         length: { type: Number, default: 0 },
@@ -18,7 +18,8 @@ const ProductVariationSchema = new Schema({
         height: { type: Number, default: 0 }
     },
     variationImages: [{ type: Schema.Types.ObjectId, ref: 'ProductFile', default: [] }],
-    regularPrice: { type: Number, default: 0 },
+    regularPriceB2B: { type: Number, default: 0 },
+    regularPriceB2C: { type: Number, default: 0 },
     salePrice: { type: Number, default: 0 },
     purchasedPrice: { type: Number, default: 0 },
     numberOfTiles: { type: Number, default: 0 },

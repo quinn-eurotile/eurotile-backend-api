@@ -14,6 +14,7 @@ const productSchema = new Schema({
     status: { type: Number, default: 1 }, // 1 = Published, 0 = Draft, 
     defaultPrice: { type: Number, default: 0.00 }, // 1 = Published, 0 = Draft, 
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
+    attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
     productVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductVariation', default: [] }],
     productFeaturedImage: { type: Schema.Types.ObjectId, ref: 'ProductFile', default: null },
