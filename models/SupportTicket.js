@@ -3,33 +3,21 @@ const mongoosePaginate = require("mongoose-paginate-v2");
 
 const supportTicketSchema = new Schema({
     ticketNumber: { type: String, required: true, unique: true },
-    issue: { type: String, required: true },
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    subject: { type: String, required: true },
+    message: { type: String, required: true },
+    sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     order: { type: Schema.Types.ObjectId, ref: 'Order', default: null },
-    status: { type: String, enum: ['open', 'awaiting_response', 'resolved'], default: 'open' },
-    requestDateTime: { type: Date, default: Date.now },
+    status: { type: Number, default: 1 }, //  1: 'Open', 2: 'Closed', 3: 'Pending', 4: 'In Progress', 5: 'Resolved', 6: 'Rejected', 7: 'Cancelled'
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    isDeleted: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
-// Sets the created_at parameter equal to the current time
-supportTicketSchema.pre("save", async function (next) {
-    try {
-        now = new Date();
-        this.updatedAt = now;
-        if (this.isNew) {
-            this.createdAt = now;
-        }
-        next();
-    } catch (err) {
-        next(err);
-    }
-  });
-  
-  supportTicketSchema.plugin(mongoosePaginate);
+supportTicketSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('SupportTicket', supportTicketSchema);
