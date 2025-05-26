@@ -10,6 +10,8 @@ const upload = multer(); // If you haven't set a custom storage yet
 router.post('/', upload.any(), auth, supportTicketController.saveSupportTicket);
 router.put('/:id', upload.any(), auth, supportTicketController.saveSupportTicket);
 router.get('/', multer().any(),auth,  supportTicketController.supportTicketList);
+router.get('/view/:id', multer().any(),auth,  supportTicketController.supportTicketList);
 router.delete('/:id', multer().any(), auth, supportTicketController.deleteSupportTicket);
+router.patch('/:id/status', multer().any(), auth, supportTicketController.updateSupportTicketStatus);
 
 module.exports = router;
