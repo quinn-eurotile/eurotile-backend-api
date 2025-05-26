@@ -3,6 +3,17 @@ const commonService = require('../services/commonService');
 
 module.exports = class SupportTicketController {
 
+
+    /** Update Status For Ticket */
+    async updateSupportTicketStatus(req, res) {
+        try {
+            const data = await commonService.updateStatusById(req, 'SupportTicket', 'status', [0,1,2,3,4,5,6,7]);
+            return res.status(200).send({ message: 'Support ticket status updated successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /** Create and Update Ticket */
     async saveSupportTicket(req, res) {
         try {
