@@ -99,13 +99,13 @@ class SupportTicket {
     async buildSupportTicketListQuery(req) {
         const query = req.query;
         const conditionArr = [{ isDeleted: false }];
-    
+
         // Normalize and validate status
         const status = Number(query.status);
         if (!isNaN(status) && [1, 2, 3, 4, 5, 6, 7].includes(status)) {
             conditionArr.push({ status });
         }
-    
+
         // Add search condition if 'search_string' is provided and not empty
         if (query.search_string && query.search_string.trim() !== "") {
             const searchRegex = new RegExp(query.search_string.trim(), "i");
@@ -117,7 +117,7 @@ class SupportTicket {
                 ]
             });
         }
-    
+
         // Build the final query
         if (conditionArr.length === 1) {
             return conditionArr[0];
@@ -125,16 +125,16 @@ class SupportTicket {
             return { $and: conditionArr };
         }
     }
-    
+
 
     async supportList(query, options) {
         try {
             const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
             const skip = (page - 1) * limit;
-    
+
             const pipeline = [
                 { $match: query },
-    
+
                 {
                     $facet: {
                         metadata: [
@@ -148,26 +148,80 @@ class SupportTicket {
                                 }
                             }
                         ],
+
                         data: [
                             { $sort: sort },
                             { $skip: skip },
                             { $limit: limit },
+
+                            // Lookup messages
+                            {
+                                $lookup: {
+                                    from: 'supportticketmsgs',
+                                    localField: '_id',
+                                    foreignField: 'ticket',
+                                    as: 'allMessages'
+                                }
+                            },
+
+                            // Filter only messages with a non-null filePath
+                            {
+                                $addFields: {
+                                    supportticketmsgs: {
+                                        $filter: {
+                                            input: "$allMessages",
+                                            as: "msg",
+                                            cond: { $ne: ["$$msg.filePath", null] }
+                                        }
+                                    }
+                                }
+                            },
+
+                            // Set supportticketmsgs to null if filtered array is empty
+                            {
+                                $addFields: {
+                                    supportticketmsgs: {
+                                        $cond: [
+                                            { $eq: [{ $size: "$supportticketmsgs" }, 0] },
+                                            null,
+                                            {
+                                                $map: {
+                                                    input: "$supportticketmsgs",
+                                                    as: "msg",
+                                                    in: {
+                                                        _id: "$$msg._id",
+                                                        message: "$$msg.message",
+                                                        sender: "$$msg.sender",
+                                                        fileName: "$$msg.fileName",
+                                                        filePath: "$$msg.filePath",
+                                                        fileType: "$$msg.fileType",
+                                                        fileSize: "$$msg.fileSize",
+                                                        createdAt: "$$msg.createdAt"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            },
+
                             {
                                 $project: {
                                     subject: 1,
-                                    description: 1,
+                                    message: 1,
                                     status: 1,
-                                    priority: 1,
                                     createdAt: 1,
                                     updatedAt: 1,
-                                    createdBy: 1,
+                                    sender: 1,
                                     assignedTo: 1,
-                                    // Add/remove fields as needed for the UI
+                                    order: 1,
+                                    supportticketmsgs: 1
                                 }
                             }
                         ]
                     }
                 },
+
                 {
                     $project: {
                         data: 1,
@@ -176,9 +230,9 @@ class SupportTicket {
                     }
                 }
             ];
-    
+
             const [result] = await supportTicketModel.aggregate(pipeline);
-    
+
             const statusSummary = result.statusCounts.reduce((acc, item) => {
                 const statusMap = {
                     1: 'open',
@@ -192,8 +246,16 @@ class SupportTicket {
                 const key = statusMap[item._id];
                 if (key) acc[key] = item.count;
                 return acc;
-            }, { open: 0, closed: 0, pending: 0, in_progress: 0, resolved: 0, rejected: 0, cancelled: 0 });
-    
+            }, {
+                open: 0,
+                closed: 0,
+                pending: 0,
+                in_progress: 0,
+                resolved: 0,
+                rejected: 0,
+                cancelled: 0
+            });
+
             return {
                 docs: result.data,
                 totalDocs: result.totalDocs,
@@ -206,6 +268,7 @@ class SupportTicket {
                 prevPage: page > 1 ? page - 1 : null,
                 statusSummary
             };
+
         } catch (error) {
             throw {
                 message: error?.message || 'Something went wrong while fetching support tickets',
@@ -213,7 +276,6 @@ class SupportTicket {
             };
         }
     }
-    
 
 }
 
