@@ -259,6 +259,9 @@ class TradeProfessional {
                 address
             } = req.body;
 
+            const genSalt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, genSalt); // Hash the password
+
             const token = helpers.randomString(20);
 
             // Step 1: Create User
@@ -266,7 +269,7 @@ class TradeProfessional {
                 name,
                 email,
                 phone,
-                password,
+                password: hashedPassword,
                 token,
                 addresses: address,
                 accept_term: accept_term ?? 0,
