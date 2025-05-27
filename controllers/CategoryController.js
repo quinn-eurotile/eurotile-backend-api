@@ -82,8 +82,6 @@ module.exports = class CategoryController {
         }
     }
 
-
-
     /** Update Category Status **/
     async updateCategoryStatus(req, res) {
         try {

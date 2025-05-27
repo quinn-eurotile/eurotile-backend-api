@@ -21,7 +21,6 @@ router.post(
     { name: 'trade_license', maxCount: 1 },
     { name: 'proof_of_business', maxCount: 10 },
   ]),
-  auth,
   userValidation.saveTradeProfessional,
   saveFiles,
   tradeProfessionalController.createTradeProfessional
@@ -42,5 +41,6 @@ router.put(
   tradeProfessionalController.updateTradeProfessional
 );
 
+router.patch('/trade-professional/:token/status', multer().any(), tradeProfessionalController.updateTradeProfessionalStatus);
 
 module.exports = router;

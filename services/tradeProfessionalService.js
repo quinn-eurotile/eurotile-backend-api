@@ -254,6 +254,7 @@ class TradeProfessional {
                 business_name,
                 business_email,
                 business_phone,
+                address
             } = req.body;
 
             const token = helpers.randomString(20);
@@ -265,6 +266,7 @@ class TradeProfessional {
                 phone,
                 password,
                 token,
+                addresses:address,
                 accept_term: accept_term ?? 0,
                 roles: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))],
                 status: status ?? 2,
