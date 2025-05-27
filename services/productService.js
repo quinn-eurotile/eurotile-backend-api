@@ -434,6 +434,7 @@ class Product {
                 productVariations = [],
                 categories = [],
                 attributeVariations = [],
+                attributes = [],
                 supplier,
                 ...productData
             } = req.body;
@@ -442,6 +443,7 @@ class Product {
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
+            attributes = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
 
             // Clean and cast supplier to ObjectId
             if (typeof supplier === 'string') {
@@ -452,6 +454,7 @@ class Product {
             // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+            productData.attributes = attributes.map(id => new mongoose.Types.ObjectId(id));
             productData.createdBy = req?.user?.id;
             productData.updatedBy = req?.user?.id;
 
@@ -563,6 +566,7 @@ class Product {
                 productVariations = [],
                 categories = [],
                 attributeVariations = [],
+                attributes = [],
                 supplier,
                 variationsToRemove = [], // Add this to handle variation deletion
                 variationsImagesToRemove = [], // Add this to handle any particular variation image deletion
@@ -573,6 +577,7 @@ class Product {
             productVariations = typeof productVariations === 'string' ? JSON.parse(productVariations) : productVariations;
             categories = typeof categories === 'string' ? JSON.parse(categories) : categories;
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
+            attributes = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
             variationsToRemove = typeof variationsToRemove === 'string' ? JSON.parse(variationsToRemove) : variationsToRemove;
 
             // Clean and cast supplier to ObjectId
@@ -584,6 +589,7 @@ class Product {
             // Convert category and attributeVariation IDs to ObjectId
             productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
             productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
+            productData.attributes = attributes.map(id => new mongoose.Types.ObjectId(id));
             delete productData?.createdBy;
             productData.updatedBy = req?.user?.id;
 
@@ -798,6 +804,7 @@ class Product {
                     match: { isDeleted: false },
                     select: '_id name'
                 })
+                
                 .populate({
                     path: 'attributeVariations',
                     match: { isDeleted: false },

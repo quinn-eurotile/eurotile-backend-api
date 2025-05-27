@@ -5,17 +5,16 @@ const { getClientUrlByRole } = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
 const { log } = require('console');
+const { User } = require('../models');
 
 module.exports = class TradeProfessionalController {
-
-
     /*** Save New Trade Professional Data ****/
     async createTradeProfessional(req, res) {
         try {
             const user = await tradeProfessionalService.createTradeProfessional(req);
-            /* const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
-            const verificationLink = `${CLIENT_URL}/reset-password/${user.token}`;
-            sendVerificationEmail(req, verificationLink); */
+            const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
+            const verificationLink = `${CLIENT_URL}/verify-email/${user.token}`;
+            sendVerificationEmail(req, verificationLink);
             return res.json({ type: "success", message: "Trade professional created successfully", data: user, });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
@@ -33,6 +32,37 @@ module.exports = class TradeProfessionalController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+
+    async updateTradeProfessionalStatus(req, res) {
+        try {
+            // Find the user by token — do not use `.lean()` here
+            const user = await User.findOne({ token: req?.params?.token });
+
+            // If user not found, throw error
+            if (!user) return res.status(404).json({ message: 'Token mismatch' });
+
+            // Update the fields
+            user.status = req?.body.status;
+            user.token = null;
+
+            // Save the document
+            await user.save();
+
+            // Return success response
+            return res.json({
+                type: "success",
+                message: "Trade professional verified successfully",
+                data: user
+            });
+
+        } catch (error) {
+            console.log('asxsax');
+            return res.status(error.statusCode || 500).json({
+                message: error.message || 'Something went wrong'
+            });
+        }
+    }
+
 
     /** Admin Dashboard  **/
     async dashboardData(req, res) {

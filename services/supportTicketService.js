@@ -119,7 +119,7 @@ class SupportTicket {
     }
 
     async saveTicket(req) {
-        const { message, subject } = req.body;
+        const { message, subject, status } = req.body;
         const sender = req.user?.id || req.user?._id;
         const ticketId = req.method === 'PUT' ? req.params.id : null;
 
@@ -141,6 +141,7 @@ class SupportTicket {
                 sender: new mongoose.Types.ObjectId(String(sender)),
                 assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
                 subject,
+                status,
                 message,
                 ticketNumber
             });
@@ -269,18 +270,19 @@ class SupportTicket {
                                             { $eq: [{ $size: "$supportticketmsgs" }, 0] },
                                             null,
                                             {
-                                                $map: {
-                                                    input: "$supportticketmsgs",
-                                                    as: "msg",
+                                                $let: {
+                                                    vars: {
+                                                        firstMsg: { $arrayElemAt: ["$supportticketmsgs", 0] }
+                                                    },
                                                     in: {
-                                                        _id: "$$msg._id",
-                                                        message: "$$msg.message",
-                                                        sender: "$$msg.sender",
-                                                        fileName: "$$msg.fileName",
-                                                        filePath: "$$msg.filePath",
-                                                        fileType: "$$msg.fileType",
-                                                        fileSize: "$$msg.fileSize",
-                                                        createdAt: "$$msg.createdAt"
+                                                        _id: "$$firstMsg._id",
+                                                        message: "$$firstMsg.message",
+                                                        sender: "$$firstMsg.sender",
+                                                        fileName: "$$firstMsg.fileName",
+                                                        filePath: "$$firstMsg.filePath",
+                                                        fileType: "$$firstMsg.fileType",
+                                                        fileSize: "$$firstMsg.fileSize",
+                                                        createdAt: "$$firstMsg.createdAt"
                                                     }
                                                 }
                                             }
@@ -288,6 +290,7 @@ class SupportTicket {
                                     }
                                 }
                             },
+
 
                             {
                                 $project: {
