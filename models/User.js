@@ -8,6 +8,7 @@ const userSchema = new Schema({
     phone: { type: String, required: true, },
     roles: [{ type: Schema.Types.ObjectId, ref: 'Role' }],
     password: { type: String },
+    userImage: { type: String,default: null, },
     emailVerifiedAt: { type: Date, default: Date.now },
     status: { type: Number, default: 2 }, // 1 = Active, 0 = Inactive, 2 = Pending , 3 = Approve , 4 = Reject 
     accept_term: { type: Number, default: 0 }, // 1 = Yes, 0 = No  
@@ -64,6 +65,15 @@ userSchema.pre("save", async function (next) {
     } catch (err) {
         next(err);
     }
+});
+
+userSchema.virtual('roleNames').get(function () {
+  if (this.roles && Array.isArray(this.roles)) {
+    return this.roles
+      .map(role => (typeof role === 'object' && role !== null ? role.name : null))
+      .filter(name => name); // Filter out nulls
+  }
+  return [];
 });
 
 // Add these virtual fields to your schema

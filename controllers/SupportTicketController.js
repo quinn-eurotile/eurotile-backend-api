@@ -3,11 +3,31 @@ const commonService = require('../services/commonService');
 
 module.exports = class SupportTicketController {
 
+    /** Send Chat Msg  */
+    sendChatMessage = async (req, res) => {
+        try {
+            const result = await supportTicketService.sendChatMessage(req);
+            return res.status(201).json({ data: result, message: 'Chat message sent successfully.', });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Something went wrong.', });
+        }
+    }
+
+    /** Get Chat According To Ticket  */
+    getChatByTicket = async (req, res) => {
+        try {
+            const result = await supportTicketService.getChatByTicket(req);
+            return res.status(200).json({ message: 'Chat fetched successfully.', data: result });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Something went wrong.' });
+        }
+    };
+
 
     /** Update Status For Ticket */
     async updateSupportTicketStatus(req, res) {
         try {
-            const data = await commonService.updateStatusById(req, 'SupportTicket', 'status', [0,1,2,3,4,5,6,7]);
+            const data = await commonService.updateStatusById(req, 'SupportTicket', 'status', [0, 1, 2, 3, 4, 5, 6, 7]);
             return res.status(200).send({ message: 'Support ticket status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

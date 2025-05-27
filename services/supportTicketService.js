@@ -10,6 +10,92 @@ const constants = require('../configs/constant');
 
 class SupportTicket {
 
+    async getChatByTicket(req) {
+        try {
+            const { id: ticketId } = req.params;
+            const { page = 1, limit = 20 } = req.query;
+            const userId = new mongoose.Types.ObjectId(String(req.user.id));
+
+            // Get the ticket
+            const ticket = await supportTicketModel.findOne({ _id: ticketId, isDeleted: false, assignedTo: userId, status: { $in: [1, 2, 3, 4, 5, 6, 7] } });
+
+            if (!ticket) {
+                throw { message: 'Ticket not found or access denied', statusCode: 404 };
+            }
+
+            // Get paginated messages
+            const messages = await supportTicketMsgModel.paginate(
+                { ticket: ticketId },
+                {
+                    sort: { createdAt: -1 },
+                    populate: { path: 'sender', select: '_id name avatar role status about' },
+                    page,
+                    limit
+                }
+            );
+
+            // Identify profile user and contact
+            const profileUser = req.user; // Assuming full user data is populated via middleware
+
+            // Determine who the other participant is
+            const otherUserId = ticket.sender === userId ? ticket.assignedTo : ticket.sender;
+
+
+            const contactUser = await User.findById(otherUserId).select('_id name avatar role status about');
+
+            // Construct chat messages
+            const chatMessages = messages.docs.reverse().map((msg) => ({
+                message: msg.message,
+                time: msg.createdAt,
+                senderId: msg.sender._id,
+                msgStatus: {
+                    isSent: true,
+                    isDelivered: true,
+                    isSeen: true
+                }
+            }));
+
+            // Construct final object
+            return {
+                profileUser: {
+                    id: profileUser?.id,
+                    avatar: profileUser?.userImage || null,
+                    fullName: profileUser?.name,
+                    role: profileUser?.roleNames?.map((role) => role).join(', ') || '',
+                    about: profileUser?.about || 'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
+                    status: 'online',
+                    settings: {
+                        isTwoStepAuthVerificationEnabled: profileUser.isTwoFactorEnabled || false,
+                        isNotificationsOn: profileUser.isNotificationsOn || true
+                    }
+                },
+                contacts: [
+                    {
+                        id: contactUser?.id,
+                        fullName: contactUser?.name,
+                        role: contactUser?.roleNames?.map((role) => role).join(', ') || '',
+                        about: contactUser?.about || 'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
+                        avatar: contactUser?.userImage || null,
+                        status: 'online'
+                    }
+                ],
+                chats: [
+                    {
+                        id: ticket._id,
+                        userId: contactUser?.id,
+                        unseenMsgs: 0, // optionally calculate if needed
+                        chat: chatMessages
+                    }
+                ]
+            };
+        } catch (err) {
+            throw {
+                message: err.message || 'Unable to get chat messages',
+                statusCode: err.statusCode || 500
+            };
+        }
+    }
+
     async uploadTicketFile(file, ticketId) {
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
@@ -95,7 +181,6 @@ class SupportTicket {
         };
     }
 
-
     async buildSupportTicketListQuery(req) {
         const query = req.query;
         const conditionArr = [{ isDeleted: false }];
@@ -125,7 +210,6 @@ class SupportTicket {
             return { $and: conditionArr };
         }
     }
-
 
     async supportList(query, options) {
         try {
@@ -273,6 +357,68 @@ class SupportTicket {
             throw {
                 message: error?.message || 'Something went wrong while fetching support tickets',
                 statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    async sendChatMessage(req) {
+        try {
+            const { message } = req.body;
+            const sender = req.user?.id || req.user?._id;
+            const ticketId = req.params.id;
+    
+            // Get the ticket
+            const ticket = await supportTicketModel.findOne({ _id: ticketId, isDeleted: false });
+            if (!ticket) {
+                throw { message: 'Ticket not found', statusCode: 404 };
+            }
+    
+            // Handle file upload if present
+            const files = req.files?.filter(file => file.fieldname === 'ticketFile') || [];
+            let fileData = {
+                fileName: null,
+                fileType: null,
+                filePath: null,
+                fileSize: 0
+            };
+    
+            if (files.length > 0 && files[0]?.buffer) {
+                fileData = await this.uploadTicketFile(files[0], ticket._id);
+            }
+    
+            // Create and save the message
+            const ticketMsg = new supportTicketMsgModel({
+                ticket: ticket._id,
+                sender: new mongoose.Types.ObjectId(String(sender)),
+                message,
+                ...fileData
+            });
+    
+            await ticketMsg.save();
+    
+            // Return formatted message
+            return {
+                message: ticketMsg.message,
+                time: ticketMsg.createdAt,
+                senderId: ticketMsg.sender,
+                msgStatus: {
+                    isSent: true,
+                    isDelivered: true,
+                    isSeen: true
+                },
+                ...(fileData.filePath && {
+                    attachments: {
+                        fileName: fileData.fileName,
+                        filePath: fileData.filePath,
+                        fileType: fileData.fileType,
+                        fileSize: fileData.fileSize
+                    }
+                })
+            };
+        } catch (err) {
+            throw {
+                message: err.message || 'Unable to send chat message',
+                statusCode: err.statusCode || 500
             };
         }
     }

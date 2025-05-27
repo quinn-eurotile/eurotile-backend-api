@@ -72,18 +72,16 @@ class UserService {
 		// Generate JWT token
 		const token = jwt.sign(
 			{
-				id: user._id,
-				user_id: user._id,
+				id: user?._id,
+				user_id: user?._id,
 				email: lowerCaseEmail,
-				role_name: user.rolename,
-				roles: user.roles,
-				status: user.status,
-				full_name: user.fullname,
-				user_image: user.user_image,
-				first_name: user.first_name,
-				phonenumber: user.phonenumber,
-				last_name: user.last_name,
-				notification_settings: user.notification_settings,
+				roleNames: user?.roleNames,
+				roles: user?.roles,
+				status: user?.status,
+				fullName: user?.name,
+				userImage: user?.userImage,
+				phone: user?.phone,
+				name: user?.name,
 			},
 			process.env.TOKEN_KEY,
 			{ expiresIn: "30d" }
