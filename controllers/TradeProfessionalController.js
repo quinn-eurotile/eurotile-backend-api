@@ -22,6 +22,9 @@ module.exports = class TradeProfessionalController {
     }
 
     async updateTradeProfessional(req, res) {
+        // console.log(req.body, '...............................')
+        // console.log(req.files, '...............................req.files')
+        // return false;
         try {
             /* console.log(req.body, 'test');
             console.log(req.files, 'test');
