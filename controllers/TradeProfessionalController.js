@@ -66,6 +66,15 @@ module.exports = class TradeProfessionalController {
         }
     }
 
+    async getDashboardData(req, res) {
+         try {
+            const data = await tradeProfessionalService.getDashboardData(req)
+            return res.json({ type: "success", message: "", data: data, });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+       
+    }
 
     /** Admin Dashboard  **/
     async dashboardData(req, res) {

@@ -4,6 +4,9 @@ const userBusinessDocumentModel = require('../models/UserBusinessDocument');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
+const User = require('../models/User');
+const { Order } = require('../models');
+const bcrypt = require("bcryptjs");
 
 class TradeProfessional {
 
@@ -88,7 +91,7 @@ class TradeProfessional {
     }
 
     mapMimeType(mime) {
-        console.log(mime,'mimemimemimemime')
+        console.log(mime, 'mimemimemimemime');
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';
@@ -275,7 +278,7 @@ class TradeProfessional {
                 phone,
                 password: hashedPassword,
                 token,
-                addresses:address,
+                addresses: address,
                 accept_term: accept_term ?? 0,
                 roles: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))],
                 status: status ?? 2,
@@ -317,10 +320,10 @@ class TradeProfessional {
             if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
             } else if (query.status === "1" || query.status === 1) {
-                conditionArr.push({ status: { $in: [1, 3] } })
+                conditionArr.push({ status: { $in: [1, 3] } });
             } else if (query.status === "2" || query.status === 2) {
                 conditionArr.push({ status: 2 });
-            } 
+            }
         }
 
 
@@ -403,6 +406,36 @@ class TradeProfessional {
                 model: 'UserBusinessDocument'
             })
             .lean(); // Convert to plain JavaScript object for better performance
+    }
+
+
+    async getDashboardData(req) {
+        try {
+            const userId = req?.user?.id;
+            if (!userId) {
+                return res.status(401).json({ message: 'Unauthorized: User ID not found' });
+            }
+
+            // Fetch user info with userBusinesses populated
+            const user = await User
+                .findById(userId)
+                .populate('business')
+                .select('-password'); // Exclude sensitive fields
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // Fetch user-specific orders
+            const orders = await Order.find({ createdBy: userId }).sort({ createdAt: -1 });
+
+            return {
+                    user,
+                    orders
+                }
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
+        }
     }
 
 
