@@ -1,5 +1,6 @@
 const User = require('./User');
 const Order = require('./Order');
+const OrderDetail = require('./OrderDetail');
 const Product = require('./Product');
 const ProductFile = require('./ProductFile');
 const ProductAttribute = require('./ProductAttribute');
@@ -20,4 +21,4 @@ const ProductVariation = require('./ProductVariation');
 
 
 
-module.exports = { ProductVariation,ProductAttributeVariation,ProductMeasurementUnit,Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketMsg, UserBusinessDocument, UserBusiness };
+module.exports = { ProductVariation,ProductAttributeVariation,ProductMeasurementUnit,Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketMsg, UserBusinessDocument, UserBusiness, OrderDetail };

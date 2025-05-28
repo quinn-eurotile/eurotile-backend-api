@@ -6,6 +6,7 @@ const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
 const User = require('../models/User');
 const { Order } = require('../models');
+const bcrypt = require("bcryptjs");
 
 class TradeProfessional {
 
@@ -420,7 +421,7 @@ class TradeProfessional {
             }
 
             // Fetch user-specific orders
-            const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+            const orders = await Order.find({ createdBy: userId }).sort({ createdAt: -1 });
 
             return {
                     user,

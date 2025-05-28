@@ -42,6 +42,7 @@ router.put(
 );
 
 router.patch('/trade-professional/:token/status', multer().any(), tradeProfessionalController.updateTradeProfessionalStatus);
-router.get('/trade-professional', multer().any(),auth, tradeProfessionalController.getDashboardData);
+router.get('/trade-professional', auth, tradeProfessionalController.getDashboardData);
+
 
 module.exports = router;
