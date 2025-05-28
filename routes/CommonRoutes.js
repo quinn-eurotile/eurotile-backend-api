@@ -7,7 +7,7 @@ const upload = multer({ storage });
 const commonController = new CommonController();
 /* Common Management */
 router.get('/profile', multer().any(), auth, commonController.getProfile);
-router.put('/profile', upload.single("userImage"), auth, commonController.updateProfile);
-router.put("/profile/password",  multer().any(), auth, commonController.updateUserPassword);
+router.put('/profile/:id', upload.single("userImage"), auth, commonController.updateProfile);
+router.put("/profile/password/:id",  multer().any(), auth, commonController.updateUserPassword);
 
 module.exports = router;
