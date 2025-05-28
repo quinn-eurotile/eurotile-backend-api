@@ -4,6 +4,9 @@ const userBusinessDocumentModel = require('../models/UserBusinessDocument');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
+const User = require('../models/User');
+const { Order } = require('../models');
+const bcrypt = require("bcryptjs");
 
 class TradeProfessional {
 
@@ -43,6 +46,7 @@ class TradeProfessional {
                         userId: 1,
                         isDeleted: 1,
                         lastLoginDate: 1,
+                        userImage: 1,
                         createdAt: 1,
                         updatedAt: 1,
                         createdBy: 1,
@@ -88,7 +92,7 @@ class TradeProfessional {
     }
 
     mapMimeType(mime) {
-        console.log(mime,'mimemimemimemime')
+        console.log(mime, 'mimemimemimemime');
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';
@@ -153,6 +157,7 @@ class TradeProfessional {
 
     // Update Trade Professional
     updateTradeProfessional = async (req) => {
+       
         return this.runTransaction(async (session) => {
             const userId = req.params.id;
             const {
@@ -160,11 +165,14 @@ class TradeProfessional {
                 email,
                 phone,
                 status,
+                address,
                 business_name,
                 business_email,
                 business_phone,
                 documents_to_remove, // Array of document IDs to remove
             } = req.body;
+
+
 
             // Step 1: Update User
             const user = await tradeProfessionalModel.findByIdAndUpdate(
@@ -174,10 +182,12 @@ class TradeProfessional {
                     email,
                     phone,
                     status: status ?? 2,
+                    addresses: typeof address === 'string' ? JSON.parse(address) : address,
                     updatedBy: req?.user?.id || null,
                 },
-                { new: true, session }
+                { new: true }
             );
+
 
             if (!user) throw { message: 'User not found', statusCode: 404 };
 
@@ -257,6 +267,9 @@ class TradeProfessional {
                 address
             } = req.body;
 
+            const genSalt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, genSalt); // Hash the password
+
             const token = helpers.randomString(20);
 
             // Step 1: Create User
@@ -264,9 +277,9 @@ class TradeProfessional {
                 name,
                 email,
                 phone,
-                password,
+                password: hashedPassword,
                 token,
-                addresses:address,
+                addresses: address,
                 accept_term: accept_term ?? 0,
                 roles: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))],
                 status: status ?? 2,
@@ -308,10 +321,10 @@ class TradeProfessional {
             if (query.status === "0" || query.status === 0) {
                 conditionArr.push({ status: 0 });
             } else if (query.status === "1" || query.status === 1) {
-                conditionArr.push({ status: { $in: [1, 3] } })
+                conditionArr.push({ status: { $in: [1, 3] } });
             } else if (query.status === "2" || query.status === 2) {
                 conditionArr.push({ status: 2 });
-            } 
+            }
         }
 
 
@@ -369,7 +382,7 @@ class TradeProfessional {
                 roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] }
             }
         )
-            .select('name email phone status createdAt updatedAt') // Select specific columns from User
+            .select('name email phone status addresses createdAt updatedAt userImage') // Select specific columns from User
             .populate({
                 path: 'roles',
                 select: '_id name' // Select specific columns from Role
@@ -394,6 +407,36 @@ class TradeProfessional {
                 model: 'UserBusinessDocument'
             })
             .lean(); // Convert to plain JavaScript object for better performance
+    }
+
+
+    async getDashboardData(req) {
+        try {
+            const userId = req?.user?.id;
+            if (!userId) {
+                return res.status(401).json({ message: 'Unauthorized: User ID not found' });
+            }
+
+            // Fetch user info with userBusinesses populated
+            const user = await User
+                .findById(userId)
+                .populate('business')
+                .select('-password'); // Exclude sensitive fields
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // Fetch user-specific orders
+            const orders = await Order.find({ createdBy: userId }).sort({ createdAt: -1 });
+
+            return {
+                    user,
+                    orders
+                }
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
+        }
     }
 
 

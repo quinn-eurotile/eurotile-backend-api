@@ -7,7 +7,7 @@ const userSchema = new Schema({
     name: { type: String, required: true, },
     phone: { type: String, required: true, },
     roles: [{ type: Schema.Types.ObjectId, ref: 'Role' }],
-    password: { type: String },
+    password: { type: String, select: false },
     userImage: { type: String,default: null, },
     emailVerifiedAt: { type: Date, default: Date.now },
     status: { type: Number, default: 2 }, // 1 = Active, 0 = Inactive, 2 = Pending , 3 = Approve , 4 = Reject 

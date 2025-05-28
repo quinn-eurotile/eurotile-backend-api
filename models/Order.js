@@ -2,31 +2,29 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const orderSchema = new Schema({
-    name: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
-    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    orderNumber: { type: String, required: true, unique: true, },
+    orderStatus: { type: Number,  default: 1, }, // 1 = 'pending', 2 = 'processing', 3 = 'shipped', 4 = 'delivered', 5 = 'cancelled'
+    paymentStatus: { type: Number, default: 1, }, // 1 = 'pending', 2 = 'paid', 3 = 'failed', 4 = 'refunded'
+    shippingAddress: {
+        fullName: { type: String, required: true },
+        phoneNumber: { type: String, default: null, },
+        addressLine1: { type: String, default: null, },
+        addressLine2: { type: String, default: null, },
+        lat: { type: String, default: null, },
+        long: { type: String, default: null, },
+        city: { type: String, default: null, },
+        state: { type: String, default: null, },
+        postalCode: { type: String, default: null, },
+        country: { type: String, default: null, },
+    },
+    totalAmount: { type: Number, required: true, },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
-
-
-// Sets the created_at parameter equal to the current time
-orderSchema.pre("save", async function (next) {
-    try {
-        now = new Date();
-        this.updatedAt = now;
-        if (this.isNew) {
-            this.createdAt = now;
-        }
-        next();
-    } catch (err) {
-        next(err);
-    }
-});
-
 
 
 orderSchema.plugin(mongoosePaginate);

@@ -22,6 +22,9 @@ module.exports = class TradeProfessionalController {
     }
 
     async updateTradeProfessional(req, res) {
+        // console.log(req.body, '...............................')
+        // console.log(req.files, '...............................req.files')
+        // return false;
         try {
             /* console.log(req.body, 'test');
             console.log(req.files, 'test');
@@ -63,6 +66,15 @@ module.exports = class TradeProfessionalController {
         }
     }
 
+    async getDashboardData(req, res) {
+         try {
+            const data = await tradeProfessionalService.getDashboardData(req)
+            return res.json({ type: "success", message: "", data: data, });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+       
+    }
 
     /** Admin Dashboard  **/
     async dashboardData(req, res) {

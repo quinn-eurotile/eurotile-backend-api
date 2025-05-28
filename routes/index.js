@@ -34,4 +34,14 @@ const supportTicketRoutes = require('./SupportTicketRoutes');
 routes.use(`/api/${API_V}/support-ticket`, supportTicketRoutes);
 
 
+/************* Order route**************/
+const orderRoutes = require('./OrderRoutes');
+routes.use(`/api/${API_V}/order`, orderRoutes);
+
+/************* Order route**************/
+const commonRoutes = require('./CommonRoutes');
+routes.use(`/api/${API_V}/`, commonRoutes);
+
+
+
 module.exports = routes;

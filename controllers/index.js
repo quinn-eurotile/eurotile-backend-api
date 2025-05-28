@@ -7,5 +7,7 @@ const TaxController = require('./TaxController');
 const TradeProfessionalController = require('./TradeProfessionalController');
 const ProductController = require('./ProductController');
 const SupportTicketController = require('./SupportTicketController');
+const OrderController = require('./OrderController');
+const CommonController = require('./CommonController');
 
-module.exports = { ProductController, TradeProfessionalController, TaxController, AdminController, UserController, LocationController, RolePermissionController, CategoryController, SupportTicketController };
+module.exports = { CommonController,OrderController,ProductController, TradeProfessionalController, TaxController, AdminController, UserController, LocationController, RolePermissionController, CategoryController, SupportTicketController };

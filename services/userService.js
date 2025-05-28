@@ -47,14 +47,14 @@ class UserService {
 		const { email, password, for_which_role } = req.body;
 		let lowerCaseEmail = email.toLowerCase();
 		let conditions = {};
-		if (for_which_role == "admin") {
-			conditions = { email: lowerCaseEmail, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
-		} else {
-			conditions = { email: lowerCaseEmail, roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
-		}
-
+		// if (for_which_role == "admin") {
+		// 	conditions = { email: lowerCaseEmail, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
+		// } else {
+		// 	conditions = { email: lowerCaseEmail, roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] } };
+		// }
+		conditions = { email: lowerCaseEmail };
 		const user = await userModel.findOne(conditions).populate({ path: 'roles', select: '_id name module permissions', populate: { path: 'permissions', select: "_id name slug" } }).select("+password");
-
+		console.log('useruser', user)
 
 		if (!user) {
 			throw { message: 'User not found', statusCode: 404 };
