@@ -46,6 +46,7 @@ class TradeProfessional {
                         userId: 1,
                         isDeleted: 1,
                         lastLoginDate: 1,
+                        userImage: 1,
                         createdAt: 1,
                         updatedAt: 1,
                         createdBy: 1,
@@ -381,7 +382,7 @@ class TradeProfessional {
                 roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] }
             }
         )
-            .select('name email phone status addresses createdAt updatedAt') // Select specific columns from User
+            .select('name email phone status addresses createdAt updatedAt userImage') // Select specific columns from User
             .populate({
                 path: 'roles',
                 select: '_id name' // Select specific columns from Role
