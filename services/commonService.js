@@ -2,6 +2,8 @@ const modelInstance = require("../models");
 const mongoose = require('mongoose');
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const path = require("path");
+const fs = require("fs");
 
 class CommonService {
 
@@ -27,9 +29,47 @@ class CommonService {
     /**   * Update current user's profile   * @param {Object} req   */
     async updateUserProfile(req) {
         try {
+            console.log("Uploaded file:", req.file); // debug
+            const userId = req?.user?.id;
+            const updateData = req.body;
+
+            // Get user first
+            const user = await User.findOne({ _id: userId, isDeleted: false });
+
+            if (!user) {
+                throw { message: "User not found", statusCode: 404 };
+            }
+
+            // Handle image upload if provided
+            if (req.file && req.file.fieldname === "userImage") {
+
+
+                const uploadDir = path.join(__dirname, '..', 'uploads/profiles', userId);
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+
+                // Remove old image if exists
+                if (user.userImage) {
+                    const oldImagePath = path.join(__dirname, "../../", user.userImage);
+                    if (fs.existsSync(oldImagePath)) {
+                        fs.unlinkSync(oldImagePath);
+                    }
+                }
+
+                // Save new image
+                const fileName = Date.now() + "-" + req.file.originalname;
+                const filePath = path.join(uploadDir, fileName);
+                fs.writeFileSync(filePath, req.file.buffer);
+
+                // Update path in user document
+                updateData.userImage = `uploads/profiles/${userId}/${fileName}`;
+            }
+
+            // Update user profile
             const updatedUser = await User.findOneAndUpdate(
-                { _id: req.user.id, isDeleted: false },
-                { ...req.body, updatedAt: new Date() },
+                { _id: userId, isDeleted: false },
+                { ...updateData, updatedAt: new Date() },
                 { new: true }
             );
 
