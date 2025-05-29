@@ -50,14 +50,7 @@ io.on('connection', socket => {
 		console.log("requestData", requestData);
 		
 		socket.join(requestData.ticketId);
-		// setTimeout(() => {
-		// 	console.log("requestData");
-		// 	io.to(requestData.ticketId).emit('receiveMessage', JSON.stringify({
-		// 	  message: 'Test message',
-		// 	  sender: 'server',
-		// 	  ticket: requestData.ticketId
-		// 	}));
-		//   }, 3000);
+		
 	});
 
 	socket.on('disconnect', () => {
