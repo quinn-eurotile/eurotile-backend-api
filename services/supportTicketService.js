@@ -40,6 +40,7 @@ class SupportTicket {
                         as: 'supportticketmsgs_detail'
                     }
                 },
+               
     
                 { $sort: { createdAt: -1 } },
     
@@ -142,6 +143,7 @@ class SupportTicket {
     
 
     async uploadTicketFile(file, ticketId) {
+        console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -207,6 +209,8 @@ class SupportTicket {
             filePath: null,
             fileSize: 0
         };
+
+        console.log('files------------', files);
 
         if (files.length > 0 && files[0]?.buffer) {
             fileData = await this.uploadTicketFile(files[0], ticketDoc._id);
@@ -293,6 +297,25 @@ class SupportTicket {
                                     as: 'allMessages'
                                 }
                             },
+                           
+
+                            {
+                                $lookup: {
+                                    from: 'users',
+                                    localField: 'sender',
+                                    foreignField: '_id',
+                                    as: 'sender_detail'
+                                }
+                            },
+
+                            {
+                                $lookup: {
+                                  from: 'roles',
+                                  localField: 'sender_detail.roles',
+                                  foreignField: '_id',
+                                  as: 'sender_roles'
+                                }
+                              },
 
                             // Filter only messages with a non-null filePath
                             {
@@ -344,9 +367,16 @@ class SupportTicket {
                                     status: 1,
                                     createdAt: 1,
                                     updatedAt: 1,
-                                    sender: 1,
+                                    sender_detail: {
+                                        _id: 1,
+                                        name:1
+                                    },
                                     assignedTo: 1,
                                     order: 1,
+                                    sender_roles: {
+                                        _id : 1,
+                                        name : 1,
+                                    },
                                     supportticketmsgs: 1
                                 }
                             }
