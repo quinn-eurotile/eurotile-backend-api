@@ -54,7 +54,7 @@ class UserService {
 		// }
 		conditions = { email: lowerCaseEmail };
 		const user = await userModel.findOne(conditions).populate({ path: 'roles', select: '_id name module permissions', populate: { path: 'permissions', select: "_id name slug" } }).select("+password");
-		console.log('useruser', user)
+		
 
 		if (!user) {
 			throw { message: 'User not found', statusCode: 404 };

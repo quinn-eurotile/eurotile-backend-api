@@ -157,7 +157,7 @@ class TradeProfessional {
 
     // Update Trade Professional
     updateTradeProfessional = async (req) => {
-       
+
         return this.runTransaction(async (session) => {
             const userId = req.params.id;
             const {
@@ -418,22 +418,41 @@ class TradeProfessional {
             }
 
             // Fetch user info with userBusinesses populated
-            const user = await User
-                .findById(userId)
-                .populate('business')
-                .select('-password'); // Exclude sensitive fields
+            const user = await User.findById(userId).populate('business').select('-password');
 
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
 
-            // Fetch user-specific orders
-            const orders = await Order.find({ createdBy: userId }).sort({ createdAt: -1 });
+            // Aggregate order status counts
+            const orderStatusSummary = await Order.aggregate([
+                { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
+                {
+                    $group: {
+                        _id: "$orderStatus",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            // Map orderStatus number to label
+            const statusLabels = { 1: "pending", 2: "processing", 3: "shipped", 4: "delivered", 5: "cancelled" };
+
+            // Initialize all counts as 0
+            const formattedSummary = { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
+
+            // Fill in actual counts from aggregation
+            orderStatusSummary.forEach(item => {
+                const label = statusLabels[item._id];
+                if (label) {
+                    formattedSummary[label] = item.count;
+                }
+            });
 
             return {
-                    user,
-                    orders
-                }
+                user,
+                statusSummary: formattedSummary // fallback in case no orders
+            };
         } catch (error) {
             throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
         }
