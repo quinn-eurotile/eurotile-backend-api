@@ -93,6 +93,8 @@ class Order {
                         {
                             $project: {
                                 orderNumber: 1,
+                                commission: 1,
+                                totalAmount: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
                                 shippingAddress: 1,

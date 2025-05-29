@@ -22,7 +22,12 @@ class SupportTicket {
                 isDeleted: false,
                 status: { $in: [1, 2, 3, 4, 5, 6, 7] }
             };
-            // console.log('matchStage', matchStage);
+
+            const roles = req?.user?.roles?.map((el) => el?.id);
+            
+            if(!roles?.includes(constants?.adminRole?.id)){
+                matchStage['sender'] = new mongoose.Types.ObjectId(String(req?.user?.id))
+            }
             
     
             const pipeline = [
@@ -233,7 +238,13 @@ class SupportTicket {
 
     async buildSupportTicketListQuery(req) {
         const query = req.query;
+        
         const conditionArr = [{ isDeleted: false }];
+         const roles = req?.user?.roles?.map((el) => el?.id);
+            
+            if(!roles?.includes(constants?.adminRole?.id)){
+                conditionArr.push({sender :  new mongoose.Types.ObjectId(String(req?.user?.id))})
+            }
 
         // Normalize and validate status
         const status = Number(query.status);

@@ -17,6 +17,7 @@ const orderSchema = new Schema({
         postalCode: { type: String, default: null, },
         country: { type: String, default: null, },
     },
+    commission: { type: Number, default : 0},
     totalAmount: { type: Number, required: true, },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
