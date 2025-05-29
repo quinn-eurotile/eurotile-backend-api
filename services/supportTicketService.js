@@ -374,6 +374,7 @@ class SupportTicket {
                             {
                                 $project: {
                                     subject: 1,
+                                    ticketNumber: 1,
                                     message: 1,
                                     status: 1,
                                     createdAt: 1,
