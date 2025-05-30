@@ -732,140 +732,87 @@ class Product {
 
     /** Build Query For Product List */
     async buildProductListQuery(req) {
+        const { status, stockStatus, search_string, supplier, categories, attributes, attributeVariations } = req.query;
 
-        const query = req.query;
-        const conditionArr = [{ isDeleted: false }];
+        const conditions = [{ isDeleted: false }];
 
-        // For TEst Status
-        if (query.status !== undefined && query.status !== "") {
-            if (query.status === "0" || query.status === 0) {
-                conditionArr.push({ status: 0 });
-            } else if (query.status === "1" || query.status === 1) {
-                conditionArr.push({ status: 1 });
-            }
+        // Status filter (compact)
+        const normalizedStatus = status?.toString();
+        if (["0", "1"].includes(normalizedStatus)) {
+            conditions.push({ status: Number(normalizedStatus) });
         }
 
-        // Add stock Status filter
-        if (query.stockStatus !== undefined && query.stockStatus !== "") {
-            if (query.stockStatus === "in_stock") {
-                conditionArr.push({ stockStatus: 'in_stock' });
-            } else if (query.stockStatus === "out_of_stock") {
-                conditionArr.push({ stockStatus: "out_of_stock" });
-            }
+        // Stock status filter
+        if (stockStatus === "in_stock" || stockStatus === "out_of_stock") {
+            conditions.push({ stockStatus });
         }
 
-        // Add search conditions if 'search_string' is provided
-        if (query.search_string !== undefined && query.search_string !== "") {
-            conditionArr.push({
+        // Search filter
+        if (search_string) {
+            const regex = new RegExp(search_string, "i");
+            conditions.push({
                 $or: [
-                    { name: new RegExp(query.search_string, "i") },
-                    { sku: new RegExp(query.search_string, "i") },
-                    { slug: new RegExp(query.search_string, "i") },
-                    { description: new RegExp(query.search_string, "i") },
-                    { shortDescription: new RegExp(query.search_string, "i") }
-                ]
+                    { name: regex },
+                    { sku: regex },
+                    { slug: regex },
+                    { description: regex },
+                    { shortDescription: regex },
+                ],
             });
         }
 
-        // Filter by supplier if provided
-        if (query.supplier) {
-            conditionArr.push({ supplier: new mongoose.Types.ObjectId(query.supplier) });
+        // Supplier filter
+        if (supplier) {
+            conditions.push({ supplier: new mongoose.Types.ObjectId(supplier) });
         }
-        const parsedCategories = JSON.parse(query.categories);
-        // Filter by category if provided
-        if (parsedCategories !== undefined && parsedCategories.length !== 0) {
-            if (Array.isArray(parsedCategories)) {
-                const categoryIds = parsedCategories.map(id => new mongoose.Types.ObjectId(id));
-                conditionArr.push({ categories: { $in: categoryIds } });
+
+        // Attributes filter
+        if (attributes) {
+            try {
+                const parsed = JSON.parse(attributes);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const attributeIds = parsed.map(id => new mongoose.Types.ObjectId(id));
+                    console.log('attributes',attributes)
+                    conditions.push({ attributes: { $in: attributeIds } });
+                }
+            } catch (err) {
+                console.error("Invalid attributes JSON", err);
             }
         }
 
-        // Construct the final query
-        let builtQuery = {};
-        if (conditionArr.length === 1) {
-            builtQuery = conditionArr[0];
-        } else if (conditionArr.length > 1) {
-            builtQuery = { $and: conditionArr };
-        }
-
-        return builtQuery;
-    }
-
-    async getProductById(id) {
-        try {
-            const product = await productModel.findById(id)
-                .populate({
-                    path: 'supplier',
-                    match: { isDeleted: false },
-                    select: '_id companyName companyEmail'
-                })
-                .populate({
-                    path: 'categories',
-                    match: { isDeleted: false },
-                    select: '_id name'
-                })
-                
-                .populate({
-                    path: 'attributeVariations',
-                    match: { isDeleted: false },
-                })
-                .populate({
-                    path: 'createdBy',
-                    match: { isDeleted: false },
-                    select: '_id name email phone'
-                })
-                .populate({
-                    path: 'updatedBy',
-                    match: { isDeleted: false },
-                    select: '_id name email phone'
-                })
-                .populate({
-                    path: 'productVariations',
-                    match: { isDeleted: false },
-                    populate: [
-                        {
-                            path: 'variationImages',
-                            match: { isDeleted: false },
-                            select: '_id filePath fileName'
-                        },
-                        {
-                            path: 'product',
-                            match: { isDeleted: false },
-                            select: '_id name shortDescription'
-                        }
-                    ]
-                })
-                .populate({
-                    path: 'productFeaturedImage',
-                    match: { isDeleted: false },
-                    select: '_id filePath fileName isFeaturedImage'
-                });
-
-            if (!product) {
-                throw { message: 'Product not found', statusCode: 404 };
+        // Attributes filter
+        if (attributeVariations) {
+            try {
+                const parsed = JSON.parse(attributeVariations);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const attributeVariationIds = parsed.map(id => new mongoose.Types.ObjectId(id));
+                    console.log('attributeVariations',attributeVariationIds)
+                    conditions.push({ attributeVariations: { $in: attributeVariationIds } });
+                }
+            } catch (err) {
+                console.error("Invalid attributes JSON", err);
             }
-
-            // Calculate totalQuantity from productVariations
-            const totalQuantity = product.productVariations?.reduce((sum, variation) => {
-                return sum + (variation.stockQuantity || 0);
-            }, 0) || 0;
-
-            // Add totalQuantity to the returned product object
-            const productObject = product.toObject();
-            productObject.totalQuantity = totalQuantity;
-
-            return productObject;
-
-            return product;
-        } catch (error) {
-            throw {
-                message: error.message || 'Failed to fetch product details',
-                statusCode: error.statusCode || 500
-            };
         }
+
+        
+
+        
+
+        // Categories filter
+        if (categories) {
+            try {
+                const parsed = JSON.parse(categories);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const categoryIds = parsed.map(id => new mongoose.Types.ObjectId(id));
+                    conditions.push({ categories: { $in: categoryIds } });
+                }
+            } catch (err) {
+                console.error("Invalid categories JSON", err);
+            }
+        }
+
+        return conditions.length > 1 ? { $and: conditions } : conditions[0];
     }
-
-
 
     /** Get Product List */
     async productList(query, options) {
@@ -961,6 +908,8 @@ class Product {
                             _id: 1,
                             name: 1
                         },
+                        attributes: 1,
+                        attributeVariations: 1,
                         featuredImage: {
                             _id: 1,
                             filePath: 1
@@ -1002,6 +951,80 @@ class Product {
             throw {
                 message: error?.message || 'Something went wrong while fetching products',
                 statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    async getProductById(id) {
+        try {
+            const product = await productModel.findById(id)
+                .populate({
+                    path: 'supplier',
+                    match: { isDeleted: false },
+                    select: '_id companyName companyEmail'
+                })
+                .populate({
+                    path: 'categories',
+                    match: { isDeleted: false },
+                    select: '_id name'
+                })
+
+                .populate({
+                    path: 'attributeVariations',
+                    match: { isDeleted: false },
+                })
+                .populate({
+                    path: 'createdBy',
+                    match: { isDeleted: false },
+                    select: '_id name email phone'
+                })
+                .populate({
+                    path: 'updatedBy',
+                    match: { isDeleted: false },
+                    select: '_id name email phone'
+                })
+                .populate({
+                    path: 'productVariations',
+                    match: { isDeleted: false },
+                    populate: [
+                        {
+                            path: 'variationImages',
+                            match: { isDeleted: false },
+                            select: '_id filePath fileName'
+                        },
+                        {
+                            path: 'product',
+                            match: { isDeleted: false },
+                            select: '_id name shortDescription'
+                        }
+                    ]
+                })
+                .populate({
+                    path: 'productFeaturedImage',
+                    match: { isDeleted: false },
+                    select: '_id filePath fileName isFeaturedImage'
+                });
+
+            if (!product) {
+                throw { message: 'Product not found', statusCode: 404 };
+            }
+
+            // Calculate totalQuantity from productVariations
+            const totalQuantity = product.productVariations?.reduce((sum, variation) => {
+                return sum + (variation.stockQuantity || 0);
+            }, 0) || 0;
+
+            // Add totalQuantity to the returned product object
+            const productObject = product.toObject();
+            productObject.totalQuantity = totalQuantity;
+
+            return productObject;
+
+            return product;
+        } catch (error) {
+            throw {
+                message: error.message || 'Failed to fetch product details',
+                statusCode: error.statusCode || 500
             };
         }
     }

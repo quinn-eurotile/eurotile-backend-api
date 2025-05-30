@@ -6,6 +6,7 @@ const models = require('./models/index');
 const http = require('http');
 const socketIo = require('socket.io');
 const { SupportTicketMsg } = require('./models');
+const { default: mongoose } = require("mongoose");
 
 const server = http.createServer(app);
 
@@ -27,8 +28,8 @@ io.on('connection', socket => {
 
 			// Save to database
 			const savedMsg = await SupportTicketMsg.create({
-				ticket: parsedMsg.ticketId,
-				sender: parsedMsg.senderId,
+				ticket: new mongoose.Types.ObjectId(String(parsedMsg.ticketId)),
+				sender: new mongoose.Types.ObjectId(String(parsedMsg.senderId)),
 				message: parsedMsg.content,
 				fileName: null,
 				fileType: null,
@@ -37,10 +38,19 @@ io.on('connection', socket => {
 			});
 
 			// Emit message (could use `savedMsg` with `_id` or other info if needed)
-			io.emit('receiveMessage', JSON.stringify(savedMsg));
+			io.to(parsedMsg.ticketId).emit('receiveMessage', JSON.stringify(savedMsg));
+			//io.emit('receiveMessage', JSON.stringify(savedMsg));
 		} catch (error) {
 			console.error('Failed to save message:', error);
 		}
+	});
+
+	/** Join By Ticket Id ***/
+	socket.on("join", (requestData) => {
+		console.log("requestData", requestData);
+		
+		socket.join(requestData.ticketId);
+		
 	});
 
 	socket.on('disconnect', () => {

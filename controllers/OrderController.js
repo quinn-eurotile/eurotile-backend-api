@@ -9,7 +9,8 @@ module.exports = class OrderController {
     async orderList(req, res) {
         try {
             const query = await orderService.buildOrderListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            console.log('req.query.page', req.query.page);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate : { path : 'createdBy'} };
             const data = await orderService.orderList(query, options);
             return res.status(200).json({ data: data, message: 'Order list get successfully.' });
         } catch (error) {

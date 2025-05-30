@@ -77,16 +77,38 @@ class Order {
                             }
                         },
 
+                        {
+                            $lookup: {
+                                from: "users",            // collection to join
+                                localField: "createdBy",  // field in orders
+                                foreignField: "_id",      // field in users
+                                as: "createdByDetails"    // output array field
+                            }
+                        },
+                        {
+                            $unwind: "$createdByDetails" // optional: convert array to object if only one user per order
+                        },
+
                         // Select required fields
                         {
                             $project: {
                                 orderNumber: 1,
+                                commission: 1,
+                                totalAmount: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
                                 shippingAddress: 1,
                                 totalAmount: 1,
                                 createdAt: 1,
                                 updatedAt: 1,
+                                createdBy: 1,
+                                updatedBy: 1,
+                                createdByDetails:{
+                                    _id : 1,
+                                    name : 1,
+                                    email : 1,
+                                    userImage : 1
+                                },
                                 orderDetails: {
                                     productId: 1,
                                     productDetail: 1,

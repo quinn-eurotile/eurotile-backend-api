@@ -12,91 +12,143 @@ class SupportTicket {
 
     async getChatByTicket(req) {
         try {
-            const { id: ticketId } = req.params;
-            const { page = 1, limit = 20 } = req.query;
-            const userId = new mongoose.Types.ObjectId(String(req.user.id));
+            // console.log('req.params', req.params);
+            
+            const { page = 1, limit = 20 } = req.params;
+            const skip = (page - 1) * limit;
+    
+            const matchStage = {
+                //...req.params,
+                isDeleted: false,
+                status: { $in: [1, 2, 3, 4, 5, 6, 7] }
+            };
 
-            // Get the ticket
-            const ticket = await supportTicketModel.findOne({ _id: ticketId, isDeleted: false, assignedTo: userId, status: { $in: [1, 2, 3, 4, 5, 6, 7] } });
-
-            if (!ticket) {
-                throw { message: 'Ticket not found or access denied', statusCode: 404 };
+            const roles = req?.user?.roles?.map((el) => el?.id);
+            
+            if(!roles?.includes(constants?.adminRole?.id)){
+                matchStage['sender'] = new mongoose.Types.ObjectId(String(req?.user?.id))
             }
-
-            // Get paginated messages
-            const messages = await supportTicketMsgModel.paginate(
-                { ticket: ticketId },
+            
+    
+            const pipeline = [
+                { $match: matchStage },
+    
                 {
-                    sort: { createdAt: -1 },
-                    populate: { path: 'sender', select: '_id name avatar role status about' },
-                    page,
-                    limit
-                }
-            );
-
-            // Identify profile user and contact
-            const profileUser = req.user; // Assuming full user data is populated via middleware
-
-            // Determine who the other participant is
-            const otherUserId = ticket.sender === userId ? ticket.assignedTo : ticket.sender;
-
-
-            const contactUser = await User.findById(otherUserId).select('_id name avatar role status about');
-
-            // Construct chat messages
-            const chatMessages = messages.docs.reverse().map((msg) => ({
-                message: msg.message,
-                time: msg.createdAt,
-                senderId: msg.sender._id,
-                msgStatus: {
-                    isSent: true,
-                    isDelivered: true,
-                    isSeen: true
-                }
-            }));
-
-            // Construct final object
-            return {
-                profileUser: {
-                    id: profileUser?.id,
-                    avatar: profileUser?.userImage || null,
-                    fullName: profileUser?.name,
-                    role: profileUser?.roleNames?.map((role) => role).join(', ') || '',
-                    about: profileUser?.about || 'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
-                    status: 'online',
-                    settings: {
-                        isTwoStepAuthVerificationEnabled: profileUser.isTwoFactorEnabled || false,
-                        isNotificationsOn: profileUser.isNotificationsOn || true
+                    $lookup: {
+                        from: 'supportticketmsgs',
+                        let: { ticketId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$ticket', '$$ticketId'] } } },
+                            { $sort: { createdAt: -1 } },
+                            { $limit: limit }
+                        ],
+                        as: 'supportticketmsgs_detail'
                     }
                 },
-                contacts: [
-                    {
-                        id: contactUser?.id,
-                        fullName: contactUser?.name,
-                        role: contactUser?.roleNames?.map((role) => role).join(', ') || '',
-                        about: contactUser?.about || 'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
-                        avatar: contactUser?.userImage || null,
-                        status: 'online'
+               
+    
+                { $sort: { createdAt: -1 } },
+    
+                {
+                    $project: {
+                        _id: 1,
+                        subject: 1,
+                        supportticketmsgs_detail: {
+                            filePath: 1,
+                            message: 1,
+                            createdAt: 1,
+                            sender: 1
+                        }
                     }
-                ],
-                chats: [
-                    {
-                        id: ticket._id,
-                        userId: contactUser?.id,
-                        unseenMsgs: 0, // optionally calculate if needed
-                        chat: chatMessages
-                    }
-                ]
+                },
+    
+                { $skip: skip },
+                { $limit: limit }
+            ];
+    
+            const tickets = await supportTicketModel.aggregate(pipeline);
+    
+            const docs = tickets.map(ticket => ({
+                id: ticket._id,
+                fullName: ticket.subject,
+                role: 'Ticket',
+                about: ticket.subject,
+                avatar: ticket?.supportticketmsgs_detail?.[0]?.filePath || null,
+                status: 'online'
+            }));
+    
+            // Count total matching documents
+            const countResult = await supportTicketModel.aggregate([
+                { $match: matchStage },
+                { $count: 'total' }
+            ]);
+            const totalDocs = countResult[0]?.total || 0;
+    
+            // Profile User
+            const profileUserData = req.user;
+            const profileUser = {
+                id: profileUserData?.id,
+                avatar: profileUserData?.userImage || null,
+                fullName: profileUserData?.name,
+                role: profileUserData?.roleNames?.join(', ') || '',
+                about:
+                    profileUserData?.about ||
+                    'Dessert chocolate cake lemon drops jujubes. Biscuit cupcake ice cream bear claw brownie brownie marshmallow.',
+                status: 'online',
+                settings: {
+                    isTwoStepAuthVerificationEnabled:
+                        profileUserData.isTwoFactorEnabled || false,
+                    isNotificationsOn: profileUserData.isNotificationsOn ?? true
+                }
             };
-        } catch (err) {
+
+            const chats = tickets.map(ticket => {
+                const chatMessages = ticket.supportticketmsgs_detail
+                    .slice()
+                    .reverse() // To get oldest-to-newest order
+                    .map(msg => ({
+                        message: msg.message,
+                        time: msg.createdAt,
+                        senderId: msg.sender,
+                        msgStatus: {
+                            isSent: true,
+                            isDelivered: true,
+                            isSeen: true
+                        }
+                    }));
+    
+                return {
+                    id: ticket._id,
+                    userId: ticket._id, // Or replace with appropriate user/ticket reference
+                    unseenMsgs: 0, // Add logic to calculate unseen if needed
+                    chat: chatMessages
+                };
+            });
+    
+            return {
+                docs,
+                profileUser,
+                chats: chats, // You can fill this if needed
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+        } catch (error) {
+            console.error('Error in getChatByTicket:', error);
             throw {
-                message: err.message || 'Unable to get chat messages',
-                statusCode: err.statusCode || 500
+                message: error?.message || 'Failed to fetch support tickets',
+                statusCode: error?.statusCode || 500
             };
         }
     }
+    
+    
 
     async uploadTicketFile(file, ticketId) {
+        console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -163,6 +215,8 @@ class SupportTicket {
             fileSize: 0
         };
 
+        console.log('files------------', files);
+
         if (files.length > 0 && files[0]?.buffer) {
             fileData = await this.uploadTicketFile(files[0], ticketDoc._id);
         }
@@ -184,7 +238,13 @@ class SupportTicket {
 
     async buildSupportTicketListQuery(req) {
         const query = req.query;
+        
         const conditionArr = [{ isDeleted: false }];
+         const roles = req?.user?.roles?.map((el) => el?.id);
+            
+            if(!roles?.includes(constants?.adminRole?.id)){
+                conditionArr.push({sender :  new mongoose.Types.ObjectId(String(req?.user?.id))})
+            }
 
         // Normalize and validate status
         const status = Number(query.status);
@@ -248,6 +308,25 @@ class SupportTicket {
                                     as: 'allMessages'
                                 }
                             },
+                           
+
+                            {
+                                $lookup: {
+                                    from: 'users',
+                                    localField: 'sender',
+                                    foreignField: '_id',
+                                    as: 'sender_detail'
+                                }
+                            },
+
+                            {
+                                $lookup: {
+                                  from: 'roles',
+                                  localField: 'sender_detail.roles',
+                                  foreignField: '_id',
+                                  as: 'sender_roles'
+                                }
+                              },
 
                             // Filter only messages with a non-null filePath
                             {
@@ -295,13 +374,21 @@ class SupportTicket {
                             {
                                 $project: {
                                     subject: 1,
+                                    ticketNumber: 1,
                                     message: 1,
                                     status: 1,
                                     createdAt: 1,
                                     updatedAt: 1,
-                                    sender: 1,
+                                    sender_detail: {
+                                        _id: 1,
+                                        name:1
+                                    },
                                     assignedTo: 1,
                                     order: 1,
+                                    sender_roles: {
+                                        _id : 1,
+                                        name : 1,
+                                    },
                                     supportticketmsgs: 1
                                 }
                             }
@@ -369,13 +456,13 @@ class SupportTicket {
             const { message } = req.body;
             const sender = req.user?.id || req.user?._id;
             const ticketId = req.params.id;
-    
+
             // Get the ticket
             const ticket = await supportTicketModel.findOne({ _id: ticketId, isDeleted: false });
             if (!ticket) {
                 throw { message: 'Ticket not found', statusCode: 404 };
             }
-    
+
             // Handle file upload if present
             const files = req.files?.filter(file => file.fieldname === 'ticketFile') || [];
             let fileData = {
@@ -384,11 +471,11 @@ class SupportTicket {
                 filePath: null,
                 fileSize: 0
             };
-    
+
             if (files.length > 0 && files[0]?.buffer) {
                 fileData = await this.uploadTicketFile(files[0], ticket._id);
             }
-    
+
             // Create and save the message
             const ticketMsg = new supportTicketMsgModel({
                 ticket: ticket._id,
@@ -396,9 +483,9 @@ class SupportTicket {
                 message,
                 ...fileData
             });
-    
+
             await ticketMsg.save();
-    
+
             // Return formatted message
             return {
                 message: ticketMsg.message,
