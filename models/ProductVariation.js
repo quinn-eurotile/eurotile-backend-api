@@ -25,6 +25,9 @@ const ProductVariationSchema = new Schema({
     numberOfTiles: { type: Number, default: 0 },
     boxSize: { type: Number, default: 0 },
     palletSize: { type: Number, default: 0 },
+    palletWeight: { type: Number, default: 0 },
+    sqmPerTile: { type: Number, default: 0 },
+    boxesPerPallet: { type: Number, default: 0 },
     tierDiscount: {
         tierFirst: {
             tierAddOn: { type: Number, default: 0 },
