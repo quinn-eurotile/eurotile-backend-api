@@ -692,6 +692,8 @@ class Product {
                 // ✅ Construct variation data object
                 const baseVariationData = {
                     ...variationData,
+                     attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
+                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
                     product: product._id
                 };
 
