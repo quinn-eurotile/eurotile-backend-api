@@ -12,7 +12,11 @@ const productSchema = new Schema({
     supplier: { type: Schema.Types.ObjectId, ref: 'Supplier' },
     stockStatus: { type: String, enum: ['in_stock', 'out_of_stock'], default: 'in_stock' },
     status: { type: Number, default: 1 }, // 1 = Published, 0 = Draft, 
-    defaultPrice: { type: Number, default: 0.00 }, // 1 = Published, 0 = Draft, 
+    defaultPrice: { type: Number, default: 0.00 }, 
+    minPriceB2B: { type: Number, default: 0.00 },  
+    maxPriceB2B: { type: Number, default: 0.00 },  
+    minPriceB2C: { type: Number, default: 0.00 },  
+    maxPriceB2C: { type: Number, default: 0.00 },  
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
@@ -49,8 +53,6 @@ productSchema.pre("save", async function (next) {
         next(err);
     }
 });
-
-
 
 productSchema.plugin(mongoosePaginate);
 
