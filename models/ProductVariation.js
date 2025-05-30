@@ -17,6 +17,8 @@ const ProductVariationSchema = new Schema({
         width: { type: Number, default: 0 },
         height: { type: Number, default: 0 }
     },
+    attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
+    attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
     variationImages: [{ type: Schema.Types.ObjectId, ref: 'ProductFile', default: [] }],
     regularPriceB2B: { type: Number, default: 0 },
     regularPriceB2C: { type: Number, default: 0 },
@@ -67,7 +69,3 @@ const ProductVariationSchema = new Schema({
 ProductVariationSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('ProductVariation', ProductVariationSchema);
-
-
-
-

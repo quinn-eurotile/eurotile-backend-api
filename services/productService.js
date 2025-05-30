@@ -452,9 +452,9 @@ class Product {
             }
 
             // Convert category and attributeVariation IDs to ObjectId
-            productData.categories = categories.map(id => new mongoose.Types.ObjectId(id));
-            productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(id));
-            productData.attributes = attributes.map(id => new mongoose.Types.ObjectId(id));
+            productData.categories = categories.map(id => new mongoose.Types.ObjectId(String(id)));
+            productData.attributeVariations = attributeVariations.map(id => new mongoose.Types.ObjectId(String(id)));
+            productData.attributes = attributes.map(id => new mongoose.Types.ObjectId(String(id)));
             productData.createdBy = req?.user?.id;
             productData.updatedBy = req?.user?.id;
 
@@ -524,6 +524,8 @@ class Product {
                 // Save the variation with associated image IDs
                 const variation = await productVariationModel.create({
                     ...variationData,
+                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
+                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
                     product: productId,
                     variationImages: variationImageIds
                 });
@@ -817,14 +819,25 @@ class Product {
     }
 
     /** Get Product List */
-    async productList(query, options) {
+    async productList(req, query, options) {
         try {
-            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const {
+                page = 1,
+                limit = 10,
+                sort = { createdAt: -1 },
+            } = options;
+
             const skip = (page - 1) * limit;
 
-            // Build aggregation pipeline
+            const attributeVariationIds = req?.query?.attributeVariations
+                ?
+                JSON.parse(req?.query?.attributeVariations).map(id => new mongoose.Types.ObjectId(id))
+                :
+                [];
+
             const pipeline = [
                 { $match: query },
+
                 // Lookup supplier
                 {
                     $lookup: {
@@ -846,6 +859,59 @@ class Product {
                     }
                 },
 
+                // Lookup product variations
+                {
+                    $lookup: {
+                        from: 'productvariations',
+                        localField: '_id',
+                        foreignField: 'product',
+                        as: 'productVariations'
+                    }
+                },
+
+                // Filter and find matched variations by attributeVariationIds
+                ...(attributeVariationIds.length > 0 ? [
+                    {
+                        $addFields: {
+                            matchedVariation: {
+                                $first: {
+                                    $filter: {
+                                        input: '$productVariations',
+                                        as: 'variation',
+                                        cond: {
+                                            $gt: [
+                                                {
+                                                    $size: {
+                                                        $filter: {
+                                                            input: '$$variation.attributeVariations',
+                                                            as: 'av',
+                                                            cond: { $in: ['$$av', attributeVariationIds] }
+                                                        }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'productfiles',
+                            localField: 'matchedVariation.variationImages',
+                            foreignField: '_id',
+                            as: 'matchedVariationImages'
+                        }
+                    },
+                    {
+                        $addFields: {
+                            matchedDisplayImage: { $arrayElemAt: ['$matchedVariationImages', 0] }
+                        }
+                    }
+                ] : []),
+
                 // Lookup featured image
                 {
                     $lookup: {
@@ -857,17 +923,7 @@ class Product {
                 },
                 { $unwind: { path: '$featuredImage', preserveNullAndEmptyArrays: true } },
 
-
-                {
-                    $lookup: {
-                        from: 'productvariations',
-                        localField: '_id',
-                        foreignField: 'product',
-                        as: 'productVariations'
-                    }
-                },
-
-                // Add total quantity from variations
+                // Total quantity calculation
                 {
                     $addFields: {
                         totalQuantity: {
@@ -884,24 +940,29 @@ class Product {
                                     in: { $ifNull: ['$$variation.stockQuantity', 0] }
                                 }
                             }
+                        },
+                        displayImage: {
+                            $cond: [
+                                { $gt: [{ $size: '$matchedVariationImages' }, 0] },
+                                '$matchedDisplayImage',
+                                '$featuredImage'
+                            ]
                         }
                     }
                 },
 
-                // Optional sort
                 { $sort: sort },
 
-                // Project fields
                 {
                     $project: {
                         _id: 1,
                         name: 1,
                         sku: 1,
                         defaultPrice: 1,
-                        minPriceB2B : 1,
-                        maxPriceB2B : 1,
-                        minPriceB2C : 1,
-                        maxPriceB2C : 1,
+                        minPriceB2B: 1,
+                        maxPriceB2B: 1,
+                        minPriceB2C: 1,
+                        maxPriceB2C: 1,
                         totalQuantity: 1,
                         stockStatus: 1,
                         status: 1,
@@ -916,6 +977,10 @@ class Product {
                         },
                         attributes: 1,
                         attributeVariations: 1,
+                        displayImage: {
+                            _id: 1,
+                            filePath: 1
+                        },
                         featuredImage: {
                             _id: 1,
                             filePath: 1
@@ -928,12 +993,11 @@ class Product {
                         updatedAt: 1
                     }
                 },
-                // Pagination
+
                 { $skip: skip },
                 { $limit: limit }
             ];
 
-            // Run aggregation
             const data = await productModel.aggregate(pipeline);
 
             // Get total count
