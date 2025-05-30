@@ -732,22 +732,34 @@ class Product {
 
     /** Build Query For Product List */
     async buildProductListQuery(req) {
-        const { status, stockStatus, search_string, supplier, categories, attributes, attributeVariations } = req.query;
+        const {
+            status,
+            stockStatus,
+            search_string,
+            supplier,
+            categories,
+            attributes,
+            attributeVariations,
+            minPriceB2B,
+            maxPriceB2B,
+            minPriceB2C,
+            maxPriceB2C
+        } = req.query;
 
         const conditions = [{ isDeleted: false }];
 
-        // Status filter (compact)
+        // Status filter
         const normalizedStatus = status?.toString();
         if (["0", "1"].includes(normalizedStatus)) {
             conditions.push({ status: Number(normalizedStatus) });
         }
 
-        // Stock status filter
-        if (stockStatus === "in_stock" || stockStatus === "out_of_stock") {
+        // Stock status
+        if (["in_stock", "out_of_stock"].includes(stockStatus)) {
             conditions.push({ stockStatus });
         }
 
-        // Search filter
+        // Search string
         if (search_string) {
             const regex = new RegExp(search_string, "i");
             conditions.push({
@@ -761,55 +773,45 @@ class Product {
             });
         }
 
-        // Supplier filter
+        // Supplier
         if (supplier) {
-            conditions.push({ supplier: new mongoose.Types.ObjectId(supplier) });
-        }
-
-        // Attributes filter
-        if (attributes) {
             try {
-                const parsed = JSON.parse(attributes);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    const attributeIds = parsed.map(id => new mongoose.Types.ObjectId(id));
-                    console.log('attributes',attributes)
-                    conditions.push({ attributes: { $in: attributeIds } });
-                }
+                conditions.push({ supplier: new mongoose.Types.ObjectId(supplier) });
             } catch (err) {
-                console.error("Invalid attributes JSON", err);
+                console.error("Invalid supplier ID", err);
             }
         }
 
-        // Attributes filter
-        if (attributeVariations) {
+        // Helper for array filters
+        const pushArrayFilter = (field, raw) => {
+            if (!raw) return;
             try {
-                const parsed = JSON.parse(attributeVariations);
+                const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    const attributeVariationIds = parsed.map(id => new mongoose.Types.ObjectId(id));
-                    console.log('attributeVariations',attributeVariationIds)
-                    conditions.push({ attributeVariations: { $in: attributeVariationIds } });
+                    const ids = parsed.map(id => new mongoose.Types.ObjectId(id));
+                    conditions.push({ [field]: { $in: ids } });
                 }
             } catch (err) {
-                console.error("Invalid attributes JSON", err);
+                console.error(`Invalid ${field} JSON`, err);
             }
-        }
+        };
 
-        
+        pushArrayFilter("attributes", attributes);
+        pushArrayFilter("attributeVariations", attributeVariations);
+        pushArrayFilter("categories", categories);
 
-        
-
-        // Categories filter
-        if (categories) {
-            try {
-                const parsed = JSON.parse(categories);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    const categoryIds = parsed.map(id => new mongoose.Types.ObjectId(id));
-                    conditions.push({ categories: { $in: categoryIds } });
-                }
-            } catch (err) {
-                console.error("Invalid categories JSON", err);
+        // Price range filters
+        const pushPriceFilter = (field, min, max) => {
+            const priceCond = {};
+            if (min !== undefined) priceCond.$gte = parseFloat(min);
+            if (max !== undefined) priceCond.$lte = parseFloat(max);
+            if (Object.keys(priceCond).length > 0) {
+                conditions.push({ [field]: priceCond });
             }
-        }
+        };
+
+        pushPriceFilter("priceB2B", minPriceB2B, maxPriceB2B);
+        pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
 
         return conditions.length > 1 ? { $and: conditions } : conditions[0];
     }
@@ -896,6 +898,10 @@ class Product {
                         name: 1,
                         sku: 1,
                         defaultPrice: 1,
+                        minPriceB2B : 1,
+                        maxPriceB2B : 1,
+                        minPriceB2C : 1,
+                        maxPriceB2C : 1,
                         totalQuantity: 1,
                         stockStatus: 1,
                         status: 1,
@@ -957,33 +963,32 @@ class Product {
 
     async getProductById(id) {
         try {
-            const product = await productModel.findById(id)
-                .populate({
+            const product = await productModel.findById(id).populate([
+                {
                     path: 'supplier',
                     match: { isDeleted: false },
                     select: '_id companyName companyEmail'
-                })
-                .populate({
+                },
+                {
                     path: 'categories',
                     match: { isDeleted: false },
                     select: '_id name'
-                })
-
-                .populate({
+                },
+                {
                     path: 'attributeVariations',
-                    match: { isDeleted: false },
-                })
-                .populate({
+                    match: { isDeleted: false }
+                },
+                {
                     path: 'createdBy',
                     match: { isDeleted: false },
                     select: '_id name email phone'
-                })
-                .populate({
+                },
+                {
                     path: 'updatedBy',
                     match: { isDeleted: false },
                     select: '_id name email phone'
-                })
-                .populate({
+                },
+                {
                     path: 'productVariations',
                     match: { isDeleted: false },
                     populate: [
@@ -998,29 +1003,25 @@ class Product {
                             select: '_id name shortDescription'
                         }
                     ]
-                })
-                .populate({
+                },
+                {
                     path: 'productFeaturedImage',
                     match: { isDeleted: false },
                     select: '_id filePath fileName isFeaturedImage'
-                });
+                }
+            ]);
 
             if (!product) {
                 throw { message: 'Product not found', statusCode: 404 };
             }
 
-            // Calculate totalQuantity from productVariations
-            const totalQuantity = product.productVariations?.reduce((sum, variation) => {
-                return sum + (variation.stockQuantity || 0);
-            }, 0) || 0;
-
-            // Add totalQuantity to the returned product object
             const productObject = product.toObject();
-            productObject.totalQuantity = totalQuantity;
+            productObject.totalQuantity = product.productVariations?.reduce(
+                (sum, v) => sum + (v.stockQuantity || 0),
+                0
+            ) || 0;
 
             return productObject;
-
-            return product;
         } catch (error) {
             throw {
                 message: error.message || 'Failed to fetch product details',
@@ -1028,6 +1029,9 @@ class Product {
             };
         }
     }
+
+
+
 }
 
 module.exports = new Product();
