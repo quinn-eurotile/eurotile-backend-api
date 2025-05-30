@@ -829,11 +829,22 @@ class Product {
 
             const skip = (page - 1) * limit;
 
-            const attributeVariationIds = req?.query?.attributeVariations
-                ?
-                JSON.parse(req?.query?.attributeVariations).map(id => new mongoose.Types.ObjectId(id))
-                :
-                [];
+            const rawAttributeVariations = req?.query?.attributeVariations ?? '[]';
+
+            let attributeVariationIds = [];
+
+            console.log(rawAttributeVariations,'rawAttributeVariationsrawAttributeVariations')
+
+            try {
+                const parsed = JSON.parse(rawAttributeVariations);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    attributeVariationIds = parsed
+                        .filter(id => mongoose.Types.ObjectId.isValid(id))
+                        .map(id => new mongoose.Types.ObjectId(id));
+                }
+            } catch (err) {
+                console.warn("Invalid attributeVariations query param. Skipping filtering.", err);
+            }
 
             const pipeline = [
                 { $match: query },
@@ -882,11 +893,16 @@ class Product {
                                             $gt: [
                                                 {
                                                     $size: {
-                                                        $filter: {
-                                                            input: '$$variation.attributeVariations',
-                                                            as: 'av',
-                                                            cond: { $in: ['$$av', attributeVariationIds] }
-                                                        }
+                                                        $ifNull: [
+                                                            {
+                                                                $filter: {
+                                                                    input: '$$variation.attributeVariations',
+                                                                    as: 'av',
+                                                                    cond: { $in: ['$$av', attributeVariationIds] }
+                                                                }
+                                                            },
+                                                            []
+                                                        ]
                                                     }
                                                 },
                                                 0
@@ -923,7 +939,7 @@ class Product {
                 },
                 { $unwind: { path: '$featuredImage', preserveNullAndEmptyArrays: true } },
 
-                // Total quantity calculation
+                // Total quantity calculation & image selection
                 {
                     $addFields: {
                         totalQuantity: {
@@ -985,10 +1001,6 @@ class Product {
                             _id: 1,
                             filePath: 1
                         },
-                        productImages: {
-                            _id: 1,
-                            filePath: 1
-                        },
                         createdAt: 1,
                         updatedAt: 1
                     }
@@ -998,7 +1010,11 @@ class Product {
                 { $limit: limit }
             ];
 
+            
+ console.log('Product List Pipeline898989898')
             const data = await productModel.aggregate(pipeline);
+
+            console.log('Product List Pipeline:.............................................');
 
             // Get total count
             const totalCountAgg = await productModel.aggregate([
@@ -1024,6 +1040,7 @@ class Product {
             };
         }
     }
+
 
     async getProductById(id) {
         try {
