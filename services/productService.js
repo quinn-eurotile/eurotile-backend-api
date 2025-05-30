@@ -692,7 +692,7 @@ class Product {
                 // ✅ Construct variation data object
                 const baseVariationData = {
                     ...variationData,
-                     attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
+                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
                     attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
                     product: product._id
                 };
@@ -835,7 +835,7 @@ class Product {
 
             let attributeVariationIds = [];
 
-            console.log(rawAttributeVariations,'rawAttributeVariationsrawAttributeVariations')
+            console.log(rawAttributeVariations, 'rawAttributeVariationsrawAttributeVariations');
 
             try {
                 const parsed = JSON.parse(rawAttributeVariations);
@@ -882,7 +882,9 @@ class Product {
                     }
                 },
 
-                // Filter and find matched variations by attributeVariationIds
+            
+
+                // // Filter and find matched variations by attributeVariationIds
                 ...(attributeVariationIds.length > 0 ? [
                     {
                         $addFields: {
@@ -894,21 +896,23 @@ class Product {
                                         cond: {
                                             $gt: [
                                                 {
-                                                    $size: {
-                                                        $ifNull: [
-                                                            {
+                                                    $cond: [
+                                                        { $isArray: '$$variation.attributeVariations' },
+                                                        {
+                                                            $size: {
                                                                 $filter: {
                                                                     input: '$$variation.attributeVariations',
                                                                     as: 'av',
                                                                     cond: { $in: ['$$av', attributeVariationIds] }
                                                                 }
-                                                            },
-                                                            []
-                                                        ]
-                                                    }
+                                                            }
+                                                        },
+                                                        0
+                                                    ]
                                                 },
                                                 0
                                             ]
+
                                         }
                                     }
                                 }
@@ -925,7 +929,9 @@ class Product {
                     },
                     {
                         $addFields: {
-                            matchedDisplayImage: { $arrayElemAt: ['$matchedVariationImages', 0] }
+                            matchedDisplayImage: { $arrayElemAt: ['$matchedVariationImages', 0] },
+                            matchedVariationPrice: '$matchedVariation.regularPriceB2B'   
+
                         }
                     }
                 ] : []),
@@ -961,9 +967,10 @@ class Product {
                         },
                         displayImage: {
                             $cond: [
-                                { $gt: [{ $size: '$matchedVariationImages' }, 0] },
-                                '$matchedDisplayImage',
-                                '$featuredImage'
+                                         { $gt: [{ $size: { $ifNull: ['$matchedVariationImages', []] } }, 0] },
+                                            '$matchedDisplayImage',
+                                            '$featuredImage'
+                          
                             ]
                         }
                     }
@@ -1001,8 +1008,14 @@ class Product {
                         },
                         featuredImage: {
                             _id: 1,
+                            filePath: 1,
+                            
+                        },
+                        productImages: {
+                            _id: 1,
                             filePath: 1
                         },
+                        matchedVariationPrice: 1,  
                         createdAt: 1,
                         updatedAt: 1
                     }
@@ -1012,11 +1025,7 @@ class Product {
                 { $limit: limit }
             ];
 
-            
- console.log('Product List Pipeline898989898')
             const data = await productModel.aggregate(pipeline);
-
-            console.log('Product List Pipeline:.............................................');
 
             // Get total count
             const totalCountAgg = await productModel.aggregate([
