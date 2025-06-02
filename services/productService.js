@@ -524,10 +524,8 @@ class Product {
                 // Save the variation with associated image IDs
                 const variation = await productVariationModel.create({
                     ...variationData,
-                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
-                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
-                    categories : categories.map(id => new mongoose.Types.ObjectId(String(id))),
-                    supplier : new mongoose.Types.ObjectId(String(supplier)),
+                    categories: categories.map(id => new mongoose.Types.ObjectId(String(id))),
+                    supplier: new mongoose.Types.ObjectId(String(supplier)),
                     product: productId,
                     variationImages: variationImageIds
                 });
@@ -694,10 +692,8 @@ class Product {
                 // ✅ Construct variation data object
                 const baseVariationData = {
                     ...variationData,
-                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
-                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
-                    supplier : new mongoose.Types.ObjectId(String(upplier)),
-                    categories : categories.map(id => new mongoose.Types.ObjectId(String(id))),
+                    supplier: new mongoose.Types.ObjectId(String(supplier)),
+                    categories: categories.map(id => new mongoose.Types.ObjectId(String(id))),
                     product: product._id
                 };
 
@@ -1069,7 +1065,7 @@ class Product {
             };
         }
     }
-    
+
     /** Build Front Product List */
     async buildFrontProductListQuery(req) {
         const {
@@ -1099,20 +1095,6 @@ class Product {
             conditions.push({ stockStatus });
         }
 
-        // Search string
-        if (search_string) {
-            const regex = new RegExp(search_string, "i");
-            conditions.push({
-                $or: [
-                    { name: regex },
-                    { sku: regex },
-                    { slug: regex },
-                    { description: regex },
-                    { shortDescription: regex },
-                ],
-            });
-        }
-
         // Supplier
         if (supplier) {
             try {
@@ -1129,12 +1111,12 @@ class Product {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     const ids = parsed.map(id => new mongoose.Types.ObjectId(id));
-                    conditions.push({ [field]: { $in: ids } });
-                    // if(field === "attributeVariations"){
-                    //     conditions.push({ [field]: { $all: ids } });
-                    // }else{
-                    //     conditions.push({ [field]: { $in: ids } });
-                    // }
+                    // conditions.push({ [field]: { $in: ids } });
+                    if (field === "attributeVariations") {
+                        conditions.push({ [field]: { $all: ids } });
+                    } else {
+                        conditions.push({ [field]: { $in: ids } });
+                    }
                 }
             } catch (err) {
                 console.error(`Invalid ${field} JSON`, err);
@@ -1155,7 +1137,7 @@ class Product {
             }
         };
 
-        if (!attributeVariations) {
+        if (minPriceB2B && maxPriceB2B) {
             pushPriceFilter("regularPriceB2B", minPriceB2B, maxPriceB2B);
             //pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
         }
@@ -1172,10 +1154,11 @@ class Product {
                 sort
             } = options;
 
+            console.log('sort',sort)
+
             const skip = (page - 1) * limit;
 
-        
-
+            const searchString = req?.query?.search_string;
             const pipeline = [
                 { $match: query },
 
@@ -1184,10 +1167,23 @@ class Product {
                         from: 'products',
                         localField: 'product',
                         foreignField: '_id',
-                        as: 'product_detail'
+                        as: 'productDetail'
                     }
                 },
-                { $unwind: { path: '$product_detail', preserveNullAndEmptyArrays: true } },
+                { $unwind: { path: '$productDetail', preserveNullAndEmptyArrays: true } },
+                // 🔍 Search inside product fields (after product lookup/unwind)
+                ...(searchString ? [{
+                    $match: {
+                        $or: [
+                            { "productDetail.name": new RegExp(searchString, "i") },
+                            { "productDetail.sku": new RegExp(searchString, "i") },
+                            { "productDetail.slug": new RegExp(searchString, "i") },
+                            { "productDetail.description": new RegExp(searchString, "i") },
+                            { "productDetail.shortDescription": new RegExp(searchString, "i") },
+                        ],
+                    }
+                }] : []),
+
 
                 // Lookup supplier
                 {
@@ -1210,6 +1206,15 @@ class Product {
                     }
                 },
 
+                {
+                    $lookup: {
+                        from: 'productfiles',
+                        localField: 'variationImages',
+                        foreignField: '_id',
+                        as: 'variationImagesDetail'
+                    }
+                },
+
 
                 // Lookup featured image
                 {
@@ -1229,15 +1234,18 @@ class Product {
                 {
                     $project: {
                         _id: 1,
-                        product_detail: {
-                            name : 1,
-                            featuredImage : 1
+                        productDetail: {
+                            name: 1,
+                            featuredImage: 1,
+                            _id: 1,
                         },
+                        variationImages: 1,
+                        variationImagesDetail: 1,
                         stockQuantity: 1,
                         status: 1,
                         weight: 1,
                         dimensions: 1,
-                        variationImages:1,
+                        variationImages: 1,
                         status: 1,
                         regularPriceB2B: 1,
                         regularPriceB2C: 1,
@@ -1277,6 +1285,8 @@ class Product {
                 { $limit: limit }
             ];
 
+
+
             const data = await productVariationModel.aggregate(pipeline);
 
             // Get total count
@@ -1303,8 +1313,8 @@ class Product {
             };
         }
     }
-    
-    
+
+
 
 
     async getProductById(id) {

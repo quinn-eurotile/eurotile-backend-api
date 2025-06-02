@@ -18,10 +18,6 @@ const ProductVariationSchema = new Schema({
         height: { type: Number, default: 0 }
     },
     supplier: { type: Schema.Types.ObjectId, ref: 'Supplier' },
-    minPriceB2B: { type: Number, default: 0.00 },  
-    maxPriceB2B: { type: Number, default: 0.00 },  
-    minPriceB2C: { type: Number, default: 0.00 },  
-    maxPriceB2C: { type: Number, default: 0.00 },  
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
@@ -37,6 +33,7 @@ const ProductVariationSchema = new Schema({
     palletWeight: { type: Number, default: 0 },
     sqmPerTile: { type: Number, default: 0 },
     boxesPerPallet: { type: Number, default: 0 },
+    boxWeight: { type: Number, default: 0 },
     tierDiscount: {
         tierFirst: {
             tierAddOn: { type: Number, default: 0 },
