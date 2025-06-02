@@ -793,7 +793,12 @@ class Product {
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     const ids = parsed.map(id => new mongoose.Types.ObjectId(id));
-                    conditions.push({ [field]: { $in: ids } });
+                    conditions.push({ [field]: { $all: ids } });
+                    // if(field === "attributeVariations"){
+                    //     conditions.push({ [field]: { $all: ids } });
+                    // }else{
+                    //     conditions.push({ [field]: { $in: ids } });
+                    // }
                 }
             } catch (err) {
                 console.error(`Invalid ${field} JSON`, err);
@@ -814,8 +819,10 @@ class Product {
             }
         };
 
-        pushPriceFilter("priceB2B", minPriceB2B, maxPriceB2B);
-        pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
+        if (!attributeVariations) {
+            pushPriceFilter("priceB2B", minPriceB2B, maxPriceB2B);
+            pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
+        }
 
         return conditions.length > 1 ? { $and: conditions } : conditions[0];
     }
@@ -826,7 +833,7 @@ class Product {
             const {
                 page = 1,
                 limit = 10,
-                sort = { createdAt: -1 },
+                sort
             } = options;
 
             const skip = (page - 1) * limit;
@@ -835,7 +842,6 @@ class Product {
 
             let attributeVariationIds = [];
 
-            console.log(rawAttributeVariations, 'rawAttributeVariationsrawAttributeVariations');
 
             try {
                 const parsed = JSON.parse(rawAttributeVariations);
@@ -882,7 +888,7 @@ class Product {
                     }
                 },
 
-            
+
 
                 // // Filter and find matched variations by attributeVariationIds
                 ...(attributeVariationIds.length > 0 ? [
@@ -930,10 +936,18 @@ class Product {
                     {
                         $addFields: {
                             matchedDisplayImage: { $arrayElemAt: ['$matchedVariationImages', 0] },
-                            matchedVariationPrice: '$matchedVariation.regularPriceB2B'   
+                            matchedVariationPrice: '$matchedVariation.regularPriceB2B'
 
                         }
-                    }
+                    },
+                    ...(req.query.minPriceB2B && req.query.maxPriceB2B ? [
+                        {
+                            $match: {
+                                ...(req.query.minPriceB2B ? { matchedVariationPrice: { $gte: Number(req.query.minPriceB2B) } } : {}),
+                                ...(req.query.maxPriceB2B ? { matchedVariationPrice: { $lte: Number(req.query.maxPriceB2B) } } : {})
+                            }
+                        }
+                    ] : [])
                 ] : []),
 
                 // Lookup featured image
@@ -967,10 +981,10 @@ class Product {
                         },
                         displayImage: {
                             $cond: [
-                                         { $gt: [{ $size: { $ifNull: ['$matchedVariationImages', []] } }, 0] },
-                                            '$matchedDisplayImage',
-                                            '$featuredImage'
-                          
+                                { $gt: [{ $size: { $ifNull: ['$matchedVariationImages', []] } }, 0] },
+                                '$matchedDisplayImage',
+                                '$featuredImage'
+
                             ]
                         }
                     }
@@ -1009,13 +1023,13 @@ class Product {
                         featuredImage: {
                             _id: 1,
                             filePath: 1,
-                            
+
                         },
                         productImages: {
                             _id: 1,
                             filePath: 1
                         },
-                        matchedVariationPrice: 1,  
+                        matchedVariationPrice: 1,
                         createdAt: 1,
                         updatedAt: 1
                     }
@@ -1112,6 +1126,26 @@ class Product {
                 (sum, v) => sum + (v.stockQuantity || 0),
                 0
             ) || 0;
+
+            // Fetch associated products based on shared categories
+            const categoryIds = product.categories?.map(cat => cat._id) || [];
+
+            const associatedProducts = await productModel.find({
+                _id: { $ne: product._id }, // Exclude the main product
+                categories: { $in: categoryIds },
+                isDeleted: false,
+                status: true
+            })
+                .limit(10)
+                .select('_id name shortDescription productFeaturedImage')
+                .populate({
+                    path: 'productFeaturedImage',
+                    match: { isDeleted: false },
+                    select: '_id filePath fileName isFeaturedImage'
+                });
+
+            // Attach to response
+            productObject.associatedProducts = associatedProducts;
 
             return productObject;
         } catch (error) {

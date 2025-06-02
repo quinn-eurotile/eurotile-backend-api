@@ -158,7 +158,9 @@ module.exports = class ProductController {
     async productList(req, res) {
         try {
             const query = await productService.buildProductListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const sortField = req.query.sortBy || '_id';
+            const sortOrder = req.query.sortOrder === 1 ? 1 : -1;
+            const options = {  sort: { [sortField]: sortOrder }, page: Number(req.query.page), limit: Number(req.query.limit) };
             const data = await productService.productList(req, query, options);
             return res.status(200).json({ data: data, message: 'Product list get successfully.' });
         } catch (error) {
