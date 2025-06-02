@@ -819,7 +819,7 @@ class Product {
             }
         };
 
-        if(!attributeVariations){
+        if (!attributeVariations) {
             pushPriceFilter("priceB2B", minPriceB2B, maxPriceB2B);
             pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
         }
@@ -1126,6 +1126,26 @@ class Product {
                 (sum, v) => sum + (v.stockQuantity || 0),
                 0
             ) || 0;
+
+            // Fetch associated products based on shared categories
+            const categoryIds = product.categories?.map(cat => cat._id) || [];
+
+            const associatedProducts = await productModel.find({
+                _id: { $ne: product._id }, // Exclude the main product
+                categories: { $in: categoryIds },
+                isDeleted: false,
+                status: true
+            })
+                .limit(10)
+                .select('_id name shortDescription productFeaturedImage')
+                .populate({
+                    path: 'productFeaturedImage',
+                    match: { isDeleted: false },
+                    select: '_id filePath fileName isFeaturedImage'
+                });
+
+            // Attach to response
+            productObject.associatedProducts = associatedProducts;
 
             return productObject;
         } catch (error) {
