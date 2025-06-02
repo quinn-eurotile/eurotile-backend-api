@@ -7,13 +7,24 @@ async function getCartByUser(userId) {
     .exec();
 }
 
-async function saveCart(userId, items) {
+ async function saveCart(userId, items) {
+  // Make sure items is an array
+  const formattedItems = (Array.isArray(items) ? items : [items]).map(item => ({
+    product: item.productId,
+    variation: item.variationId,
+    quantity: item.quantity,
+    numberOfTiles: item.numberOfTiles,
+    numberOfPallets: item.numberOfPallets,
+    attributes: item.attributes,
+    price: item.price,
+  }));
+
   let cart = await Cart.findOne({ userId, isDeleted: false });
 
   if (cart) {
-    cart.items = items;
+    cart.items = formattedItems;
   } else {
-    cart = new Cart({ userId, items });
+    cart = new Cart({ userId, items: formattedItems });
   }
 
   await cart.save();
