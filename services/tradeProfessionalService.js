@@ -15,26 +15,28 @@ class TradeProfessional {
     async createConnectAccount(req) {
         try {
             const account = await stripe.accounts.create({
-                type: 'express', // or 'custom' for full control
-                country: 'US',
+                country: 'GB',
                 email: req?.user?.email,
+                controller: {
+                    fees: { payer: 'application' },
+                    losses: { payments: 'application' },
+                    stripe_dashboard: { type: 'express' }, // or 'none'
+                },
                 capabilities: {
                     card_payments: { requested: true },
                     transfers: { requested: true },
                 },
             });
 
-            console.log(account,'account');
-
             // Save account.id to MongoDB
-            // await User.findByIdAndUpdate(req.user._id, {
-            //     stripeAccountId: account.id,
-            // });
+            await User.findByIdAndUpdate(req.user._id, {
+                stripeAccountId: account.id,
+            });
 
             const accountLink = await stripe.accountLinks.create({
                 account: account.id,
-                refresh_url: 'http://localhost:3000/reauth',
-                return_url: 'http://localhost:3000/dashboard',
+                refresh_url: 'http://localhost:3000/en/trade-professional/profile',
+                return_url: 'http://localhost:3000/en/trade-professional/profile',
                 type: 'account_onboarding',
             });
 
