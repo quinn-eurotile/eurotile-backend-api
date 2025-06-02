@@ -43,6 +43,7 @@ router.put(
 
 router.patch('/trade-professional/:token/status', multer().any(), tradeProfessionalController.updateTradeProfessionalStatus);
 router.get('/trade-professional', auth, tradeProfessionalController.getDashboardData);
+router.post('/trade-professional/create-connect-account', auth, tradeProfessionalController.createConnectAccount);
 
 
 module.exports = router;

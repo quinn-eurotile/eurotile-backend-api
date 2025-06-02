@@ -7,8 +7,43 @@ const helpers = require("../_helpers/common");
 const User = require('../models/User');
 const { Order } = require('../models');
 const bcrypt = require("bcryptjs");
+const stripe = require('../utils/stripeClient');
 
 class TradeProfessional {
+
+    /** Create Connect Account */
+    async createConnectAccount(req) {
+        try {
+            const account = await stripe.accounts.create({
+                type: 'express', // or 'custom' for full control
+                country: 'US',
+                email: req?.user?.email,
+                capabilities: {
+                    card_payments: { requested: true },
+                    transfers: { requested: true },
+                },
+            });
+
+            console.log(account,'account');
+
+            // Save account.id to MongoDB
+            // await User.findByIdAndUpdate(req.user._id, {
+            //     stripeAccountId: account.id,
+            // });
+
+            const accountLink = await stripe.accountLinks.create({
+                account: account.id,
+                refresh_url: 'http://localhost:3000/reauth',
+                return_url: 'http://localhost:3000/dashboard',
+                type: 'account_onboarding',
+            });
+
+            // Redirect user to accountLink.url
+            return accountLink;
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching users', statusCode: error?.statusCode || 500 };
+        }
+    }
 
     /** Get Trade Professional List */
     async tradeProfessionalList(query, options) {
