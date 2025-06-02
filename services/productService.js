@@ -524,8 +524,8 @@ class Product {
                 // Save the variation with associated image IDs
                 const variation = await productVariationModel.create({
                     ...variationData,
-                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
-                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
+                    categories: categories.map(id => new mongoose.Types.ObjectId(String(id))),
+                    supplier: new mongoose.Types.ObjectId(String(supplier)),
                     product: productId,
                     variationImages: variationImageIds
                 });
@@ -692,8 +692,8 @@ class Product {
                 // ✅ Construct variation data object
                 const baseVariationData = {
                     ...variationData,
-                    attributeVariations: attributeVariations.map(id => new mongoose.Types.ObjectId(String(id))),
-                    attributes: attributes.map(id => new mongoose.Types.ObjectId(String(id))),
+                    supplier: new mongoose.Types.ObjectId(String(supplier)),
+                    categories: categories.map(id => new mongoose.Types.ObjectId(String(id))),
                     product: product._id
                 };
 
@@ -821,7 +821,7 @@ class Product {
 
         if (!attributeVariations) {
             pushPriceFilter("priceB2B", minPriceB2B, maxPriceB2B);
-            pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
+            //pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
         }
 
         return conditions.length > 1 ? { $and: conditions } : conditions[0];
@@ -1065,6 +1065,256 @@ class Product {
             };
         }
     }
+
+    /** Build Front Product List */
+    async buildFrontProductListQuery(req) {
+        const {
+            status,
+            stockStatus,
+            search_string,
+            supplier,
+            categories,
+            attributes,
+            attributeVariations,
+            minPriceB2B,
+            maxPriceB2B,
+            minPriceB2C,
+            maxPriceB2C
+        } = req.query;
+
+        const conditions = [{ isDeleted: false }];
+
+        // Status filter
+        const normalizedStatus = status?.toString();
+        if (["0", "1"].includes(normalizedStatus)) {
+            conditions.push({ status: Number(normalizedStatus) });
+        }
+
+        // Stock status
+        if (["in_stock", "out_of_stock"].includes(stockStatus)) {
+            conditions.push({ stockStatus });
+        }
+
+        // Supplier
+        if (supplier) {
+            try {
+                conditions.push({ supplier: new mongoose.Types.ObjectId(supplier) });
+            } catch (err) {
+                console.error("Invalid supplier ID", err);
+            }
+        }
+
+        // Helper for array filters
+        const pushArrayFilter = (field, raw) => {
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const ids = parsed.map(id => new mongoose.Types.ObjectId(id));
+                    // conditions.push({ [field]: { $in: ids } });
+                    if (field === "attributeVariations") {
+                        conditions.push({ [field]: { $all: ids } });
+                    } else {
+                        conditions.push({ [field]: { $in: ids } });
+                    }
+                }
+            } catch (err) {
+                console.error(`Invalid ${field} JSON`, err);
+            }
+        };
+
+        pushArrayFilter("attributes", attributes);
+        pushArrayFilter("attributeVariations", attributeVariations);
+        pushArrayFilter("categories", categories);
+
+        // Price range filters
+        const pushPriceFilter = (field, min, max) => {
+            const priceCond = {};
+            if (min !== undefined) priceCond.$gte = parseFloat(min);
+            if (max !== undefined) priceCond.$lte = parseFloat(max);
+            if (Object.keys(priceCond).length > 0) {
+                conditions.push({ [field]: priceCond });
+            }
+        };
+
+        if (minPriceB2B && maxPriceB2B) {
+            pushPriceFilter("regularPriceB2B", minPriceB2B, maxPriceB2B);
+            //pushPriceFilter("priceB2C", minPriceB2C, maxPriceB2C);
+        }
+
+        return conditions.length > 1 ? { $and: conditions } : conditions[0];
+    }
+
+    /***  Front Product List **/
+    async productFrontList(req, query, options) {
+        try {
+            const {
+                page = 1,
+                limit = 10,
+                sort
+            } = options;
+
+            console.log('sort',sort)
+
+            const skip = (page - 1) * limit;
+
+            const searchString = req?.query?.search_string;
+            const pipeline = [
+                { $match: query },
+
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: 'product',
+                        foreignField: '_id',
+                        as: 'productDetail'
+                    }
+                },
+                { $unwind: { path: '$productDetail', preserveNullAndEmptyArrays: true } },
+                // 🔍 Search inside product fields (after product lookup/unwind)
+                ...(searchString ? [{
+                    $match: {
+                        $or: [
+                            { "productDetail.name": new RegExp(searchString, "i") },
+                            { "productDetail.sku": new RegExp(searchString, "i") },
+                            { "productDetail.slug": new RegExp(searchString, "i") },
+                            { "productDetail.description": new RegExp(searchString, "i") },
+                            { "productDetail.shortDescription": new RegExp(searchString, "i") },
+                        ],
+                    }
+                }] : []),
+
+
+                // Lookup supplier
+                {
+                    $lookup: {
+                        from: 'suppliers',
+                        localField: 'supplier',
+                        foreignField: '_id',
+                        as: 'supplier'
+                    }
+                },
+                { $unwind: { path: '$supplier', preserveNullAndEmptyArrays: true } },
+
+                // Lookup categories
+                {
+                    $lookup: {
+                        from: 'categories',
+                        localField: 'categories',
+                        foreignField: '_id',
+                        as: 'categories'
+                    }
+                },
+
+                {
+                    $lookup: {
+                        from: 'productfiles',
+                        localField: 'variationImages',
+                        foreignField: '_id',
+                        as: 'variationImagesDetail'
+                    }
+                },
+
+
+                // Lookup featured image
+                {
+                    $lookup: {
+                        from: 'productfiles',
+                        localField: 'productFeaturedImage',
+                        foreignField: '_id',
+                        as: 'featuredImage'
+                    }
+                },
+                { $unwind: { path: '$featuredImage', preserveNullAndEmptyArrays: true } },
+
+                // Total quantity calculation & image selectio
+
+                { $sort: sort },
+
+                {
+                    $project: {
+                        _id: 1,
+                        productDetail: {
+                            name: 1,
+                            featuredImage: 1,
+                            _id: 1,
+                        },
+                        variationImages: 1,
+                        variationImagesDetail: 1,
+                        stockQuantity: 1,
+                        status: 1,
+                        weight: 1,
+                        dimensions: 1,
+                        variationImages: 1,
+                        status: 1,
+                        regularPriceB2B: 1,
+                        regularPriceB2C: 1,
+                        salePrice: 1,
+                        purchasedPrice: 1,
+                        numberOfTiles: 1,
+                        boxSize: 1,
+                        palletSize: 1,
+                        palletWeight: 1,
+                        sqmPerTile: 1,
+                        boxesPerPallet: 1,
+                        tierDiscount: 1,
+                        shippingClass: 1,
+                        taxClass: 1,
+                        minPriceB2B: 1,
+                        maxPriceB2B: 1,
+                        minPriceB2C: 1,
+                        maxPriceB2C: 1,
+                        stockStatus: 1,
+                        shortDescription: 1,
+                        supplier: {
+                            _id: '$supplier._id',
+                            companyName: '$supplier.companyName'
+                        },
+                        categories: {
+                            _id: 1,
+                            name: 1
+                        },
+                        attributes: 1,
+                        attributeVariations: 1,
+                        createdAt: 1,
+                        updatedAt: 1
+                    }
+                },
+
+                { $skip: skip },
+                { $limit: limit }
+            ];
+
+
+
+            const data = await productVariationModel.aggregate(pipeline);
+
+            // Get total count
+            const totalCountAgg = await productVariationModel.aggregate([
+                { $match: query },
+                { $count: 'total' }
+            ]);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            return {
+                docs: data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+
+        } catch (error) {
+            throw {
+                message: error?.message || 'Something went wrong while fetching products',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+
 
 
     async getProductById(id) {

@@ -17,9 +17,12 @@ const ProductVariationSchema = new Schema({
         width: { type: Number, default: 0 },
         height: { type: Number, default: 0 }
     },
+    supplier: { type: Schema.Types.ObjectId, ref: 'Supplier' },
+    categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
     variationImages: [{ type: Schema.Types.ObjectId, ref: 'ProductFile', default: [] }],
+    productFeaturedImage: { type: Schema.Types.ObjectId, ref: 'ProductFile', default: null },
     regularPriceB2B: { type: Number, default: 0 },
     regularPriceB2C: { type: Number, default: 0 },
     salePrice: { type: Number, default: 0 },
@@ -30,6 +33,7 @@ const ProductVariationSchema = new Schema({
     palletWeight: { type: Number, default: 0 },
     sqmPerTile: { type: Number, default: 0 },
     boxesPerPallet: { type: Number, default: 0 },
+    boxWeight: { type: Number, default: 0 },
     tierDiscount: {
         tierFirst: {
             tierAddOn: { type: Number, default: 0 },
