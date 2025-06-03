@@ -1,4 +1,6 @@
 const Address = require('../models/Address');
+const mongoose = require("mongoose");
+
 /**
  * Get all active addresses for a user (can be trade professional ordering for someone else)
  */
@@ -20,19 +22,18 @@ async function getAddressesByUser(userId) {
  */
 async function saveAddressData(userId, addressData) {
 	try {
-		const isUpdating = Boolean(addressData?._id);
-		const filter = { _id: addressData._id, userId, isDeleted: false };
-
-		let address = isUpdating
-			? await Address.findOne(filter)
-			: new Address({ userId, ...addressData });
-
-		if (isUpdating && !address) {
-			throw { message: 'Address not found', statusCode: 404 };
-		}
-
+		const isUpdating = !!addressData?._id;
+		let address;
 		if (isUpdating) {
+			address = await Address.findOne({
+				_id:  new mongoose.Types.ObjectId(String(addressData._id)),
+				userId : new mongoose.Types.ObjectId(String(userId)),
+				isDeleted: false
+			});
+			if (!address) throw { message: 'Address not found', statusCode: 404 };
 			Object.assign(address, addressData);
+		} else {
+			address = new Address({ userId, ...addressData });
 		}
 
 		if (addressData.isDefault) {
@@ -52,6 +53,7 @@ async function saveAddressData(userId, addressData) {
 		};
 	}
 }
+
 
 /**
  * Update an address for a user (no creation)
