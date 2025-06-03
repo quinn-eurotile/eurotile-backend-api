@@ -1,6 +1,5 @@
 const validator = require('./validate');
-
-
+const { formatValidationErrors } = require('../_helpers/common');
 const register = (req, res, next) => {
     let validationRule = {
         "name": "required|string",
@@ -18,6 +17,37 @@ const register = (req, res, next) => {
                     type: 'validation_error',
                     message: 'You form data is invalid',
                     data: err
+                });
+        } else {
+            next();
+        }
+    });
+};
+
+
+const saveCustomer = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
+    // Normalize phone number
+    if (req.body.phone && typeof req.body.phone === 'string') {
+        req.body.phone = req.body.phone.replace(/[^\d]/g, ''); // Keep only digits
+    }
+    let validationRule = {
+        "name": "required|string",
+        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
+        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:User,phone",
+    };
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
+    validator(req.body, validationRule, {}, (err, status) => {
+        if (!status) {
+            res.status(422)
+                .send({
+                    type: 'validation_error',
+                    message: 'You form data is invalid',
+                    data: formatValidationErrors(err.all())
                 });
         } else {
             next();
@@ -301,4 +331,4 @@ const updateTradeProfessional = async (req, res, next) => {
     }
 };
 
-module.exports = { updateTradeProfessional, saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { saveCustomer, updateTradeProfessional, saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

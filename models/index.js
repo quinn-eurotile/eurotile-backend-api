@@ -21,5 +21,4 @@ const ProductVariation = require('./ProductVariation');
 const AdminSetting = require('./AdminSetting');
 
 
-
 module.exports = { AdminSetting,ProductVariation,ProductAttributeVariation,ProductMeasurementUnit,Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketMsg, UserBusinessDocument, UserBusiness, OrderDetail };
