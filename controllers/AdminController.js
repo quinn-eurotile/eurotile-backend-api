@@ -251,11 +251,12 @@ module.exports = class AdminController {
     async forgotPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
-            console.log('req admin controller', req.body);
             const token = await userService.forgotPassword(req);
+            
             forgotPasswordEmail(req, token);
-            return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });
+            return res.status(200).json({ statusCode: 200, message: 'Password reset email sent successfully' });
         } catch (error) {
+            console.log('message: error.message',  error.message);
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
@@ -264,6 +265,8 @@ module.exports = class AdminController {
     async resetPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
+            console.log('req.body', req.body);
+            
             await userService.resetPassword(req);
             return res.status(200).json({ message: 'Password reset successfully' });
         } catch (error) {

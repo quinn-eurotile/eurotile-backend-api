@@ -191,20 +191,23 @@ class UserService {
 			const lowerCaseEmail = email.toLowerCase();
 			let conditions = {};
 
-			if (for_which_role == "admin") {
-				conditions = {
+			// if (for_which_role == "admin") {
+			// 	conditions = {
+			// 		email: lowerCaseEmail,
+			// 		roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
+			// 	};
+			// } else {
+			// 	conditions = {
+			// 		email: lowerCaseEmail,
+			// 		roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
+			// 	};
+			// }
+			conditions = {
 					email: lowerCaseEmail,
-					roles: { $in: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
-				};
-			} else {
-				conditions = {
-					email: lowerCaseEmail,
-					roles: { $nin: [new mongoose.Types.ObjectId(String(constants?.adminRole?.id))] },
-				};
-			}
+					};
 
 			const user = await userModel.findOne(conditions);
-
+			
 			if (!user) {
 				throw {
 					message: 'User not found.',
@@ -240,7 +243,8 @@ class UserService {
 			}
 
 			const user = await userModel.findOne({ token });
-
+			console.log('useruseruser', user);
+			
 			if (!user) {
 				throw {
 					message: 'Invalid or expired token.',
