@@ -7,13 +7,14 @@ const helpers = require("../_helpers/common");
 const { Order } = require('../models');
 const bcrypt = require("bcryptjs");
 const stripe = require('../utils/stripeClient');
+const { saveAddressData } = require('./addressService');
 
 class TradeProfessional {
 
     /** Save A Client */
     async saveClient(req) {
         try {
-            const { id, name, email, phone, status } = req.body;
+            const { id, name, email, phone, status, address } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
             const userId = req?.user?.id || null;
 
@@ -45,6 +46,8 @@ class TradeProfessional {
                 });
                 isNew = true;
             }
+
+            saveAddressData(client?._id, address)
 
             await client.save();
 

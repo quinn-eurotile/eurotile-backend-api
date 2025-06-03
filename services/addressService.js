@@ -1,87 +1,117 @@
-const Address = require('../models/Address'); 
+const Address = require('../models/Address');
 /**
  * Get all active addresses for a user (can be trade professional ordering for someone else)
  */
 async function getAddressesByUser(userId) {
-  return Address.find({ userId, isDeleted: false }).exec();
+	try {
+		const addresses = await Address.find({ userId, isDeleted: false }).exec();
+		return addresses;
+	} catch (error) {
+		throw {
+			message: error?.message || 'Failed to fetch addresses',
+			statusCode: error?.statusCode || 500
+		};
+	}
 }
+
 
 /**
  * Create or update an address for a user
  */
 async function saveAddressData(userId, addressData) {
-  let address;
+	try {
+		const isUpdating = Boolean(addressData?._id);
+		const filter = { _id: addressData._id, userId, isDeleted: false };
 
-  if (addressData?._id) {
-    // Update existing address
-    address = await Address.findOne({ _id: addressData._id, userId, isDeleted: false });
+		let address = isUpdating
+			? await Address.findOne(filter)
+			: new Address({ userId, ...addressData });
 
-    console.log(address,'addressaddressaddressaddress');
+		if (isUpdating && !address) {
+			throw { message: 'Address not found', statusCode: 404 };
+		}
 
-    if (!address) throw new Error("Address not found");
+		if (isUpdating) {
+			Object.assign(address, addressData);
+		}
 
-    Object.assign(address, addressData);
-  } else {
-    // Create new address
-    address = new Address({
-      userId,
-      ...addressData,
-    });
-  }
+		if (addressData.isDefault) {
+			await Address.updateMany(
+				{ userId, _id: { $ne: address._id } },
+				{ $set: { isDefault: false } }
+			);
+		}
 
-  // If marked as default, unset others
-  if (addressData.isDefault) {
-    await Address.updateMany(
-      { userId, _id: { $ne: address._id } },
-      { $set: { isDefault: false } }
-    );
-  }
+		await address.save();
+		return address;
 
-  await address.save();
-  return address;
+	} catch (error) {
+		throw {
+			message: error?.message || 'Failed to save address',
+			statusCode: error?.statusCode || 500
+		};
+	}
 }
+
 /**
  * Update an address for a user (no creation)
  */
 async function updateAddressData(userId, addressData) {
-  if (!addressData?._id) {
-    throw new Error("Address ID is required for updating");
-  }
+	try {
+		if (!addressData?._id) {
+			throw { message: 'Address ID is required for updating', statusCode: 400 };
+		}
 
-  // Find existing address
-  const address = await Address.findOne({ _id: addressData._id, userId, isDeleted: false });
+		const address = await Address.findOne({ _id: addressData._id, userId, isDeleted: false });
 
-  console.log(address, 'addressaddressaddressaddress');
+		if (!address) {
+			throw { message: 'Address not found', statusCode: 404 };
+		}
 
-  if (!address) throw new Error("Address not found");
+		Object.assign(address, addressData);
 
-  // Update fields
-  Object.assign(address, addressData);
+		if (addressData.isDefault) {
+			await Address.updateMany(
+				{ userId, _id: { $ne: address._id } },
+				{ $set: { isDefault: false } }
+			);
+		}
 
-  // If marked as default, unset others
-  if (addressData.isDefault) {
-    await Address.updateMany(
-      { userId, _id: { $ne: address._id } },
-      { $set: { isDefault: false } }
-    );
-  }
+		await address.save();
+		return address;
 
-  // Save updated address
-  await address.save();
-
-  return address;
+	} catch (error) {
+		throw {
+			message: error?.message || 'Failed to update address',
+			statusCode: error?.statusCode || 500
+		};
+	}
 }
+
 
 /**
  * Soft delete address
  */
 async function deleteData(userId, addressId) {
-  const address = await Address.findOne({ _id: addressId, userId, isDeleted: false });
-  if (!address) throw new Error("Address not found");
+	try {
+		const address = await Address.findOne({ _id: addressId, userId, isDeleted: false });
 
-  address.isDeleted = true;
-  await address.save();
-  return address;
+		if (!address) {
+			throw { message: 'Address not found', statusCode: 404 };
+		}
+
+		address.isDeleted = true;
+		await address.save();
+
+		return address;
+
+	} catch (error) {
+		throw {
+			message: error?.message || 'Failed to delete address',
+			statusCode: error?.statusCode || 500
+		};
+	}
 }
+
 
 module.exports = { getAddressesByUser, saveAddressData, deleteData, updateAddressData };
