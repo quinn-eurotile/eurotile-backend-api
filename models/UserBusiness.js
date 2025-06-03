@@ -5,6 +5,7 @@ const userBusinessSchema = new Schema({
     name: { type: String, required: true, maxlength: 200 },
     email: { type: String, required: true },
     phone: { type: String, required: true },
+    reason: { type: String, default: null },
     status: { type: Number, default: 2 }, // 1 = Verified, 0 = UnVerified, 2 = Pending
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
