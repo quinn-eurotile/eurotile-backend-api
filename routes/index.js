@@ -47,4 +47,11 @@ routes.use(`/api/${API_V}/`, commonRoutes);
 const cartRoutes = require('./cartRoutes');
 routes.use(`/api/${API_V}/cart`, cartRoutes);
 
+
+
+/************* Address route**************/
+const addressRoutes = require('./addressRoutes');
+routes.use(`/api/${API_V}/address`, addressRoutes);
+
+
 module.exports = routes;

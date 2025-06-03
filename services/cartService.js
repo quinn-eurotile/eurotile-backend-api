@@ -1,8 +1,14 @@
 const Cart = require('../models/Cart');
-
+ 
 async function getCartByUser(userId) {
   return Cart.findOne({ userId, isDeleted: false })
-    .populate('items.product')
+    .populate({
+      path: 'items.product',
+      populate: {
+        path: 'productFeaturedImage',
+        model: 'ProductFile',
+      },
+    })
     .populate('items.variation')
     .exec();
 }

@@ -11,17 +11,20 @@ async function getCartController(req, res) {
     // Map the cart items to match the old data structure
     const items = cart.items.map(item => {
       const product = item.product || {};
-      const variation = item.variation || {};
-  console.log(product,'product00000000000000iiiiiiiiii');
-  
+      const variation = item.variation || {}; 
       // Decide which price to use (variation price first, fallback to product)
       const price = variation.salePrice || variation.regularPriceB2C || product.minPriceB2C || 0;
       const originalPrice = variation.regularPriceB2C || product.maxPriceB2C || null;
+        // Determine the image
+      let imgSrc = '/images/products/default.jpg'; // default fallback
+      if (product.productFeaturedImage && product.productFeaturedImage.filePath) {
+        imgSrc = product.productFeaturedImage.filePath;
+      }
 
       return {
         id: product._id, // or variation._id if needed
         productName: product.name || "Unnamed Product",
-        imgSrc: product.productFeaturedImage?.url || "/images/products/default.jpg",
+        imgSrc:imgSrc,
         imgAlt: product.name || "Product Image",
         soldBy: product.supplier?.name || "Unknown Supplier",
         inStock: (variation.stockStatus || product.stockStatus) === 'in_stock',
