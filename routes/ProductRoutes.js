@@ -9,7 +9,7 @@ const upload = multer(); // If you haven't set a custom storage yet
 /* Product Management */
 router.post('/',  upload.any(), auth, productController.createProduct);
 router.get('/', multer().any(), auth, productController.productList);
-router.get('/front-list', multer().any(), auth, productController.productListForFrontPage);
+router.get('/front-list', multer().any(), productController.productListForFrontPage);
 router.put('/:id', upload.any(), auth, productController.updateProduct);
 router.patch('/:id/status', multer().any(), auth, productController.updateProductStatus);
 router.get('/raw/data', multer().any(), auth, productController.getProductRawData);

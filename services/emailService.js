@@ -13,20 +13,20 @@ const capitalize = (str) => {
 };
 const APP_NAME = process?.env?.APP_NAME || 'Euro Tile';
 
-const sendAccountStatusEmail = async (req, link) => {
+const sendAccountStatusEmail = async (req, link, message) => {
     try {
         const CLIENT_URL = getClientUrlByRole(req.body.userRole); // or user.role if it's a string
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
         const link = `${CLIENT_URL}/en/login`;
-        const isRejected = req?.body?.status === 4; // or any logic you use
+        const isRejected = req?.body?.status === 2; // or any logic you use
         const reason = req?.body?.reason || '';
 
         const statusBlock = isRejected
             ? `<div style="background: #fcebea; padding: 15px; border-left: 5px solid #e3342f; margin: 20px 0; font-size: 14px; color: #cc1f1a;">
-            <strong>Account Rejected:</strong> ${reason}
+            <strong>${message}:</strong> ${reason}
         </div>`
             : `<div style="background: #e6ffed; padding: 15px; border-left: 5px solid #38c172; margin: 20px 0; font-size: 14px; color: #1f9d55;">
-            <strong>Account Approved</strong>
+            <strong>${message}</strong>
         </div>`;
 
         // Read the HTML template

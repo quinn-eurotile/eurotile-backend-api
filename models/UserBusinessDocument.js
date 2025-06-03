@@ -17,7 +17,7 @@ const userBusinessDocumentSchema = new Schema({
   },
   filePath: { type: String, required: true },
   fileSize: { type: Number, default: 0 },
-  status: { type: Number, default: 2 }, //1 = Verified, 0 = UnVerified, 2 = Pending
+  status: { type: Number, default: 2 }, //1 = Verified, 0 = UnVerified, 2 = Pending , 3 = Under Review
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
