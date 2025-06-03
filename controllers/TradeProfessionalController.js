@@ -8,6 +8,19 @@ const { log } = require('console');
 const { User } = require('../models');
 
 module.exports = class TradeProfessionalController {
+
+    /** Create Connect Account */
+    async createConnectAccount(req, res) {
+        try {
+            const data = await tradeProfessionalService.createConnectAccount(req);
+            return res.status(200).json({ type: "success", message: "Account connected successfully", data: data });
+        } catch (error) {
+            console.log('error comming here',error);
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+
     /*** Save New Trade Professional Data ****/
     async createTradeProfessional(req, res) {
         try {
