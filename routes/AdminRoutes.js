@@ -32,6 +32,8 @@ router.get('/trade-professional', multer().any(), auth, adminController.tradePro
 router.get('/trade-professional/:id', multer().any(), auth, adminController.getTradeProfessionalById);
 router.delete('/trade-professional/:id', multer().any(), auth, adminController.deleteTradeProfessional);
 router.patch('/trade-professional/:id/status', multer().any(), auth, adminController.updateTradeProfessionalStatus);
+router.patch('/trade-professional/business/:id/status', multer().any(), auth, adminController.updateTradeProfessionalBusinessStatus);
+router.patch('/trade-professional/business-profile/:id/status', multer().any(), auth, adminController.updateTradeBusinessProfileStatus);
 
 
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);

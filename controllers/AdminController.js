@@ -14,6 +14,35 @@ const commonService = require('../services/commonService');
 
 module.exports = class AdminController {
 
+    /** Update Tax Record Status **/
+    async updateTradeBusinessProfileStatus(req, res) {
+        try {
+            const data = await commonService.updateStatusById(req, 'UserBusinessDocument', 'status', [0, 1, 2, 3]);
+            return res.status(200).send({ message: 'Document status updated successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Update Tax Record Status **/
+    async updateTradeProfessionalBusinessStatus(req, res) {
+        try {
+            console.log(req.params.id)
+            let message = "Business Account Rejected";
+            if (req.body.status === 1) {
+                message = "Business Account Approved";
+            }
+            const data = await commonService.updateStatusById(req, 'UserBusiness', 'status', [0, 1, 2], { reason: req.body.reason, updated_by: req.user?._id });
+            const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
+            const link = `${CLIENT_URL}`;
+            sendAccountStatusEmail(req, link, message);
+
+            return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /** Get Trade Professional List **/
     async tradeProfessionalList(req, res) {
         try {
@@ -39,19 +68,15 @@ module.exports = class AdminController {
 
     /** Update Status For Trade Professional */
     async updateTradeProfessionalStatus(req, res) {
-
         try {
-            const oldStatus = req.body.status;
-            if (req.body.status === 3) {
-                req.body.status = 1;
+            let message = "Account Inactive";
+            if (req.body.status === 1) {
+                message = "Account Active";
             }
-            const data = await commonService.updateStatusById(req, 'User', 'status', [0, 1, 2, 3, 4], { reason: req.body.reason, updated_by: req.user?._id });
-            if ((oldStatus === 3 || oldStatus === 4)) {
-                req.body.status = oldStatus;
-                const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
-                const link = `${CLIENT_URL}`;
-                sendAccountStatusEmail(req, link);
-            }
+            const data = await commonService.updateStatusById(req, 'User', 'status', [0, 1, 2], { reason: req.body.reason, updated_by: req.user?._id });
+            const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
+            const link = `${CLIENT_URL}`;
+            sendAccountStatusEmail(req, link, message);
             return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
