@@ -1,12 +1,11 @@
 const validator = require('./validate');
-
-
+const { formatValidationErrors } = require('../_helpers/common');
 const register = (req, res, next) => {
     let validationRule = {
         "name": "required|string",
         "email": "required|email|exist:User,email",
     };
-    
+
     if (req.body.email && typeof req.body.email === 'string') {
         req.body.email = req.body.email.trim().toLowerCase();
     }
@@ -26,6 +25,37 @@ const register = (req, res, next) => {
 };
 
 
+const saveCustomer = (req, res, next) => {
+    const id = req?.params?.id; // this will be undefined if creating
+    // Normalize phone number
+    if (req.body.phone && typeof req.body.phone === 'string') {
+        req.body.phone = req.body.phone.replace(/[^\d]/g, ''); // Keep only digits
+    }
+    let validationRule = {
+        "name": "required|string",
+        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
+        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:User,phone",
+    };
+
+    if (req.body.email && typeof req.body.email === 'string') {
+        req.body.email = req.body.email.trim().toLowerCase();
+    }
+
+    validator(req.body, validationRule, {}, (err, status) => {
+        if (!status) {
+            res.status(422)
+                .send({
+                    type: 'validation_error',
+                    message: 'You form data is invalid',
+                    data: formatValidationErrors(err.all())
+                });
+        } else {
+            next();
+        }
+    });
+};
+
+
 const saveTeamMember = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
 
@@ -34,7 +64,7 @@ const saveTeamMember = (req, res, next) => {
         "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
         "phone": id ? `required|exist_update:User,phone,${id}` : "required|exist:User,phone",
     };
-    
+
 
     if (req.body.email && typeof req.body.email === 'string') {
         req.body.email = req.body.email.trim().toLowerCase();
@@ -56,7 +86,11 @@ const saveTeamMember = (req, res, next) => {
 
 const saveTradeProfessional = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
-
+    // Normalize phone number
+    if (req.body.phone && typeof req.body.phone === 'string') {
+        req.body.phone = req.body.phone.replace(/[^\d]/g, ''); // Keep only digits
+        req.body.business_phone = req.body.business_phone.replace(/[^\d]/g, ''); // Keep only digits
+    }
     let validationRule = {
         "name": "required|string",
         "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
@@ -91,9 +125,9 @@ const saveSupplier = (req, res, next) => {
         "companyName": "required|string",
         "companyEmail": id ? `required|email|exist_update:Supplier,companyEmail,${id}` : "required|email|exist:Supplier,companyEmail",
         "companyPhone": id ? `required|exist_update:Supplier,companyPhone,${id}` : "required|exist:Supplier,companyPhone",
-        "addresses.addressLine1":  `required|string`,
-        "addresses.city":  `required|string`,
-        "addresses.country":  `required|string`, 
+        "addresses.addressLine1": `required|string`,
+        "addresses.city": `required|string`,
+        "addresses.country": `required|string`,
     };
 
     if (req.body.companyEmail && typeof req.body.companyEmail === 'string') {
@@ -118,7 +152,7 @@ const saveSupplier = (req, res, next) => {
 
 
 const userRoleValidate = (req, res, next) => {
-    
+
 
     // Check if id is provided, if yes, skip validation for the current record
     const roleId = req.params.id ? `,${req.params.id}` : '';
@@ -241,7 +275,7 @@ const forgotPassword = (req, res, next) => {
     if (req.body.email && typeof req.body.email === 'string') {
         req.body.email = req.body.email.trim().toLowerCase();
     }
-    
+
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
             res.status(422)
@@ -297,4 +331,4 @@ const updateTradeProfessional = async (req, res, next) => {
     }
 };
 
-module.exports = { updateTradeProfessional,saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };
+module.exports = { saveCustomer, updateTradeProfessional, saveTradeProfessional, saveTeamMember, saveSupplier, register, update, UpadetPassword, forgotPassword, resetPassword, login, updateUserProfile, userRoleValidate };

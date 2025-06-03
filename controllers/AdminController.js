@@ -7,12 +7,55 @@ const { getClientUrlByRole } = require('../_helpers/common');
 const util = require('util');
 const Fs = require('fs');
 const writeFileAsync = util.promisify(Fs.writeFile);
-const RoleModel = require("../models/Role");
-const mongoose = require('mongoose');
-const constants = require('../configs/constant');
+const AdminSetting = require("../models/AdminSetting");
 const commonService = require('../services/commonService');
 
 module.exports = class AdminController {
+
+
+    /** Get Current Settings */
+    async settingsList(req, res) {
+        try {
+            console.log('I am here')
+            const settings = await AdminSetting.findOne();
+            if (!settings) {
+                return res.status(404).json({ message: 'No settings found' });
+            }
+            return res.status(200).json({ message: 'Admin settings get successfully', data: settings });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Update Setting By Admin */
+    async updateSettings(req, res) {
+        try {
+            const updateFields = req.body;
+
+            // Ensure at least one field is being updated
+            if (!updateFields || Object.keys(updateFields).length === 0) {
+                return res.status(400).json({ message: 'At least one setting field is required.' });
+            }
+
+            let settings = await AdminSetting.findOne();
+
+            if (settings) {
+                // Update only the fields provided in the body
+                Object.keys(updateFields).forEach(key => {
+                    settings[key] = updateFields[key];
+                });
+                await settings.save();
+            } else {
+                // Create new settings with provided fields
+                settings = await AdminSetting.create(updateFields);
+            }
+
+            return res.status(200).json({ message: 'Settings updated successfully', data: settings });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: 'Server error' });
+        }
+    }
+
 
     /** Update Tax Record Status **/
     async updateTradeBusinessProfileStatus(req, res) {
@@ -27,7 +70,7 @@ module.exports = class AdminController {
     /** Update Tax Record Status **/
     async updateTradeProfessionalBusinessStatus(req, res) {
         try {
-            console.log(req.params.id)
+            console.log(req.params.id);
             let message = "Business Account Rejected";
             if (req.body.status === 1) {
                 message = "Business Account Approved";
@@ -251,11 +294,12 @@ module.exports = class AdminController {
     async forgotPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
-            console.log('req admin controller', req.body);
             const token = await userService.forgotPassword(req);
+            
             forgotPasswordEmail(req, token);
-            return res.status(200).json({ status: 200, message: 'Password reset email sent successfully' });
+            return res.status(200).json({ statusCode: 200, message: 'Password reset email sent successfully' });
         } catch (error) {
+            console.log('message: error.message',  error.message);
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
@@ -264,6 +308,8 @@ module.exports = class AdminController {
     async resetPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
+            console.log('req.body', req.body);
+            
             await userService.resetPassword(req);
             return res.status(200).json({ message: 'Password reset successfully' });
         } catch (error) {

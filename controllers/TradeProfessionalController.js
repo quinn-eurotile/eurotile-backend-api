@@ -1,11 +1,9 @@
 
-const { sendVerificationEmail, forgotPasswordEmail } = require('../services/emailService');
+const { sendVerificationEmail } = require('../services/emailService');
 const tradeProfessionalService = require('../services/tradeProfessionalService');
 const { getClientUrlByRole } = require('../_helpers/common');
-const util = require('util');
-const Fs = require('fs');
-const { log } = require('console');
 const { User } = require('../models');
+const commonService = require('../services/commonService');
 
 module.exports = class TradeProfessionalController {
 
@@ -16,6 +14,38 @@ module.exports = class TradeProfessionalController {
             return res.status(200).json({ type: "success", message: "Account connected successfully", data: data });
         } catch (error) {
             console.log('error comming here',error);
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /*** Save New Client Data ****/
+    async saveClient(req, res) {
+        try {
+            const { client, isNew } = await tradeProfessionalService.saveClient(req);
+            return res.json({ type: "success", message: isNew ? "Client created successfully" : "Client updated successfully", data: client, });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Client List **/
+    async clientList(req, res) {
+        try {
+            const query = await tradeProfessionalService.buildClientListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const clients = await tradeProfessionalService.clientList(query, options);
+            return res.status(200).json({ data: clients, message: 'Client list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+     /** Delete Client Request */
+     async deleteClient(req, res) {
+        try {
+            const data = await commonService.updateIsDeletedById(req, 'User', true);
+            return res.status(200).send({ message: 'Client deleted successfully'});
+        } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
@@ -35,13 +65,7 @@ module.exports = class TradeProfessionalController {
     }
 
     async updateTradeProfessional(req, res) {
-        // console.log(req.body, '...............................')
-        // console.log(req.files, '...............................req.files')
-        // return false;
         try {
-            /* console.log(req.body, 'test');
-            console.log(req.files, 'test');
-            return res.json({ type: "success", message: "Trade professional updated successfully", data: req.body }); */
             const user = await tradeProfessionalService.updateTradeProfessional(req);
             return res.json({ type: "success", message: "Trade professional updated successfully", data: user });
         } catch (error) {
