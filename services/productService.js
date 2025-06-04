@@ -581,6 +581,7 @@ class Product {
             attributeVariations = typeof attributeVariations === 'string' ? JSON.parse(attributeVariations) : attributeVariations;
             attributes = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
             variationsToRemove = typeof variationsToRemove === 'string' ? JSON.parse(variationsToRemove) : variationsToRemove;
+            variationsImagesToRemove = typeof variationsImagesToRemove === 'string' ? JSON.parse(variationsImagesToRemove) : variationsImagesToRemove;
 
             // Clean and cast supplier to ObjectId
             if (typeof supplier === 'string') {
@@ -648,6 +649,13 @@ class Product {
                 );
             }
 
+
+            
+              
+
+
+
+            const variationIdList = []; // To collect all variation IDs (new or existing)
             for (let index = 0; index < productVariations.length; index++) {
                 const variationData = productVariations[index];
                 let variationImageIds = [];
@@ -661,12 +669,12 @@ class Product {
                     variationImageFiles = req.files.filter(file => {
                         const match = file.fieldname.match(/^productVariations\[(\d+)\]\.variationImages\[\d+\]$/);
                         return match && parseInt(match[1]) === index;
+
+
                     });
                 } else {
                     delete variationData?.variationImages;
                 }
-
-
 
                 // ✅ Process and upload files if they exist
                 if (variationImageFiles.length > 0) {
@@ -683,11 +691,9 @@ class Product {
                             isFeaturedImage: 0
                         });
 
-                        variationImageIds.push(fileDoc._id);
+                        variationImageIds.push(new mongoose.Types.ObjectId(String(fileDoc.id)));
                     }
                 }
-
-
 
                 // ✅ Construct variation data object
                 const baseVariationData = {
@@ -697,13 +703,37 @@ class Product {
                     product: product._id
                 };
 
+                if (variationsImagesToRemove.length) {
+
+                    // ✅ Step 1: Mark the images as deleted in productFileModel
+                    await productFileModel.updateMany(
+                        {
+                            _id: { $in: variationsImagesToRemove }
+                        },
+                        {
+                            $set: { isDeleted: true }
+                        }
+                    );
+
+                    // ✅ Step 2: Remove the image IDs from the variationsImages array in productVariationModel
+                    await productVariationModel.findByIdAndUpdate(
+                        variationData._id,
+                        {
+                            $pull: { variationsImages: { $in: variationsImagesToRemove } }
+                        },
+                        { new: true }
+                    );
+                }
+
                 if (variationData._id) {
-                    // ✅ Append images only if new ones are uploaded
-                    if (variationImageIds.length > 0) {
-                        baseVariationData.productVariationImages = [
-                            ...(variationData.productVariationImages || []),
+                    if (variationImageIds?.length > 0) {
+
+                        const checkExistingVariationData = await productVariationModel.findOne({ _id: variationData._id });
+                        baseVariationData.variationImages = [
+                            ...(checkExistingVariationData?.variationImages || []),
                             ...variationImageIds
-                        ];
+                        ]
+
                     }
 
                     await productVariationModel.findByIdAndUpdate(
@@ -711,15 +741,27 @@ class Product {
                         baseVariationData,
                         { new: true }
                     );
+                    variationIdList.push(new mongoose.Types.ObjectId(String(variationData._id)));
 
                 } else {
                     // ✅ Always set image array on create (empty or not)
-                    baseVariationData.productVariationImages = variationImageIds;
+                    baseVariationData.variationImages = variationImageIds;
 
-                    await productVariationModel.create(baseVariationData);
+                    const newVariation = await productVariationModel.create(baseVariationData);
+                    variationIdList.push(new mongoose.Types.ObjectId(String(newVariation._id)));
+                }
+                // ✅ Finally update the product's productVariations array with all collected variation IDs
+                if (variationIdList.length > 0) {
+                    await productModel.findByIdAndUpdate(
+                        productId,
+                        {
+                            $addToSet: {
+                                productVariations: { $each: variationIdList }
+                            }
+                        }
+                    );
                 }
             }
-
 
 
             // Return updated product with populated fields
@@ -1153,8 +1195,6 @@ class Product {
                 limit = 10,
                 sort
             } = options;
-
-            console.log('sort',sort)
 
             const skip = (page - 1) * limit;
 

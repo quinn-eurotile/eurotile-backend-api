@@ -25,7 +25,6 @@ const ProductVariationSchema = new Schema({
     productFeaturedImage: { type: Schema.Types.ObjectId, ref: 'ProductFile', default: null },
     regularPriceB2B: { type: Number, default: 0 },
     regularPriceB2C: { type: Number, default: 0 },
-    salePrice: { type: Number, default: 0 },
     purchasedPrice: { type: Number, default: 0 },
     numberOfTiles: { type: Number, default: 0 },
     boxSize: { type: Number, default: 0 },

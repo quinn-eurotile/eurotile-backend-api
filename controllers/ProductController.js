@@ -104,6 +104,7 @@ module.exports = class ProductController {
 
     /** Create Product **/
     async createProduct(req, res) {
+       
         try {
             const product = await productService.createProduct(req);
             return res.status(201).json({ type: "success", message: "Product created successfully", data: product });
