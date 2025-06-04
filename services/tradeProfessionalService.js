@@ -14,9 +14,9 @@ class TradeProfessional {
     /** Save A Client */
     async saveClient(req) {
         try {
-            const { id, name, email, phone, status, address } = req.body;
+            const { name, email, phone, status, address } = req.body;
             const lowerCaseEmail = email.trim().toLowerCase();
-            const userId = req?.user?.id || null;
+            const id = req?.params?.id || null;
 
             let client;
             let isNew = false;
@@ -24,13 +24,14 @@ class TradeProfessional {
             if (id) {
                 // Update existing client
                 client = await User.findById(id);
+                console.log(client,'pehle client')
                 if (!client) throw { message: 'Client not found', statusCode: 404 };
 
                 client.name = name ?? client.name;
                 client.email = lowerCaseEmail ?? client.email;
                 client.phone = phone ?? client.phone;
                 client.status = status ?? client.status;
-                client.updatedBy = userId;
+                client.updatedBy = req?.user?.id;
             } else {
                 // Create new client
                 const token = helpers.randomString(20);
@@ -41,13 +42,13 @@ class TradeProfessional {
                     token,
                     status: status ?? 1,
                     roles: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))],
-                    createdBy: userId,
-                    updatedBy: userId,
+                    createdBy: req?.user?.id,
+                    updatedBy: req?.user?.id,
                 });
                 isNew = true;
             }
 
-            saveAddressData(client?._id, address)
+            await saveAddressData(client?._id, address)
 
             await client.save();
 
@@ -103,6 +104,16 @@ class TradeProfessional {
             const pipeline = [
                 { $match: query },
 
+                {
+                    $lookup: {
+                        from: 'addresses',
+                        localField: '_id',
+                        foreignField: 'userId',
+                        as: 'addressDetails'
+                    }
+                },
+                { $unwind: { path: '$addressDetails', preserveNullAndEmptyArrays: true } },
+
                 // Optional sort
                 { $sort: sort },
 
@@ -113,6 +124,7 @@ class TradeProfessional {
                         name: 1,
                         email: 1,
                         phone: 1,
+                        addressDetails : 1,
                         status: 1,
                         userId: 1,
                         isDeleted: 1,
