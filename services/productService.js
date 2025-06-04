@@ -1427,7 +1427,7 @@ class Product {
                 status: true
             })
                 .limit(10)
-                .select('_id name shortDescription productFeaturedImage')
+                .select('_id name shortDescription productFeaturedImage minPriceB2B maxPriceB2B slug sku')
                 .populate({
                     path: 'productFeaturedImage',
                     match: { isDeleted: false },

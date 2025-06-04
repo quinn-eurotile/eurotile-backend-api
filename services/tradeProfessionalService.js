@@ -1,15 +1,194 @@
-const tradeProfessionalModel = require('../models/User');
+const User = require('../models/User');
 const userBusinessModel = require('../models/UserBusiness');
 const userBusinessDocumentModel = require('../models/UserBusinessDocument');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
-const User = require('../models/User');
 const { Order } = require('../models');
 const bcrypt = require("bcryptjs");
 const stripe = require('../utils/stripeClient');
+const { saveAddressData } = require('./addressService');
 
 class TradeProfessional {
+
+    /** Get All Client For Specific Trade Professional */
+    async allClient(req) {
+        try {
+            return await User.find({ isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] }, createdBy: req?.user?.id }).sort({ _id: -1 })
+                .populate('createdBy', '_id name status');
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to update team member status',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    /** Save A Client */
+    async saveClient(req) {
+        try {
+            const { name, email, phone, status, address } = req.body;
+            const lowerCaseEmail = email.trim().toLowerCase();
+            const id = req?.params?.id || null;
+
+            let client;
+            let isNew = false;
+
+            if (id) {
+                // Update existing client
+                client = await User.findById(id);
+                console.log(client, 'pehle client');
+                if (!client) throw { message: 'Client not found', statusCode: 404 };
+
+                client.name = name ?? client.name;
+                client.email = lowerCaseEmail ?? client.email;
+                client.phone = phone ?? client.phone;
+                client.status = status ?? client.status;
+                client.updatedBy = req?.user?.id;
+            } else {
+                // Create new client
+                const token = helpers.randomString(20);
+                client = new User({
+                    name,
+                    email: lowerCaseEmail,
+                    phone,
+                    token,
+                    status: status ?? 1,
+                    roles: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))],
+                    createdBy: req?.user?.id,
+                    updatedBy: req?.user?.id,
+                });
+                isNew = true;
+            }
+
+            await saveAddressData(client?._id, address);
+
+            await client.save();
+
+            return { client, isNew };
+
+        } catch (error) {
+            throw {
+                message: error?.message || 'Error occurred while saving client',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    /** Build Quert To Get Clients */
+    async buildClientListQuery(req) {
+        const query = req.query;
+        const conditionArr = [
+            { isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] } }
+        ];
+        if (query.status !== undefined && query.status !== "") {
+            conditionArr.push({ status: Number(query.status) });
+        }
+
+        // Add search conditions if 'search_string' is provided
+        if (query.search_string !== undefined && query.search_string !== "") {
+            conditionArr.push({
+                $or: [
+                    { email: new RegExp(query.search_string, "i") },
+                    { name: new RegExp(query.search_string, "i") },
+                    { phone: new RegExp(query.search_string, "i") },
+                ],
+            });
+        }
+
+        // Construct the final query
+        let builtQuery = {};
+        if (conditionArr.length === 1) {
+            builtQuery = conditionArr[0];
+        } else if (conditionArr.length > 1) {
+            builtQuery = { $and: conditionArr };
+        }
+
+        return builtQuery;
+    }
+
+    /** Client List */
+    async clientList(query, options) {
+        try {
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const skip = (page - 1) * limit;
+
+            // Build aggregation pipeline
+            const pipeline = [
+                { $match: query },
+
+                {
+                    $lookup: {
+                        from: 'addresses',
+                        let: { userId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } },
+                            { $match: { isDefault: true } }, // or any filter to select the right one
+                            { $limit: 1 }
+                        ],
+                        as: 'addressDetails'
+                    }
+                },
+                { $unwind: { path: '$addressDetails', preserveNullAndEmptyArrays: true } },
+
+                // Optional sort
+                { $sort: sort },
+
+                // Optional projection to only return required fields
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        email: 1,
+                        phone: 1,
+                        addressDetails: 1,
+                        status: 1,
+                        userId: 1,
+                        isDeleted: 1,
+                        createdAt: 1,   
+                        updatedAt: 1,
+                        createdBy: 1,
+                        updatedBy: 1,
+                    }
+                },
+                // Pagination
+                { $skip: skip },
+                { $limit: limit }
+            ];
+
+            // Run aggregation
+            const data = await User.aggregate(pipeline);
+
+            // Get total count (for pagination meta)
+            const totalCountAgg = await User.aggregate([
+                { $match: query },
+                { $count: 'total' }
+            ]);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            console.log('data', data);
+
+            const result = {
+                docs: data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+
+            return result;
+
+        } catch (error) {
+            console.log(error, 'error');
+            throw {
+                message: error?.message || 'Something went wrong while fetching supplier',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
 
     /** Create Connect Account */
     async createConnectAccount(req) {
@@ -98,10 +277,10 @@ class TradeProfessional {
             ];
 
             // Run aggregation
-            const data = await tradeProfessionalModel.aggregate(pipeline);
+            const data = await User.aggregate(pipeline);
 
             // Get total count (for pagination meta)
-            const totalCountAgg = await tradeProfessionalModel.aggregate([
+            const totalCountAgg = await User.aggregate([
                 { $match: query },
                 { $count: 'total' }
             ]);
@@ -212,7 +391,7 @@ class TradeProfessional {
 
 
             // Step 1: Update User
-            const user = await tradeProfessionalModel.findByIdAndUpdate(
+            const user = await User.findByIdAndUpdate(
                 userId,
                 {
                     name,
@@ -310,7 +489,7 @@ class TradeProfessional {
             const token = helpers.randomString(20);
 
             // Step 1: Create User
-            const [user] = await tradeProfessionalModel.create([{
+            const [user] = await User.create([{
                 name,
                 email,
                 phone,
@@ -401,7 +580,7 @@ class TradeProfessional {
                     statusCode: 400
                 };
             }
-            const tradeProfessionaler = await tradeProfessionalModel.findById({ _id: userId });
+            const tradeProfessionaler = await User.findById({ _id: userId });
             if (!tradeProfessionaler) throw new Error({ message: 'Trade professional not found', statusCode: 404 });
             tradeProfessionaler.isDeleted = true;
             await tradeProfessionaler.save();
@@ -413,7 +592,7 @@ class TradeProfessional {
 
     /** Get Trade Professional By Id with specific columns */
     async getTradeProfessionalById(id) {
-        return await tradeProfessionalModel.findOne(
+        return await User.findOne(
             {
                 _id: id,
                 roles: { $in: [new mongoose.Types.ObjectId(String(constants?.tradeProfessionalRole?.id))] }

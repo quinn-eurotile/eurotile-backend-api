@@ -1,0 +1,37 @@
+const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
+const Schema = mongoose.Schema;
+
+const CartItemSchema = new Schema({
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  variation: { type: Schema.Types.ObjectId, ref: 'ProductVariation', required: true },
+  quantity: { type: Number, required: true, min: 1 },
+  numberOfTiles: { type: Number, default: 0 },
+  numberOfPallets: { type: Number, default: 0 },
+  attributes: { type: Schema.Types.Mixed, default: {} }, // store selected attribute key-values
+  price: { type: Number, required: true, min: 0 },
+}, {
+  timestamps: true,
+});
+
+const CartSchema = new Schema({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [CartItemSchema],
+  totalItems: { type: Number, default: 0 },
+  totalAmount: { type: Number, default: 0 },
+  isDeleted: { type: Boolean, default: false },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+});
+
+CartSchema.plugin(mongoosePaginate);
+
+CartSchema.pre('save', function (next) {
+  this.totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0);
+  this.totalAmount = this.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  next();
+});
+
+module.exports = mongoose.model('Cart', CartSchema);
