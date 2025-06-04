@@ -70,7 +70,7 @@ Validator.registerAsync('exist_update', async function (value, attribute, req, p
 
         const existing = await Model.findOne(conditions);
         if (existing && String(existing._id) !== String(updateId)) {
-            return passes(false, `${capitalize(column)} has ${String(existing._id) !== String(updateId)} already been taken by another ${table}`);
+            return passes(false, `${capitalize(column)} has already been taken by another ${table}`);
         }
 
         passes();

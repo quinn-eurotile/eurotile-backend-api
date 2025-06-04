@@ -18,9 +18,20 @@ module.exports = class TradeProfessionalController {
         }
     }
 
+    /** Get All Client For Specific Trade Professional */
+    async allClient(req, res) {
+        try {
+            const data = await tradeProfessionalService.allClient(req);
+            return res.json({ type: "success", message: "Client list get successfully", data: data, });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /*** Save New Client Data ****/
     async saveClient(req, res) {
         try {
+            console.log('req.body', req.body);
             const { client, isNew } = await tradeProfessionalService.saveClient(req);
             return res.json({ type: "success", message: isNew ? "Client created successfully" : "Client updated successfully", data: client, });
         } catch (error) {

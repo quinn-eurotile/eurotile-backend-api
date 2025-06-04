@@ -10,7 +10,7 @@ const AddressSchema = new Schema({
   addressLine2: { type: String, default: null },
   lat: { type: String, default: null },
   long: { type: String, default: null },
-  street: { type: String, required: true },
+  street: { type: String, default: null },
   city: { type: String, required: true },
   state: { type: String, required: true },
   postalCode: { type: String, required: true },
