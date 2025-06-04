@@ -11,6 +11,19 @@ const { saveAddressData } = require('./addressService');
 
 class TradeProfessional {
 
+    /** Get All Client For Specific Trade Professional */
+    async allClient(req) {
+        try {
+            return await User.find({ isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] }, createdBy: req?.user?.id }).sort({ _id: -1 })
+                .populate('createdBy', '_id name status');
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to update team member status',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
     /** Save A Client */
     async saveClient(req) {
         try {
@@ -24,7 +37,7 @@ class TradeProfessional {
             if (id) {
                 // Update existing client
                 client = await User.findById(id);
-                console.log(client,'pehle client')
+                console.log(client, 'pehle client');
                 if (!client) throw { message: 'Client not found', statusCode: 404 };
 
                 client.name = name ?? client.name;
@@ -48,7 +61,7 @@ class TradeProfessional {
                 isNew = true;
             }
 
-            await saveAddressData(client?._id, address)
+            await saveAddressData(client?._id, address);
 
             await client.save();
 
@@ -68,7 +81,7 @@ class TradeProfessional {
         const conditionArr = [
             { isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] } }
         ];
-        if (query.status !== undefined) {
+        if (query.status !== undefined && query.status !== "") {
             conditionArr.push({ status: Number(query.status) });
         }
 
@@ -107,8 +120,12 @@ class TradeProfessional {
                 {
                     $lookup: {
                         from: 'addresses',
-                        localField: '_id',
-                        foreignField: 'userId',
+                        let: { userId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } },
+                            { $match: { isDefault: true } }, // or any filter to select the right one
+                            { $limit: 1 }
+                        ],
                         as: 'addressDetails'
                     }
                 },
@@ -124,11 +141,11 @@ class TradeProfessional {
                         name: 1,
                         email: 1,
                         phone: 1,
-                        addressDetails : 1,
+                        addressDetails: 1,
                         status: 1,
                         userId: 1,
                         isDeleted: 1,
-                        createdAt: 1,
+                        createdAt: 1,   
                         updatedAt: 1,
                         createdBy: 1,
                         updatedBy: 1,
@@ -148,6 +165,8 @@ class TradeProfessional {
                 { $count: 'total' }
             ]);
             const totalDocs = totalCountAgg[0]?.total || 0;
+
+            console.log('data', data);
 
             const result = {
                 docs: data,
