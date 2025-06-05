@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
+  orderId: {type: String, required: true},
+  commission: {type: Number},
   orderDetails: [{ type: mongoose.Schema.Types.ObjectId, ref: 'OrderDetail', required: true }],
   shippingAddress: { type: mongoose.Schema.Types.ObjectId, ref: 'Address', required: true },
   paymentMethod: { type: String, enum: ['stripe', 'klarna', 'cash_on_delivery'],required: true},
@@ -12,6 +14,7 @@ const orderSchema = new mongoose.Schema({
   subtotal: {type: Number, required: true},
   shipping: {type: Number, required: true },
   discount: {type: Number, default: 0 },
+  tax: {type: Number, default: 0 },
   total: {type: Number, required: true},
   promoCode: {type: String, default: null},
   paymentDetail: { type: mongoose.Schema.Types.ObjectId, ref: 'PaymentDetail', required: true },

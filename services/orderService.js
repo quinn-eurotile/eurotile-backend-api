@@ -92,13 +92,12 @@ class Order {
                         // Select required fields
                         {
                             $project: {
-                                orderNumber: 1,
+                                orderId: 1,
                                 commission: 1,
-                                totalAmount: 1,
+                                total: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
                                 shippingAddress: 1,
-                                totalAmount: 1,
                                 createdAt: 1,
                                 updatedAt: 1,
                                 createdBy: 1,
@@ -182,24 +181,21 @@ class Order {
         const order = await orderModel.findById(orderId)
             .populate([
                 {
-                    path: 'orderDetails' // this must be a field in your Order model
+                    path: 'orderDetails' // array of OrderDetail objects
                 },
                 {
                     path: 'shippingAddress'
+                },
+                // {
+                //     path: 'paymentDetail'
+                // },
+                {
+                    path: 'createdBy'
+                },
+                {
+                    path: 'updatedBy'
                 }
             ]);
-            // .populate({
-            //     path: 'items.productId',
-            //     model: 'Product', // or 'ProductVariation' if that's what productId refers to
-            //     populate: [
-            //         { path: 'categories', select: 'name' },
-            //         { path: 'attributes', select: 'name' },
-            //         { path: 'attributeVariations', select: 'name' },
-            //         { path: 'variationImages', select: 'fileName fileUrl' },
-            //         { path: 'productFeaturedImage', select: 'fileName fileUrl' },
-            //         { path: 'supplier', select: 'name' }
-            //     ]
-            // })
 
         if (!order) {
             const error = new Error('Order not found');
