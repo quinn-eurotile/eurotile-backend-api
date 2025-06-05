@@ -68,8 +68,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['standard', 'express', 'overnight'],
     required: true
   },
-  createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
   timestamps: true
 });
