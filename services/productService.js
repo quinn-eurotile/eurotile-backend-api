@@ -1235,6 +1235,11 @@ class Product {
                     }
                 },
                 { $unwind: { path: '$supplier', preserveNullAndEmptyArrays: true } },
+                {
+                    $match: {
+                        'productDetail.isDeleted': false // ✅ Ensure the parent product is not deleted
+                    }
+                },
 
                 // Lookup categories
                 {
