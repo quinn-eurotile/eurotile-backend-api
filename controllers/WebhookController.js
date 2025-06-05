@@ -24,22 +24,22 @@ module.exports = class WebhookController {
         }
 
         try {
+
             switch (event.type) {
-                case 'payment_intent.succeeded': {
-                    const paymentIntent = event.data.object;
-                    console.log(`✅ PaymentIntent for ${paymentIntent.amount} succeeded.`);
-                    // Handle successful payment here
-                    break;
-                }
-                case 'payment_method.attached': {
-                    const paymentMethod = event.data.object;
-                    console.log(`✅ Payment method attached: ${paymentMethod.id}`);
-                    // Handle attachment of payment method here
-                    break;
-                }
+                case 'payment_intent.created':
+                  const paymentIntentCreated = event.data.object;
+                  console.log('PaymentIntent was created!', paymentIntentCreated);
+                  // Then define and call a function to handle the event payment_intent.created
+                  break;
+                case 'payment_intent.succeeded':
+                  const paymentIntentSucceeded = event.data.object;
+                  console.log('PaymentIntent was succeeded!', paymentIntentSucceeded);
+                  // Then define and call a function to handle the event payment_intent.succeeded
+                  break;
+                // ... handle other event types
                 default:
-                    console.log(`Unhandled event type ${event.type}`);
-            }
+                  console.log(`Unhandled event type ${event.type}`);
+              }
             return res.status(200).send();
         } catch (err) {
             console.error('Webhook handling error:', err);
