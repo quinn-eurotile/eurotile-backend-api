@@ -12,6 +12,7 @@ class PaymentService {
   // Create Stripe Payment Intent
   async createPaymentIntent({ amount, currency, customerId, saveCard }) {
     try {
+      // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,

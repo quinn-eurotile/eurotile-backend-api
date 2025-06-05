@@ -5,8 +5,14 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 const webhookController = new WebhookController();
+const bodyParser = require('body-parser');
 
 /* webhook Management */
-router.post('/webhhok', multer().any(), auth, webhookController.handleStripeWebhook);
+// router.post('/', multer().any(), webhookController.handleStripeWebhook);
+router.post(
+    '/',
+    bodyParser.raw({ type: 'application/json' }), // <-- This is key for Stripe
+    webhookController.handleStripeWebhook
+  );
 
 module.exports = router;
