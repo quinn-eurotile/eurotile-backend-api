@@ -1,34 +1,26 @@
 const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
-const orderDetailSchema  = new Schema({
-    productId: {
+const orderDetailSchema = new Schema({
+    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+    product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
         required: true,
     },
-    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
-    productDetail: {
-        name: { type: String, required: true },
-        sku: { type: String },
-        image: { type: String }, // main thumbnail image
-        price: { type: Number, required: true },
-        size: { type: String }, // example: "1kg", "500ml"
-        quantity: { type: Number, required: true, min: 1 },
+    productVariation: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ProductVariation',
+        required: true
     },
-    totalPrice: {
-        type: Number,
-        required: true,
-    },
+    productDetail: { type: String, required : true }, // get all details from the prduct variations include their attributes
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 }, {
-    timestamps : true,
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
-
-
 
 orderDetailSchema.plugin(mongoosePaginate);
 
