@@ -207,11 +207,6 @@ class TradeProfessional {
                 },
             });
 
-            // Save account.id to MongoDB
-            await User.findByIdAndUpdate(req.user._id, {
-                stripeAccountId: account.id,
-            });
-
             const accountLink = await stripe.accountLinks.create({
                 account: account.id,
                 refresh_url: 'http://localhost:3000/en/trade-professional/profile',
