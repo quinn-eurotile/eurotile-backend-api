@@ -17,9 +17,10 @@ class PaymentService {
         currency,
         customer: customerId,
         setup_future_usage: saveCard ? 'off_session' : undefined,
-        automatic_payment_methods: {
-          enabled: true,
-        },
+        automatic_payment_methods: {          enabled: true,        },
+        metadata: {
+          
+        }
       });
 
       return {
@@ -34,6 +35,28 @@ class PaymentService {
       return {
         success: false,
         message: error.message || 'Failed to create payment intent'
+      };
+    }
+  }
+
+  // Verify Stripe Payment
+  async verifyStripePayment(paymentIntentId) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      return {
+        success: true,
+        data: {
+          status: paymentIntent.status,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency
+        }
+      };
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to verify payment'
       };
     }
   }
@@ -73,28 +96,6 @@ class PaymentService {
       return {
         success: false,
         message: error.message || 'Failed to create Klarna session'
-      };
-    }
-  }
-
-  // Verify Stripe Payment
-  async verifyStripePayment(paymentIntentId) {
-    try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      
-      return {
-        success: true,
-        data: {
-          status: paymentIntent.status,
-          amount: paymentIntent.amount,
-          currency: paymentIntent.currency
-        }
-      };
-    } catch (error) {
-      console.error('Error verifying payment:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to verify payment'
       };
     }
   }

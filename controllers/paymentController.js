@@ -28,33 +28,6 @@ exports.createPaymentIntent = async (req, res) => {
   }
 };
 
-// Create Klarna Session
-exports.createKlarnaSession = async (req, res) => {
-  try {
-    const { error } = validateKlarnaSession(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-      });
-    }
-
-    const result = await paymentService.createKlarnaSession(req.body);
-    
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('Klarna session creation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-};
-
 // Verify Stripe Payment
 exports.verifyStripePayment = async (req, res) => {
   try {
@@ -82,6 +55,35 @@ exports.verifyStripePayment = async (req, res) => {
     });
   }
 };
+
+// Create Klarna Session
+exports.createKlarnaSession = async (req, res) => {
+  try {
+    const { error } = validateKlarnaSession(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message
+      });
+    }
+
+    const result = await paymentService.createKlarnaSession(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Klarna session creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+
 
 // Verify Klarna Payment
 exports.verifyKlarnaPayment = async (req, res) => {

@@ -7,5 +7,6 @@ const upload = multer(); // If you haven't set a custom storage yet
 
 /* Order Management */
 router.get('/', multer().any(), auth, orderController.orderList);
+// router.post('/', multer().any(), auth, orderController.orderCreate);
 
 module.exports = router;
