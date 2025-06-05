@@ -9,9 +9,8 @@ router.get('/:userId', auth, getAddresses);
 router.post('/', auth, saveAddress);
 router.put('/:id', auth, updateAddress);
 
-// Soft delete address
-router.delete('/', auth, deleteAddress);
-
+// Soft delete address 
+router.delete('/:id', auth,deleteAddress);
 
 
 module.exports = router;

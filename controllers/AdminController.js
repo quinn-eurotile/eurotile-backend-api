@@ -322,10 +322,12 @@ module.exports = class AdminController {
     async resetPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
-            console.log('req.body', req.body);
             
             await userService.resetPassword(req);
-            return res.status(200).json({ message: 'Password reset successfully' });
+            return res.status(200).json({
+                success: true,
+                message: 'Password reset successfully'
+            });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
