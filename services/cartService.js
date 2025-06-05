@@ -52,22 +52,42 @@ async function saveCart(userId, items = []) {
           continue;
         }
 
-        validatedItems.push({
-          product: product._id,
-          variation: variation._id,
-          quantity: item.quantity || 1,
-          numberOfTiles: item.numberOfTiles || 0,
-          numberOfPallets: item.numberOfPallets || 0,
-          attributes: item.attributes || {},
-          price: item.price || product.minPriceB2C
-        });
+        // Check if this exact variation combination already exists in cart
+        const existingItemIndex = cart.items.findIndex(cartItem => 
+          cartItem.product.toString() === item.productId.toString() &&
+          cartItem.variation.toString() === item.variationId.toString() &&
+          JSON.stringify(cartItem.attributes) === JSON.stringify(item.attributes)
+        );
+
+        if (existingItemIndex !== -1 && !item.isNewVariation) {
+          // Update existing item
+          cart.items[existingItemIndex].quantity += item.quantity || 1;
+          cart.items[existingItemIndex].numberOfTiles += item.numberOfTiles || 0;
+          cart.items[existingItemIndex].numberOfPallets += item.numberOfPallets || 0;
+          if (item.price) {
+            cart.items[existingItemIndex].price = item.price;
+          }
+        } else {
+          // Add as new item
+          validatedItems.push({
+            product: product._id,
+            variation: variation._id,
+            quantity: item.quantity || 1,
+            numberOfTiles: item.numberOfTiles || 0,
+            numberOfPallets: item.numberOfPallets || 0,
+            attributes: item.attributes || {},
+            price: item.price || product.minPriceB2C,
+            isCustomPrice: item.isCustomPrice || false
+          });
+        }
       } catch (error) {
         console.error('Error validating cart item:', error);
         continue;
       }
     }
 
-    cart.items = validatedItems;
+    // Add new items to cart
+    cart.items = [...cart.items, ...validatedItems];
     return await cart.save();
   } catch (error) {
     console.error('Error saving cart:', error);
@@ -102,7 +122,7 @@ async function removeCartItem(itemId) {
   return await cart.save();
 }
 
-async function addItemToCart(userId, productId, variationId, quantity, attributes = {}, price = null) {
+async function addItemToCart(userId, productId, variationId, quantity, attributes = {}, price = null, isNewVariation = false) {
   try {
     // Find existing cart or create new one
     let cart = await Cart.findOne({ userId, isDeleted: false })
@@ -140,15 +160,19 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
       attributes: attributes,
       numberOfTiles: attributes.numberOfTiles || 0,
       numberOfPallets: attributes.numberOfPallets || 0,
-      price: price || product.minPriceB2C
+      price: price || product.minPriceB2C,
+      isNewVariation: isNewVariation
     };
 
-    if (existingItemIndex !== -1) {
+    if (existingItemIndex !== -1 && !isNewVariation) {
       // Update existing item quantity
       cart.items[existingItemIndex].quantity += quantity;
       // Update other properties if needed
       cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (attributes.numberOfTiles || 0);
       cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (attributes.numberOfPallets || 0);
+      if (price) {
+        cart.items[existingItemIndex].price = price;
+      }
     } else {
       // Add as new item
       cart.items.push(newItem);
