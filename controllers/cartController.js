@@ -66,7 +66,8 @@ const saveCartController = async (req, res) => {
   try {
     const { items } = req.body;
     const userId = req.user.id;
-
+    // console.log(userId, 'userId');
+    // return false;
     const updatedCart = await saveCart(userId, items);
 
     res.json({

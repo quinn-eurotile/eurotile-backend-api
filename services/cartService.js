@@ -13,12 +13,20 @@ async function getCartByUser(userId) {
     .populate('items.variation');
 }
 
-async function saveCart(userId, items = []) {
+async function saveCart(userId, items = [], clientId = null) {
   try {
     let cart = await Cart.findOne({ userId, isDeleted: false });
     
     if (!cart) {
-      cart = new Cart({ userId, items: [] });
+      cart = new Cart({ 
+        userId, 
+        items: [],
+        clientId: clientId,
+        isClientOrder: !!clientId
+      });
+    } else if (clientId) {
+      cart.clientId = clientId;
+      cart.isClientOrder = true;
     }
 
     // Ensure items is an array
@@ -52,18 +60,18 @@ async function saveCart(userId, items = []) {
           continue;
         }
 
-        // Check if this exact variation combination already exists in cart
+        // Check if similar item exists (same product, variation, and attributes)
         const existingItemIndex = cart.items.findIndex(cartItem => 
-          cartItem.product.toString() === item.productId.toString() &&
-          cartItem.variation.toString() === item.variationId.toString() &&
-          JSON.stringify(cartItem.attributes) === JSON.stringify(item.attributes)
+          cartItem.product.toString() === product._id.toString() &&
+          cartItem.variation.toString() === variation._id.toString() &&
+          JSON.stringify(cartItem.attributes) === JSON.stringify(item.attributes || {})
         );
 
         if (existingItemIndex !== -1 && !item.isNewVariation) {
           // Update existing item
-          cart.items[existingItemIndex].quantity += item.quantity || 1;
-          cart.items[existingItemIndex].numberOfTiles += item.numberOfTiles || 0;
-          cart.items[existingItemIndex].numberOfPallets += item.numberOfPallets || 0;
+          cart.items[existingItemIndex].quantity = item.quantity || 1;
+          cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (item.numberOfTiles || 0);
+          cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (item.numberOfPallets || 0);
           if (item.price) {
             cart.items[existingItemIndex].price = item.price;
           }
@@ -76,8 +84,8 @@ async function saveCart(userId, items = []) {
             numberOfTiles: item.numberOfTiles || 0,
             numberOfPallets: item.numberOfPallets || 0,
             attributes: item.attributes || {},
-            price: item.price || product.minPriceB2C,
-            isCustomPrice: item.isCustomPrice || false
+            price: item.price || (clientId ? variation.regularPriceB2B : variation.regularPriceB2C),
+            isNewVariation: item.isNewVariation || false
           });
         }
       } catch (error) {
@@ -87,8 +95,20 @@ async function saveCart(userId, items = []) {
     }
 
     // Add new items to cart
-    cart.items = [...cart.items, ...validatedItems];
-    return await cart.save();
+    cart.items.push(...validatedItems);
+
+    // Save cart and return populated version
+    const savedCart = await cart.save();
+    
+    return await Cart.findById(savedCart._id)
+      .populate({
+        path: 'items.product',
+        populate: {
+          path: 'supplier productFeaturedImage'
+        }
+      })
+      .populate('items.variation');
+
   } catch (error) {
     console.error('Error saving cart:', error);
     throw error;

@@ -3,6 +3,9 @@ const { validatePaymentIntent, validateKlarnaSession } = require('../validators/
 
 // Create Stripe Payment Intent
 exports.createPaymentIntent = async (req, res) => {
+
+  console.log('createPaymentIntent', req.body);
+  
   try {
     const { error } = validatePaymentIntent(req.body);
     if (error) {
