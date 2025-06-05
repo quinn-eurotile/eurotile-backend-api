@@ -7,11 +7,11 @@ class Order {
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;
+        console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
 
-        const orderStatus = Number(queryParams.orderStatus);
-        if (!isNaN(orderStatus) && [1, 2, 3, 4, 5].includes(orderStatus)) {
-            conditions.push({ orderStatus });
+        if (queryParams?.status !== undefined && queryParams?.status !== "") {
+            conditions.push({ orderStatus: Number(queryParams?.status) });
         }
 
         const paymentStatus = Number(queryParams.paymentStatus);
@@ -103,11 +103,11 @@ class Order {
                                 updatedAt: 1,
                                 createdBy: 1,
                                 updatedBy: 1,
-                                createdByDetails:{
-                                    _id : 1,
-                                    name : 1,
-                                    email : 1,
-                                    userImage : 1
+                                createdByDetails: {
+                                    _id: 1,
+                                    name: 1,
+                                    email: 1,
+                                    userImage: 1
                                 },
                                 orderDetails: {
                                     productId: 1,
@@ -167,6 +167,47 @@ class Order {
             prevPage: page > 1 ? page - 1 : null,
             statusSummary
         };
+    }
+
+    async orderDetails(req) {
+        const orderId = req.params.id;
+
+        if (!orderId) {
+            const error = new Error('Order ID is required.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Fetch the order with full population
+        const order = await orderModel.findById(orderId)
+            .populate([
+                {
+                    path: 'orderDetails' // this must be a field in your Order model
+                },
+                {
+                    path: 'shippingAddress'
+                }
+            ]);
+            // .populate({
+            //     path: 'items.productId',
+            //     model: 'Product', // or 'ProductVariation' if that's what productId refers to
+            //     populate: [
+            //         { path: 'categories', select: 'name' },
+            //         { path: 'attributes', select: 'name' },
+            //         { path: 'attributeVariations', select: 'name' },
+            //         { path: 'variationImages', select: 'fileName fileUrl' },
+            //         { path: 'productFeaturedImage', select: 'fileName fileUrl' },
+            //         { path: 'supplier', select: 'name' }
+            //     ]
+            // })
+
+        if (!order) {
+            const error = new Error('Order not found');
+            error.statusCode = 404;
+            throw error;
+        }
+
+        return order;
     }
 }
 
