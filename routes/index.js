@@ -49,9 +49,13 @@ routes.use(`/api/${API_V}/cart`, cartRoutes);
 const addressRoutes = require('./addressRoutes');
 routes.use(`/api/${API_V}/address`, addressRoutes);
 
-/************* Address route**************/
+/************* Webhook route**************/
 const webhookRoutes = require('./WebhookRoutes');
 routes.use(`/api/${API_V}/webhhok`, webhookRoutes);
+
+/************* PaymentRoutes route**************/
+const paymentRoutes = require('./paymentRoutes');
+routes.use(`/api/${API_V}/payment`, paymentRoutes);
 
 
 module.exports = routes;

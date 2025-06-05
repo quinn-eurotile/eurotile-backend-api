@@ -4,6 +4,22 @@ const orderModel = require('../models/Order');
 
 class Order {
 
+    /** Create a new order */
+    async createOrder(data) {
+        try{
+
+            console.log('data',data);
+            // const order = new orderModel(orderData);
+            // return await order.save();
+        }
+        catch(error){
+            throw {
+                message: error?.message || 'Failed to get product raw data.',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;

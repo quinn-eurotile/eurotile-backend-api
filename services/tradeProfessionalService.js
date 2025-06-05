@@ -14,15 +14,85 @@ class TradeProfessional {
     /** Get All Client For Specific Trade Professional */
     async allClient(req) {
         try {
-            return await User.find({ isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] }, createdBy: req?.user?.id }).sort({ _id: -1 })
-                .populate('createdBy', '_id name status');
+            const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id));
+            const createdById = new mongoose.Types.ObjectId(String(req?.user?.id));
+    
+            const pipeline = [
+                {
+                    $match: {
+                        isDeleted: false,
+                        roles: { $in: [clientRoleId] },
+                        createdBy: createdById
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'addresses',
+                        let: { userId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } },
+                            { $match: { isDefault: true } },
+                            { $limit: 1 }
+                        ],
+                        as: 'addressDetails'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$addressDetails',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users', // assuming createdBy refers to user
+                        localField: 'createdBy',
+                        foreignField: '_id',
+                        as: 'createdBy'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$createdBy',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        email: 1,
+                        phone: 1,
+                        addressDetails: 1,
+                        status: 1,
+                        userId: 1,
+                        isDeleted: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        createdBy: {
+                            _id: '$createdBy._id',
+                            name: '$createdBy.name',
+                            status: '$createdBy.status'
+                        },
+                        updatedBy: 1
+                    }
+                },
+                {
+                    $sort: { _id: -1 }
+                }
+            ];
+    
+            const clients = await User.aggregate(pipeline);
+            return clients;
+    
         } catch (error) {
             throw {
-                message: error?.message || 'Failed to update team member status',
+                message: error?.message || 'Failed to fetch clients',
                 statusCode: error?.statusCode || 500
             };
         }
     }
+    
 
     /** Save A Client */
     async saveClient(req) {

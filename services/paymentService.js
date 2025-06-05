@@ -1,12 +1,12 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Klarna = require('@klarna/node-sdk');
+// const Klarna = require('@klarna/node-sdk');
 
 // Initialize Klarna client
-const klarna = new Klarna({
-  username: process.env.KLARNA_USERNAME,
-  password: process.env.KLARNA_PASSWORD,
-  environment: process.env.NODE_ENV === 'production' ? 'live' : 'playground'
-});
+// const klarna = new Klarna({
+//   username: process.env.KLARNA_USERNAME,
+//   password: process.env.KLARNA_PASSWORD,
+//   environment: process.env.NODE_ENV === 'production' ? 'live' : 'playground'
+// });
 
 class PaymentService {
   // Create Stripe Payment Intent
@@ -27,7 +27,7 @@ class PaymentService {
         success: true,
         data: {
           clientSecret: paymentIntent.client_secret,
-          paymentIntentId: paymentIntent.id
+          paymentIntent: paymentIntent
         }
       };
     } catch (error) {
