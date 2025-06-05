@@ -66,7 +66,8 @@ const saveCartController = async (req, res) => {
   try {
     const { items } = req.body;
     const userId = req.user.id;
-
+    // console.log(userId, 'userId');
+    // return false;
     const updatedCart = await saveCart(userId, items);
 
     res.json({
@@ -95,11 +96,9 @@ const updateCartItemController = async (req, res) => {
         message: 'Cart item not found'
       });
     }
+    return res.status(201).json({ data: updatedCart, message: 'Cart item updated successfully' });
 
-    res.json({
-      success: true,
-      data: updatedCart
-    });
+    
   } catch (error) {
     console.error('Error updating cart item:', error);
     res.status(500).json({

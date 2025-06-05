@@ -1,8 +1,90 @@
 
 const mongoose = require('mongoose');
 const orderModel = require('../models/Order');
+const orderDetailModel = require('../models/OrderDetail');
+const paymentDetailModel = require('../models/PaymentDetail');
 
 class Order {
+
+    /** Create a new order */
+    async createOrder(data) {
+        const orderItems = data.cartItems;
+        const paymentInfo = data.paymentIntent;
+        const userId = data.userId;
+
+        console.log('orderItems', orderItems);
+        console.log('paymentInfo', { ...paymentInfo });
+        console.log('userId', userId);
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            const newData = {
+                orderId : 'EUR-2315656',
+                shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("68414ec3f7976b29062836a1"),
+                paymentMethod: data?.paymentMethod ?? 'stripe',
+                subtotal: data?.subtotal ?? 0,
+                shipping: data?.shipping ?? 0,
+                tax: data?.tax ?? 0,
+                discount: data?.discount ?? 0,
+                total: data?.total ?? 0,
+                promoCode: data?.promoCode ?? null,
+                shippingMethod: data?.shippingMethod ?? null,
+                createdBy: userId,
+                updatedBy: userId,
+            };
+
+            // 1. Save payment detail (without order yet)
+            const paymentDetailDoc = await paymentDetailModel.create(
+                [{ ...paymentInfo }],
+                { session }
+            );
+
+            // 2. Create order (temporarily empty orderDetails)
+            const orderDoc = await orderModel.create(
+                [{
+                    ...newData,
+                    paymentDetail: paymentDetailDoc[0]._id,
+                    orderDetails: [],
+                }],
+                { session }
+            );
+
+            // 3. Link paymentDetail to order
+            await paymentDetailModel.findByIdAndUpdate(
+                paymentDetailDoc[0]._id,
+                { order: orderDoc[0]._id },
+                { session }
+            );
+
+            // 4. Create OrderDetails
+            const orderDetails = await Promise.all(orderItems.map(item =>
+                orderDetailModel.create([{
+                    order: orderDoc[0]._id,
+                    product: item.product?._id,
+                    productVariation: item.variation?._id,
+                    productDetail: JSON.stringify(item.variation)
+                }], { session })
+            ));
+
+            // 5. Update order with orderDetail references
+            orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
+            await orderDoc[0].save({ session });
+
+            await session.commitTransaction();
+            session.endSession();
+
+            return orderDoc[0];
+
+        } catch (error) {
+            console.log('error',error)
+            await session.abortTransaction();
+            session.endSession();
+            // Fix: throw proper Error
+            throw new Error(error?.message || 'Order creation failed');
+        }
+    }
 
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
