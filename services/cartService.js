@@ -13,12 +13,20 @@ async function getCartByUser(userId) {
     .populate('items.variation');
 }
 
-async function saveCart(userId, items = []) {
+async function saveCart(userId, items = [], clientId = null) {
   try {
     let cart = await Cart.findOne({ userId, isDeleted: false });
     
     if (!cart) {
-      cart = new Cart({ userId, items: [] });
+      cart = new Cart({ 
+        userId, 
+        items: [],
+        clientId: clientId,
+        isClientOrder: !!clientId
+      });
+    } else if (clientId) {
+      cart.clientId = clientId;
+      cart.isClientOrder = true;
     }
 
     // Ensure items is an array
@@ -52,23 +60,55 @@ async function saveCart(userId, items = []) {
           continue;
         }
 
-        validatedItems.push({
-          product: product._id,
-          variation: variation._id,
-          quantity: item.quantity || 1,
-          numberOfTiles: item.numberOfTiles || 0,
-          numberOfPallets: item.numberOfPallets || 0,
-          attributes: item.attributes || {},
-          price: item.price || product.minPriceB2C
-        });
+        // Check if similar item exists (same product, variation, and attributes)
+        const existingItemIndex = cart.items.findIndex(cartItem => 
+          cartItem.product.toString() === product._id.toString() &&
+          cartItem.variation.toString() === variation._id.toString() &&
+          JSON.stringify(cartItem.attributes) === JSON.stringify(item.attributes || {})
+        );
+
+        if (existingItemIndex !== -1 && !item.isNewVariation) {
+          // Update existing item
+          cart.items[existingItemIndex].quantity = item.quantity || 1;
+          cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (item.numberOfTiles || 0);
+          cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (item.numberOfPallets || 0);
+          if (item.price) {
+            cart.items[existingItemIndex].price = item.price;
+          }
+        } else {
+          // Add as new item
+          validatedItems.push({
+            product: product._id,
+            variation: variation._id,
+            quantity: item.quantity || 1,
+            numberOfTiles: item.numberOfTiles || 0,
+            numberOfPallets: item.numberOfPallets || 0,
+            attributes: item.attributes || {},
+            price: item.price || (clientId ? variation.regularPriceB2B : variation.regularPriceB2C),
+            isNewVariation: item.isNewVariation || false
+          });
+        }
       } catch (error) {
         console.error('Error validating cart item:', error);
         continue;
       }
     }
 
-    cart.items = validatedItems;
-    return await cart.save();
+    // Add new items to cart
+    cart.items.push(...validatedItems);
+
+    // Save cart and return populated version
+    const savedCart = await cart.save();
+    
+    return await Cart.findById(savedCart._id)
+      .populate({
+        path: 'items.product',
+        populate: {
+          path: 'supplier productFeaturedImage'
+        }
+      })
+      .populate('items.variation');
+
   } catch (error) {
     console.error('Error saving cart:', error);
     throw error;
@@ -102,7 +142,7 @@ async function removeCartItem(itemId) {
   return await cart.save();
 }
 
-async function addItemToCart(userId, productId, variationId, quantity, attributes = {}, price = null) {
+async function addItemToCart(userId, productId, variationId, quantity, attributes = {}, price = null, isNewVariation = false) {
   try {
     // Find existing cart or create new one
     let cart = await Cart.findOne({ userId, isDeleted: false })
@@ -140,15 +180,19 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
       attributes: attributes,
       numberOfTiles: attributes.numberOfTiles || 0,
       numberOfPallets: attributes.numberOfPallets || 0,
-      price: price || product.minPriceB2C
+      price: price || product.minPriceB2C,
+      isNewVariation: isNewVariation
     };
 
-    if (existingItemIndex !== -1) {
+    if (existingItemIndex !== -1 && !isNewVariation) {
       // Update existing item quantity
       cart.items[existingItemIndex].quantity += quantity;
       // Update other properties if needed
       cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (attributes.numberOfTiles || 0);
       cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (attributes.numberOfPallets || 0);
+      if (price) {
+        cart.items[existingItemIndex].price = price;
+      }
     } else {
       // Add as new item
       cart.items.push(newItem);

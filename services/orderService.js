@@ -64,7 +64,7 @@ class Order {
                     order: orderDoc[0]._id,
                     product: item.product?._id,
                     productVariation: item.variation?._id,
-                    productDetail: item.variation?.description || ''
+                    productDetail: JSON.stringify(item.variation)
                 }], { session })
             ));
 

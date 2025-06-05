@@ -16,7 +16,7 @@ class TradeProfessional {
         try {
             const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id));
             const createdById = new mongoose.Types.ObjectId(String(req?.user?.id));
-    
+     
             const pipeline = [
                 {
                     $match: {
@@ -81,10 +81,10 @@ class TradeProfessional {
                     $sort: { _id: -1 }
                 }
             ];
-    
+     
             const clients = await User.aggregate(pipeline);
             return clients;
-    
+     
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to fetch clients',
