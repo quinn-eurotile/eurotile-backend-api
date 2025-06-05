@@ -67,7 +67,9 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ['standard', 'express', 'overnight'],
     required: true
-  }
+  },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
   timestamps: true
 });
