@@ -8,6 +8,8 @@ const orderDetailSchema = new Schema({
         ref: 'Product',
         default: null,
     },
+    price : { type: Number, default: 0 },
+    quantity : { type: Number, default: 0 },
     productVariation: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ProductVariation',
