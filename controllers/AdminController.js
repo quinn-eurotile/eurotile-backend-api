@@ -9,6 +9,7 @@ const Fs = require('fs');
 const writeFileAsync = util.promisify(Fs.writeFile);
 const AdminSetting = require("../models/AdminSetting");
 const commonService = require('../services/commonService');
+const constants = require('../configs/constant');
 
 module.exports = class AdminController {
 
@@ -102,8 +103,21 @@ module.exports = class AdminController {
     async getTradeProfessionalById(req, res) {
         try {
             const userId = req?.params?.id;
-            const data = await tradeProfessionalService.getTradeProfessionalById(userId);
-            return res.status(200).json({ message: 'Trade professional get successfully', data: data });
+            const user = await userService.getUserById(userId, '', { roles : '_id name'});
+            let data;
+            let message;
+
+             const roles = user?.roles?.map((el) => el?.id);
+                        
+            if(roles?.includes(constants?.adminRole?.id)){
+                    data = user
+                    message = 'Admin get successfully';
+            }else{
+                    data = await tradeProfessionalService.getTradeProfessionalById(userId);
+                    message = 'Trade professional get successfully';
+            }
+            
+            return res.status(200).json({ message: message, data: data });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
@@ -308,10 +322,12 @@ module.exports = class AdminController {
     async resetPassword(req, res) {
         try {
             req.body.for_which_role = 'admin';
-            console.log('req.body', req.body);
             
             await userService.resetPassword(req);
-            return res.status(200).json({ message: 'Password reset successfully' });
+            return res.status(200).json({
+                success: true,
+                message: 'Password reset successfully'
+            });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
