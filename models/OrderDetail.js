@@ -2,18 +2,18 @@ const mongoose = require("mongoose"), Schema = mongoose.Schema;
 const mongoosePaginate = require("mongoose-paginate-v2");
 
 const orderDetailSchema = new Schema({
-    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null  },
     product: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product',
-        required: true,
+        default: null,
     },
     productVariation: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ProductVariation',
-        required: true
+        default: null,
     },
-    productDetail: { type: String, required : true }, // get all details from the prduct variations include their attributes
+    productDetail: { type: String, default : null }, // get all details from the prduct variations include their attributes
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 }, {
