@@ -2,24 +2,83 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const ProductVariation = require('../models/ProductVariation');
 
+// async function getCartByUser(userId) {
+//   return await Cart.findOne({ userId, isDeleted: false })
+//     .populate({
+//       path: 'items.product',
+//       populate: {
+//         path: 'supplier productFeaturedImage'
+//       }
+//     })
+//     .populate('items.variation');
+// }
+// async function getCartByUser(userId) {
+//   return await Cart.findOne({ userId, isDeleted: false })
+//     .populate([
+//       {
+//         path: 'items.product',
+//         populate: {
+//           path: 'supplier productFeaturedImage'
+//         }
+//       },
+//       {
+//       path: 'items.variation',
+//       populate: {
+//         path: 'variationImages' // Adjust this path to match your schema!
+//       }
+//     },
+//     {
+//       path: 'items.variation.attributeVariations',
+//       populate: {
+//         path: 'attributeVariations' // Adjust this path to match your schema!
+//       }
+//     }
+//     ])
+// }
+
 async function getCartByUser(userId) {
   return await Cart.findOne({ userId, isDeleted: false })
-    .populate({
-      path: 'items.product',
-      populate: {
-        path: 'supplier productFeaturedImage'
+    .populate([
+      {
+        path: 'items.product',
+        populate: [
+          { path: 'supplier' },
+          { path: 'productFeaturedImage' }
+        ]
+      },
+      {
+        path: 'items.variation',
+        populate: [
+          { path: 'variationImages' ,
+            select: 'fileName filePath _id isDeleted isFeaturedImage'
+          },
+          { path: 'productFeaturedImage'
+         
+
+           },
+          { path: 'categories' ,
+               select: 'name parent _id isDeleted'
+          },
+          { path: 'attributes' },
+          {
+            path: 'attributeVariations',
+            populate: [
+              { path: 'productAttribute' },
+              { path: 'productMeasurementUnit' }
+            ]
+          }
+        ]
       }
-    })
-    .populate('items.variation');
+    ]);
 }
 
 async function saveCart(userId, items = [], clientId = null) {
   try {
     let cart = await Cart.findOne({ userId, isDeleted: false });
-    
+
     if (!cart) {
-      cart = new Cart({ 
-        userId, 
+      cart = new Cart({
+        userId,
         items: [],
         clientId: clientId,
         isClientOrder: !!clientId
@@ -31,7 +90,7 @@ async function saveCart(userId, items = [], clientId = null) {
 
     // Ensure items is an array
     const itemsArray = Array.isArray(items) ? items : [items];
-    
+
     // Skip validation if items array is empty
     if (itemsArray.length === 0) {
       cart.items = [];
@@ -61,7 +120,7 @@ async function saveCart(userId, items = [], clientId = null) {
         }
 
         // Check if similar item exists (same product, variation, and attributes)
-        const existingItemIndex = cart.items.findIndex(cartItem => 
+        const existingItemIndex = cart.items.findIndex(cartItem =>
           cartItem.product.toString() === product._id.toString() &&
           cartItem.variation.toString() === variation._id.toString() &&
           JSON.stringify(cartItem.attributes) === JSON.stringify(item.attributes || {})
@@ -99,7 +158,7 @@ async function saveCart(userId, items = [], clientId = null) {
 
     // Save cart and return populated version
     const savedCart = await cart.save();
-    
+
     return await Cart.findById(savedCart._id)
       .populate({
         path: 'items.product',
@@ -136,8 +195,8 @@ async function updateCartItem(itemId, quantity) {
 
 async function removeCartItem(itemId) {
   const cart = await Cart.findOne({ 'items._id': itemId });
-  console.log(cart,itemId, 'cartcartcart');
-  
+  console.log(cart, itemId, 'cartcartcart');
+
   if (!cart) return null;
 
   cart.items = cart.items.filter(item => item._id.toString() !== itemId);
@@ -155,7 +214,7 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
         }
       })
       .populate('items.variation');
-    
+
     if (!cart) {
       cart = new Cart({ userId, items: [] });
     }
@@ -168,7 +227,7 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
     if (!variation) throw new Error('Product variation not found');
 
     // Find existing item with exact same product, variation, and attributes match
-    const existingItemIndex = cart.items.findIndex(item => 
+    const existingItemIndex = cart.items.findIndex(item =>
       item.product._id.toString() === productId.toString() &&
       item.variation._id.toString() === variationId.toString() &&
       JSON.stringify(item.attributes) === JSON.stringify(attributes)

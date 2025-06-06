@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const orderModel = require('../models/Order');
 const orderDetailModel = require('../models/OrderDetail');
@@ -7,10 +6,11 @@ const paymentDetailModel = require('../models/PaymentDetail');
 class Order {
 
     /** Create a new order */
-    async createOrder(data) {
+    async createOrderOld(data) {
         const orderItems = data?.cartItems;
         const paymentInfo = data?.paymentIntent;
-        const userId = data?.userId;
+        const orderData = data?.orderData;
+        const userId = orderData?.userId;
 
         console.log('orderItems', orderItems);
         console.log('paymentInfo', { ...paymentInfo });
@@ -21,24 +21,32 @@ class Order {
 
         try {
             const newData = {
-                orderId: paymentInfo?.metadata?.orderId,
+                orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
                 commission: data?.commission ?? 0,
-                shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("684003b37728f8e7d48b295e"),
-                paymentMethod: data?.paymentMethod ?? 'stripe',
-                subtotal: data?.subtotal ?? 0,
-                shipping: data?.shipping ?? 0,
-                tax: data?.tax ?? 0,
-                discount: data?.discount ?? 0,
-                total: data?.total ?? 0,
-                promoCode: data?.promoCode ?? null,
-                shippingMethod: data?.shippingMethod ?? null,
+                shippingAddress: orderData?.shippingAddress || null,
+                paymentMethod: orderData?.paymentMethod || 'stripe',
+                paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
+                orderStatus: 3, // New order
+                subtotal: orderData?.subtotal ?? 0,
+                shipping: orderData?.shipping ?? 0,
+                tax: orderData?.tax ?? 0,
+                discount: orderData?.discount ?? 0,
+                total: orderData?.total ?? 0,
+                promoCode: orderData?.promoCode ?? null,
+                shippingMethod: orderData?.shippingMethod ?? 'standard',
                 createdBy: userId,
                 updatedBy: userId,
             };
 
-            // 1. Save payment detail (without order yet)
+            // 1. Save payment detail
             const paymentDetailDoc = await paymentDetailModel.create(
-                [{ ...paymentInfo }],
+                [{ 
+                    ...paymentInfo,
+                    amount: paymentInfo.amount / 100, // Convert from cents back to dollars
+                    status: paymentInfo.status,
+                    paymentMethod: orderData?.paymentMethod,
+                    createdBy: userId
+                }],
                 { session }
             );
 
@@ -59,7 +67,7 @@ class Order {
                 { session }
             );
 
-            // 4. Create OrderDetails
+            // 4. Create OrderDetails with all required fields
             const orderDetails = await Promise.all(orderItems.map(item =>
                 orderDetailModel.create([{
                     order: orderDoc[0]._id,
@@ -67,7 +75,17 @@ class Order {
                     price: item?.price ?? 0,
                     quantity: item?.quantity ?? 0,
                     productVariation: item.variation?._id,
-                    productDetail: JSON.stringify(item.variation)
+                    productImages: item.productImages || '',
+                    productDetail: JSON.stringify({
+                        ...item.variation,
+                        product: {
+                            name: item.product?.name,
+                            sku: item.product?.sku,
+                            description: item.product?.description
+                        }
+                    }),
+                    createdAt: new Date(),
+                    updatedAt: new Date()
                 }], { session })
             ));
 
@@ -78,16 +96,126 @@ class Order {
             await session.commitTransaction();
             session.endSession();
 
-            return orderDoc[0];
+            // Return populated order
+            return await orderModel
+                .findById(orderDoc[0]._id)
+                .populate('orderDetails')
+                .populate('shippingAddress')
+                .populate('paymentDetail')
+                .populate('createdBy', 'name email');
 
         } catch (error) {
-            console.log('error', error);
+            console.error('Order creation error:', error);
             await session.abortTransaction();
             session.endSession();
-            // Fix: throw proper Error
             throw new Error(error?.message || 'Order creation failed');
         }
     }
+async createOrder(data) {
+  const orderItems = data?.cartItems;
+  const paymentInfo = data?.paymentIntent;
+  const orderData = data?.orderData;
+  const userId = orderData?.userId;
+
+  console.log('orderData', orderData);
+  console.log('orderItems', orderItems);
+  console.log('paymentInfo', { ...paymentInfo });
+  console.log('userId', userId);
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const newData = {
+      orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
+      commission: data?.commission ?? 0,
+      shippingAddress: orderData?.shippingAddress || null,
+      paymentMethod: orderData?.paymentMethod || 'stripe',
+      paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
+      orderStatus: 3,
+      subtotal: orderData?.subtotal ?? 0,
+      shipping: orderData?.shipping ?? 0,
+      tax: orderData?.tax ?? 0,
+      discount: orderData?.discount ?? 0,
+      total: orderData?.total ?? 0,
+      promoCode: orderData?.promoCode ?? null,
+      shippingMethod: orderData?.shippingMethod ?? 'standard',
+      createdBy: userId,
+      updatedBy: userId,
+    };
+ 
+  // 1. Save payment detail
+        const paymentDetailDoc = await paymentDetailModel.create(
+            [{ 
+                ...paymentInfo,
+                amount: paymentInfo.amount / 100, // Convert from cents back to dollars
+                status: paymentInfo.status,
+                paymentMethod: orderData?.paymentMethod,
+                createdBy: userId
+            }],
+            { session }
+        );
+          // 2. Create order (temporarily empty orderDetails)
+          const orderDoc = await orderModel.create(
+            [{
+                ...newData,
+                paymentDetail: paymentDetailDoc[0]._id,
+                orderDetails: [],
+            }],
+            { session }
+        );
+      // 3. Link paymentDetail to order
+      await paymentDetailModel.findByIdAndUpdate(
+            paymentDetailDoc[0]._id,
+            { order: orderDoc[0]._id },
+            { session }
+        );
+        // 4. Create OrderDetails with all required fields
+        const orderDetails = await Promise.all(orderItems.map(item =>
+            orderDetailModel.create([{
+                order: orderDoc[0]._id,
+                product: item.product?._id,
+                price: item?.price ?? 0,
+                quantity: item?.quantity ?? 0,
+                productVariation: item.variation?._id,
+                productImages: item.productImages || '',
+                productDetail: JSON.stringify({
+                    ...item.variation,
+                    product: {
+                        name: item.product?.name,
+                        sku: item.product?.sku,
+                        description: item.product?.description
+                    }
+                }),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }], { session })
+        ));
+
+         // 5. Update order with orderDetail references
+         orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
+         await orderDoc[0].save({ session });
+
+
+
+            await session.commitTransaction();
+            session.endSession();
+
+                      // Return populated order
+       return await orderModel
+        .findById(orderDoc[0]._id)
+        .populate('orderDetails')
+        .populate('shippingAddress')
+        .populate('paymentDetail')
+        .populate('createdBy', 'name email');
+      
+
+    // Continue as needed...
+
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
+}
 
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
