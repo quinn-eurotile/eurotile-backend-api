@@ -185,14 +185,13 @@ class Order {
                         // Select required fields
                         {
                             $project: {
-                                orderNumber: 1,
+                                orderId: 1,
                                 commission: 1,
                                 totalCommission: 1,
-                                totalAmount: 1,
+                                total: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
                                 shippingAddress: 1,
-                                totalAmount: 1,
                                 createdAt: 1,
                                 updatedAt: 1,
                                 createdBy: 1,
@@ -276,7 +275,9 @@ class Order {
         const order = await orderModel.findById(orderId)
             .populate([
                 { path: 'orderDetails' },
-                { path: 'shippingAddress' }
+                { path: 'shippingAddress' },
+                { path: 'createdBy' },
+                { path: 'updatedBy' }
             ]);
 
         if (!order) {
