@@ -429,7 +429,13 @@ class Product {
 
     /** Create Product */
     async createProduct(req) {
-        // console.log(req.body,'.................................');
+
+
+
+        // console.log(req.body,' aramy .................................');
+        // console.log(newSample,' newSample .................................');
+
+        // return false
         try {
             let {
                 productVariations = [],
@@ -540,16 +546,42 @@ class Product {
             product.productFeaturedImage = featuredImageId ? new mongoose.Types.ObjectId(featuredImageId) : null;
 
             // Sample usage:
-            // delete req?.body?.samples?.free
-            // if(req?.body?.allowSample){
-            //     let newSample;
-            //     if(typeof req.body.samples === 'string'){
-            //         newSample = JSON.parse(req.body.samples)
-            //         delete newSample.free
-            //     }
-            //   product.samples = newSample;
-            // }
-           
+
+            // Check if allowSample is true before updating samples
+            if (req?.body?.allowSample === "true") {
+                let newSample;
+                let inputSamples = req.body.samples;
+
+                // Parse if input is a JSON string
+                if (typeof inputSamples === 'string') {
+                    try {
+                        inputSamples = JSON.parse(inputSamples);
+                    } catch (err) {
+                        return res.status(400).json({ message: 'Invalid samples JSON' });
+                    }
+                }
+
+                // Merge provided values with default structure
+                newSample = {
+                    small: {
+                        enabled: true,
+                        freePerMonth: inputSamples?.small?.freePerMonth ?? true,
+                        price: Number(inputSamples?.small?.price) || 0 // always 0 for small sample
+                    },
+                    large: {
+                        enabled: true,
+                        priceType: inputSamples?.large?.priceType ?? 'fixed',
+                        price: Number(inputSamples?.large?.price) || 0
+                    },
+                    full: {
+                        enabled: true,
+                        priceType: inputSamples?.full?.priceType ?? 'fixed',
+                        price: Number(inputSamples?.full?.price) || 0
+                    }
+                };
+                product.samples = newSample;
+            }
+
             await product.save();
 
             return product;
@@ -662,8 +694,8 @@ class Product {
             }
 
 
-            
-              
+
+
 
 
 
@@ -744,7 +776,7 @@ class Product {
                         baseVariationData.variationImages = [
                             ...(checkExistingVariationData?.variationImages || []),
                             ...variationImageIds
-                        ]
+                        ];
 
                     }
 
@@ -882,33 +914,33 @@ class Product {
     }
 
     /** Get Product List */
-    async exportCsv() { 
+    async exportCsv() {
         try {
-        const products = await productModel.find({ isDeleted: false })
-            .populate("supplier")
-            .populate("categories")
-            .populate("attributes")
-            .populate({
-                path: "attributeVariations",
-                populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
-            })
-            .populate({
-                path: "productVariations",
-                populate: [
-                   /*  { path: "supplier" }, */
-                    { path: "categories" },
-                    { path: "attributes" },
-                    {
-                        path: "attributeVariations",
-                        populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
-                    },
-                    { path: "variationImages" },
-                    { path: "productFeaturedImage" },
-                ],
-            })
-            .populate("productFeaturedImage")
-            .lean()
-            return products
+            const products = await productModel.find({ isDeleted: false })
+                .populate("supplier")
+                .populate("categories")
+                .populate("attributes")
+                .populate({
+                    path: "attributeVariations",
+                    populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
+                })
+                .populate({
+                    path: "productVariations",
+                    populate: [
+                        /*  { path: "supplier" }, */
+                        { path: "categories" },
+                        { path: "attributes" },
+                        {
+                            path: "attributeVariations",
+                            populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
+                        },
+                        { path: "variationImages" },
+                        { path: "productFeaturedImage" },
+                    ],
+                })
+                .populate("productFeaturedImage")
+                .lean();
+            return products;
         } catch (error) {
             throw {
                 message: error?.message || 'Something went wrong while fetching products',
@@ -1110,7 +1142,7 @@ class Product {
                             _id: 1,
                             filePath: 1
                         },
-                        productVariations:1,
+                        productVariations: 1,
                         featuredImage: {
                             _id: 1,
                             filePath: 1,
