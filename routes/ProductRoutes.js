@@ -16,6 +16,8 @@ router.get('/raw/data', multer().any(), productController.getProductRawData);
 router.delete('/:id', multer().any(),auth, productController.deleteProduct);
 router.get('/:id', multer().any(), auth, productController.getProduct);
 
+router.get('/export/csv', multer().any(), auth, productController.exportCsv);
+
 
 /* These routes are for product attributes */
 router.post('/attribute', multer().any(), auth, productValidation.saveAttribute, productController.createProductAttribute);

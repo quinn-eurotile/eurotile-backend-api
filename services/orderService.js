@@ -8,6 +8,8 @@ class Order {
 
     /** Create a new order */
     async createOrder(data) {
+        console.log(data, 'data');
+        
         const orderItems = data.cartItems;
         const paymentInfo = data.paymentIntent;
         const userId = data.userId;
