@@ -86,10 +86,13 @@ const saveCartController = async (req, res) => {
 // Update cart item
 const updateCartItemController = async (req, res) => {
   try {
-    const { itemId } = req.params;
-    const { quantity } = req.body;
+    // const { itemId } = req.params;
+    const { id ,quantity } = req.body;
 
-    const updatedCart = await updateCartItem(itemId, quantity);
+    // console.log(req.params, req.body ,'req.bodyreq.body');
+    
+
+    const updatedCart = await updateCartItem(id, quantity);
     if (!updatedCart) {
       return res.status(404).json({
         success: false,
@@ -111,9 +114,9 @@ const updateCartItemController = async (req, res) => {
 // Remove cart item
 const removeCartItemController = async (req, res) => {
   try {
-    const { itemId } = req.params;
-
-    const updatedCart = await removeCartItem(itemId);
+    const { id } = req.params;
+ 
+    const updatedCart = await removeCartItem(id);
     if (!updatedCart) {
       return res.status(404).json({
         success: false,
