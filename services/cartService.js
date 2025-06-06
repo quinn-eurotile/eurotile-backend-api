@@ -195,7 +195,7 @@ async function updateCartItem(itemId, quantity) {
 
 async function removeCartItem(itemId) {
   const cart = await Cart.findOne({ 'items._id': itemId });
-  console.log(cart, itemId, 'cartcartcart');
+  // console.log(cart, itemId, 'cartcartcart');
 
   if (!cart) return null;
 

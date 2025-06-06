@@ -62,7 +62,7 @@ class RolePermissionService {
 
             return { roles, permissions };
         } catch (error) {
-            console.log(error, "error in getRawData");
+            // console.log(error, "error in getRawData");
             throw error;
         }
     }
@@ -96,7 +96,7 @@ class RolePermissionService {
                 return newRole;
             }
         } catch (error) {
-            console.log(error, "error in saveRole");
+            // console.log(error, "error in saveRole");
             throw error;
         }
     }

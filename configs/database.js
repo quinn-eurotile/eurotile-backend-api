@@ -12,8 +12,8 @@ mongoose
     .then(async () => {
         await ProductMeasurementUnit.deleteMany(); // optional: clears collection
         await ProductMeasurementUnit.insertMany(constants?.measurementUnit);
-        console.log("database connection successful", MONGO_URI);
+        // console.log("database connection successful", MONGO_URI);
     })
     .catch((err) => {
-        console.log("database connection failed", err);
+        // console.log("database connection failed", err);
     });

@@ -17,7 +17,7 @@ module.exports = class AdminController {
     /** Get Current Settings */
     async settingsList(req, res) {
         try {
-            console.log('I am here')
+            // console.log('I am here')
             const settings = await AdminSetting.findOne();
             if (!settings) {
                 return res.status(404).json({ message: 'No settings found' });
@@ -71,7 +71,7 @@ module.exports = class AdminController {
     /** Update Tax Record Status **/
     async updateTradeProfessionalBusinessStatus(req, res) {
         try {
-            console.log(req.params.id);
+            // console.log(req.params.id);
             let message = "Business Account Rejected";
             if (req.body.status === 1) {
                 message = "Business Account Approved";
@@ -296,7 +296,7 @@ module.exports = class AdminController {
     /** Login User Method **/
     async loginUser(req, res) {
         try {
-            console.log('req.body', req.body);
+            // console.log('req.body', req.body);
             req.body.for_which_role = 'admin';
             const data = await userService.authenticateUser(req);
             return res.status(200).json({ message: 'You are successfully logged in', data: data.user, access_token: data.access_token });
@@ -314,7 +314,7 @@ module.exports = class AdminController {
             forgotPasswordEmail(req, token);
             return res.status(200).json({ statusCode: 200, message: 'Password reset email sent successfully' });
         } catch (error) {
-            console.log('message: error.message',  error.message);
+            // console.log('message: error.message',  error.message);
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }

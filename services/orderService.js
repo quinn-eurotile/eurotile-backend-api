@@ -12,9 +12,9 @@ class Order {
         const orderData = data?.orderData;
         const userId = orderData?.userId;
 
-        console.log('orderItems', orderItems);
-        console.log('paymentInfo', { ...paymentInfo });
-        console.log('userId', userId);
+        // console.log('orderItems', orderItems);
+        // console.log('paymentInfo', { ...paymentInfo });
+        // console.log('userId', userId);
 
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -117,10 +117,10 @@ class Order {
         const orderData = data?.orderData;
         const userId = orderData?.userId;
 
-        console.log('orderData', orderData);
-        console.log('orderItems', orderItems);
-        console.log('paymentInfo', { ...paymentInfo });
-        console.log('userId', userId);
+        // console.log('orderData', orderData);
+        // console.log('orderItems', orderItems);
+        // console.log('paymentInfo', { ...paymentInfo });
+        // console.log('userId', userId);
 
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -222,7 +222,7 @@ class Order {
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;
-        console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
+        // console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
 
         if (queryParams?.status !== undefined && queryParams?.status !== "") {

@@ -429,7 +429,7 @@ class Product {
 
     /** Create Product */
     async createProduct(req) {
-        console.log(req.body,'.................................');
+        // console.log(req.body,'.................................');
         try {
             let {
                 productVariations = [],

@@ -66,7 +66,7 @@ const saveCartController = async (req, res) => {
   try {
     const { items } = req.body;
     const userId = req.user.id;
-    // console.log(userId, 'userId');
+    // // console.log(userId, 'userId');
     // return false;
     const updatedCart = await saveCart(userId, items);
 
@@ -89,7 +89,7 @@ const updateCartItemController = async (req, res) => {
     // const { itemId } = req.params;
     const { id ,quantity } = req.body;
 
-    // console.log(req.params, req.body ,'req.bodyreq.body');
+    // // console.log(req.params, req.body ,'req.bodyreq.body');
     
 
     const updatedCart = await updateCartItem(id, quantity);

@@ -27,7 +27,7 @@ const register = (req, res, next) => {
 
 const saveCustomer = (req, res, next) => {
     const id = req?.params?.id; // this will be undefined if creating
-    console.log('id',id)
+    // console.log('id',id)
     // Normalize phone number
     if (req.body.phone && typeof req.body.phone === 'string') {
         req.body.phone = req.body.phone.replace(/[^\d]/g, ''); // Keep only digits
@@ -174,7 +174,7 @@ const userRoleValidate = (req, res, next) => {
             });
         } else {
             // Proceed to the next middleware if validation passes
-            console.log('I am here again');
+            // console.log('I am here again');
             next();
         }
     });

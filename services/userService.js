@@ -220,7 +220,7 @@ class UserService {
 			await user.save();
 			return token;
 		} catch (error) {
-			console.log('Bingo',error)
+			// console.log('Bingo',error)
 			throw {
 				message: error?.message || 'Failed to update team member status',
 				statusCode: error?.statusCode || 500
@@ -243,7 +243,7 @@ class UserService {
 			}
 
 			const user = await userModel.findOne({ token });
-			console.log('useruseruser', user);
+			// console.log('useruseruser', user);
 			
 			if (!user) {
 				throw {

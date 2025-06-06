@@ -66,7 +66,7 @@ class Tax {
     async buildTaxListQuery(req) {
         const query = req.query;
 
-        // console.log('query build',query)
+        // // console.log('query build',query)
         const conditionArr = [{ isDeleted: false },];
         if (query.status !== undefined) {
             if (query.status === "0" || query.status === 0) {
@@ -92,10 +92,7 @@ class Tax {
             conditionArr.push({ $or: searchConditions });
         }
 
-        console.log('conditionArr', [
-            { customerType: new RegExp(query.search_string, "i") },
-            { taxPercentage: new RegExp(query.search_string, "i") },
-        ]);
+       
 
         // Construct the final query
         let builtQuery = {};
@@ -110,7 +107,7 @@ class Tax {
 
     async taxList(query, options) {
         try {
-            console.log('query', query);
+            // console.log('query', query);
             return await taxModel.paginate(query, options);
         } catch (error) {
             throw error;

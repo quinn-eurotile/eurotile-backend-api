@@ -29,7 +29,7 @@ class CommonService {
     /**   * Update current user's profile   * @param {Object} req   */
     async updateUserProfile(req) {
         try {
-            console.log("Uploaded file:", req.file); // debug
+            // console.log("Uploaded file:", req.file); // debug
             const userId = req?.user?.id;
             const updateData = req.body;
 

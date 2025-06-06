@@ -22,18 +22,18 @@ module.exports = class WebhookController {
             switch (event.type) {
                 case 'payment_intent.canceled':
                     const paymentIntentCreated = event.data.object;
-                    console.log('PaymentIntent was canceled!', paymentIntentCreated);
+                    // console.log('PaymentIntent was canceled!', paymentIntentCreated);
                     await new WebhookController().updatePaymentStatus(paymentIntentCreated);
                     break;
 
                 case 'payment_intent.succeeded':
                     const paymentIntentSucceeded = event.data.object;
-                    console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
+                    // console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
                     await new WebhookController().updatePaymentStatus(paymentIntentSucceeded, true);
                     break;
 
                 default:
-                    console.log(`Unhandled event type ${event.type}`);
+                    // console.log(`Unhandled event type ${event.type}`);
             }
             return res.status(200).send({ message: 'Webhook processed successfully' });
         } catch (err) {
@@ -72,7 +72,7 @@ module.exports = class WebhookController {
             }
 
             await order.save();
-            console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
+            // console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
         } catch (error) {
             console.error('Error updating payment status:', error);
             throw error;

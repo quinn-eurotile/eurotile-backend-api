@@ -107,7 +107,7 @@ class TradeProfessional {
             if (id) {
                 // Update existing client
                 client = await User.findById(id);
-                console.log(client, 'pehle client');
+                // console.log(client, 'pehle client');
                 if (!client) throw { message: 'Client not found', statusCode: 404 };
 
                 client.name = name ?? client.name;
@@ -236,7 +236,7 @@ class TradeProfessional {
             ]);
             const totalDocs = totalCountAgg[0]?.total || 0;
 
-            console.log('data', data);
+            // console.log('data', data);
 
             const result = {
                 docs: data,
@@ -251,7 +251,7 @@ class TradeProfessional {
             return result;
 
         } catch (error) {
-            console.log(error, 'error');
+            // console.log(error, 'error');
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
@@ -364,7 +364,7 @@ class TradeProfessional {
             return result;
 
         } catch (error) {
-            console.log(error, 'error');
+            // console.log(error, 'error');
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
@@ -373,7 +373,7 @@ class TradeProfessional {
     }
 
     mapMimeType(mime) {
-        console.log(mime, 'mimemimemimemime');
+        // console.log(mime, 'mimemimemimemime');
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';

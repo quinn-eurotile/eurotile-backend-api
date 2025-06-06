@@ -12,9 +12,9 @@ class Order {
         const paymentInfo = data?.paymentIntent;
         const userId = data?.userId;
 
-        console.log('orderItems', orderItems);
-        console.log('paymentInfo', { ...paymentInfo });
-        console.log('userId', userId);
+        // console.log('orderItems', orderItems);
+        // console.log('paymentInfo', { ...paymentInfo });
+        // console.log('userId', userId);
 
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -81,7 +81,7 @@ class Order {
             return orderDoc[0];
 
         } catch (error) {
-            console.log('error', error);
+            // console.log('error', error);
             await session.abortTransaction();
             session.endSession();
             // Fix: throw proper Error
@@ -92,7 +92,7 @@ class Order {
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;
-        console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
+        // console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
 
         if (queryParams?.status !== undefined && queryParams?.status !== "") {

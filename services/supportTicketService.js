@@ -12,7 +12,7 @@ class SupportTicket {
 
     async getChatByTicket(req) {
         try {
-            // console.log('req.params', req.params);
+            // // console.log('req.params', req.params);
             
             const { page = 1, limit = 20 } = req.params;
             const skip = (page - 1) * limit;
@@ -148,7 +148,7 @@ class SupportTicket {
     
 
     async uploadTicketFile(file, ticketId) {
-        console.log('file-------', file);
+        // console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -215,7 +215,7 @@ class SupportTicket {
             fileSize: 0
         };
 
-        console.log('files------------', files);
+        // console.log('files------------', files);
 
         if (files.length > 0 && files[0]?.buffer) {
             fileData = await this.uploadTicketFile(files[0], ticketDoc._id);

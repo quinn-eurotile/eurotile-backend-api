@@ -168,7 +168,7 @@ class SupplierService {
             return result;
 
         } catch (error) {
-            console.log(error, 'error');
+            // console.log(error, 'error');
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
