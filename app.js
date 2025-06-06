@@ -27,8 +27,8 @@ app.use(cookieParser());
 /***for parsing application/json***/
 // Move the general body parser after the webhook route
 // app.use(BodyParser.json());
-app.use(BodyParser.raw({ type: 'application/json' }));
-// app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
+// app.use(BodyParser.raw({ type: 'application/json' }));
+app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 /*****for parsing application/xwww-*****/
 app.use(BodyParser.urlencoded({ limit: "50mb", extended: true }));
 // Setting the app router and static folder
