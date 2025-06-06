@@ -870,6 +870,42 @@ class Product {
     }
 
     /** Get Product List */
+    async exportCsv() { 
+        try {
+        const products = await productModel.find({ isDeleted: false })
+            .populate("supplier")
+            .populate("categories")
+            .populate("attributes")
+            .populate({
+                path: "attributeVariations",
+                populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
+            })
+            .populate({
+                path: "productVariations",
+                populate: [
+                   /*  { path: "supplier" }, */
+                    { path: "categories" },
+                    { path: "attributes" },
+                    {
+                        path: "attributeVariations",
+                        populate: [{ path: "productAttribute" }, { path: "productMeasurementUnit" }],
+                    },
+                    { path: "variationImages" },
+                    { path: "productFeaturedImage" },
+                ],
+            })
+            .populate("productFeaturedImage")
+            .lean()
+            return products
+        } catch (error) {
+            throw {
+                message: error?.message || 'Something went wrong while fetching products',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    /** Get Product List */
     async productList(req, query, options) {
         try {
             const {
@@ -1062,6 +1098,7 @@ class Product {
                             _id: 1,
                             filePath: 1
                         },
+                        productVariations:1,
                         featuredImage: {
                             _id: 1,
                             filePath: 1,
