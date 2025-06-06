@@ -1,4 +1,4 @@
-const { generateSku } = require('../_helpers/common');
+
 const orderService = require('../services/orderService');
 const paymentService = require('../services/paymentService');
 const { validatePaymentIntent, validateKlarnaSession } = require('../validators/paymentValidator');

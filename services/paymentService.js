@@ -1,4 +1,4 @@
-const { generateSku } = require('../_helpers/common');
+const { generateOrderId } = require('../_helpers/common');
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // const Klarna = require('@klarna/node-sdk');
@@ -15,7 +15,7 @@ class PaymentService {
   async createPaymentIntent({ amount, currency, customerId, saveCard }) {
     try {
 
-      const orderId = generateSku();
+      const orderId = generateOrderId();
       // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
