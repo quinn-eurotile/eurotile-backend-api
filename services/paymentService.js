@@ -1,32 +1,34 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const Klarna = require('@klarna/node-sdk');
+// const Klarna = require('@klarna/node-sdk');
 
 // Initialize Klarna client
-const klarna = new Klarna({
-  username: process.env.KLARNA_USERNAME,
-  password: process.env.KLARNA_PASSWORD,
-  environment: process.env.NODE_ENV === 'production' ? 'live' : 'playground'
-});
+// const klarna = new Klarna({
+//   username: process.env.KLARNA_USERNAME,
+//   password: process.env.KLARNA_PASSWORD,
+//   environment: process.env.NODE_ENV === 'production' ? 'live' : 'playground'
+// });
 
 class PaymentService {
   // Create Stripe Payment Intent
   async createPaymentIntent({ amount, currency, customerId, saveCard }) {
     try {
+      // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,
         customer: customerId,
         setup_future_usage: saveCard ? 'off_session' : undefined,
-        automatic_payment_methods: {
-          enabled: true,
-        },
+        automatic_payment_methods: {          enabled: true,        },
+        metadata: {
+          
+        }
       });
 
       return {
         success: true,
         data: {
           clientSecret: paymentIntent.client_secret,
-          paymentIntentId: paymentIntent.id
+          paymentIntent: paymentIntent
         }
       };
     } catch (error) {
@@ -34,6 +36,28 @@ class PaymentService {
       return {
         success: false,
         message: error.message || 'Failed to create payment intent'
+      };
+    }
+  }
+
+  // Verify Stripe Payment
+  async verifyStripePayment(paymentIntentId) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      return {
+        success: true,
+        data: {
+          status: paymentIntent.status,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency
+        }
+      };
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to verify payment'
       };
     }
   }
@@ -73,28 +97,6 @@ class PaymentService {
       return {
         success: false,
         message: error.message || 'Failed to create Klarna session'
-      };
-    }
-  }
-
-  // Verify Stripe Payment
-  async verifyStripePayment(paymentIntentId) {
-    try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      
-      return {
-        success: true,
-        data: {
-          status: paymentIntent.status,
-          amount: paymentIntent.amount,
-          currency: paymentIntent.currency
-        }
-      };
-    } catch (error) {
-      console.error('Error verifying payment:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to verify payment'
       };
     }
   }
