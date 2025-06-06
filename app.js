@@ -28,6 +28,7 @@ app.use(cookieParser());
 // Move the general body parser after the webhook route
 // app.use(BodyParser.json());
 // app.use(BodyParser.raw({ type: 'application/json' }));
+app.use('/api/V1/webhook', BodyParser.raw({ type: 'application/json' }));
 app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 /*****for parsing application/xwww-*****/
 app.use(BodyParser.urlencoded({ limit: "50mb", extended: true }));
@@ -35,6 +36,11 @@ app.use(BodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(Express.static(path.resolve('uploads')));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Import webhook routes
+const webhookRoutes = require('./routes/WebhookRoutes');
+// Mount webhook routes
+app.use('/api/V1/webhook', webhookRoutes);
 
 // Logic goes here
 module.exports = app;
