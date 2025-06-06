@@ -429,6 +429,7 @@ class Product {
 
     /** Create Product */
     async createProduct(req) {
+        console.log(req.body,'.................................');
         try {
             let {
                 productVariations = [],
@@ -538,6 +539,17 @@ class Product {
             product.productVariations = variationIds.map(id => new mongoose.Types.ObjectId(id));
             product.productFeaturedImage = featuredImageId ? new mongoose.Types.ObjectId(featuredImageId) : null;
 
+            // Sample usage:
+            // delete req?.body?.samples?.free
+            // if(req?.body?.allowSample){
+            //     let newSample;
+            //     if(typeof req.body.samples === 'string'){
+            //         newSample = JSON.parse(req.body.samples)
+            //         delete newSample.free
+            //     }
+            //   product.samples = newSample;
+            // }
+           
             await product.save();
 
             return product;

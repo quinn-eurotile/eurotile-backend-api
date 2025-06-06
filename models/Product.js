@@ -11,12 +11,30 @@ const productSchema = new Schema({
     isDeleted: { type: Boolean, default: false },
     supplier: { type: Schema.Types.ObjectId, ref: 'Supplier' },
     stockStatus: { type: String, enum: ['in_stock', 'out_of_stock'], default: 'in_stock' },
+    allowSample: { type: Boolean, default: false },
+    samples: {
+        small: {
+            enabled: { type: Boolean, default: true },
+            freePerMonth: { type: Boolean, default: true },
+            price: { type: Number, default: 0 }
+        },
+        large: {
+            enabled: { type: Boolean, default: true },
+            priceType: { type: String, enum: ['fixed', 'proportional'], default: 'fixed' },
+            price: { type: Number, default: 0 }
+        },
+        full: {
+            enabled: { type: Boolean, default: true },
+            priceType: { type: String, enum: ['fixed', 'proportional'], default: 'fixed' },
+            price: { type: Number, default: 0 }
+        }
+    },
     status: { type: Number, default: 1 }, // 1 = Published, 0 = Draft, 
-    defaultPrice: { type: Number, default: 0.00 }, 
-    minPriceB2B: { type: Number, default: 0.00 },  
-    maxPriceB2B: { type: Number, default: 0.00 },  
-    minPriceB2C: { type: Number, default: 0.00 },  
-    maxPriceB2C: { type: Number, default: 0.00 },  
+    defaultPrice: { type: Number, default: 0.00 },
+    minPriceB2B: { type: Number, default: 0.00 },
+    maxPriceB2B: { type: Number, default: 0.00 },
+    minPriceB2C: { type: Number, default: 0.00 },
+    maxPriceB2C: { type: Number, default: 0.00 },
     categories: [{ type: Schema.Types.ObjectId, ref: 'Category' }],
     attributes: [{ type: Schema.Types.ObjectId, ref: 'ProductAttribute', default: [] }],
     attributeVariations: [{ type: Schema.Types.ObjectId, ref: 'ProductAttributeVariation', default: [] }],
