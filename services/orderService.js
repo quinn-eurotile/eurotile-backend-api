@@ -8,6 +8,8 @@ class Order {
 
     /** Create a new order */
     async createOrder(data) {
+        console.log(data, 'data');
+        
         const orderItems = data.cartItems;
         const paymentInfo = data.paymentIntent;
         const userId = data.userId;
@@ -21,8 +23,8 @@ class Order {
 
         try {
             const newData = {
-                orderId : 'EUR-2315656',
-                shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("68414ec3f7976b29062836a1"),
+                orderId : paymentInfo?.metadata?.orderId,
+                shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("684003b37728f8e7d48b295e"),
                 paymentMethod: data?.paymentMethod ?? 'stripe',
                 subtotal: data?.subtotal ?? 0,
                 shipping: data?.shipping ?? 0,

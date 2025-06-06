@@ -8,7 +8,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ['stripe', 'klarna', 'cash_on_delivery'], default: 'stripe'},
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending'},
   orderStatus: {type: Number,
-    enum: [0, 1, 2, 3, 4], //0=Cancelled, 1 = Delivered, 2= Processing, 3 = New, , 4 = Shipped,
+    enum: [0, 1, 2, 3, 4], //0=Cancelled, 1 = Delivered, 2= Processing, 3 = New, 4 = Shipped,
     default: 2
   },
   subtotal: {type: Number, required: true},

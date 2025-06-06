@@ -296,6 +296,7 @@ module.exports = class AdminController {
     /** Login User Method **/
     async loginUser(req, res) {
         try {
+            console.log('req.body', req.body);
             req.body.for_which_role = 'admin';
             const data = await userService.authenticateUser(req);
             return res.status(200).json({ message: 'You are successfully logged in', data: data.user, access_token: data.access_token });

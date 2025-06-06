@@ -161,8 +161,19 @@ module.exports = class ProductController {
             const query = await productService.buildProductListQuery(req);
             const sortField = req.query.sortBy || '_id';
             const sortOrder = req.query.sortOrder === 1 ? 1 : -1;
-            const options = {  sort: { [sortField]: sortOrder }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            // const newLimit = req.query.all === undefined ? Number(req.query.limit) : 1000000;
+            const options = { sort: { [sortField]: sortOrder }, page: Number(req.query.page), limit: Number(req.query.limit) };
             const data = await productService.productList(req, query, options);
+            return res.status(200).json({ data: data, message: 'Product list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Product List **/
+    async exportCsv(req, res) {
+        try {
+            const data = await productService.exportCsv();
             return res.status(200).json({ data: data, message: 'Product list get successfully.' });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

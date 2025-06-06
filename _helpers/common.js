@@ -48,8 +48,14 @@ const helpers = {
 			.toLowerCase(); // Convert to lowercase
 	},
 
+	generateSku: function () {
+		const prefix = 'EUR-'; // You can change this prefix as needed
+		const randomNumber = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+		return `${prefix}${randomNumber}`;
+	},
 
-	formatValidationErrors: function (errors)  {
+
+	formatValidationErrors: function (errors) {
 		const formatted = {};
 		for (const [key, messages] of Object.entries(errors)) {
 			if (Array.isArray(messages)) {

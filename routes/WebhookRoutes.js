@@ -11,8 +11,8 @@ const bodyParser = require('body-parser');
 // router.post('/', multer().any(), webhookController.handleStripeWebhook);
 router.post(
     '/',
-    bodyParser.raw({ type: 'application/json' }), // <-- This is key for Stripe
+    bodyParser.raw({ type: 'application/json' }), // 👈 required for Stripe
     webhookController.handleStripeWebhook
-  );
+);
 
 module.exports = router;
