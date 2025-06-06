@@ -8,11 +8,9 @@ class Order {
 
     /** Create a new order */
     async createOrder(data) {
-        console.log(data, 'data');
-        
-        const orderItems = data.cartItems;
-        const paymentInfo = data.paymentIntent;
-        const userId = data.userId;
+        const orderItems = data?.cartItems;
+        const paymentInfo = data?.paymentIntent;
+        const userId = data?.userId;
 
         console.log('orderItems', orderItems);
         console.log('paymentInfo', { ...paymentInfo });
@@ -23,7 +21,8 @@ class Order {
 
         try {
             const newData = {
-                orderId : paymentInfo?.metadata?.orderId,
+                orderId: paymentInfo?.metadata?.orderId,
+                commission: data?.commission ?? 0,
                 shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("684003b37728f8e7d48b295e"),
                 paymentMethod: data?.paymentMethod ?? 'stripe',
                 subtotal: data?.subtotal ?? 0,
@@ -82,7 +81,7 @@ class Order {
             return orderDoc[0];
 
         } catch (error) {
-            console.log('error',error)
+            console.log('error', error);
             await session.abortTransaction();
             session.endSession();
             // Fix: throw proper Error
@@ -146,6 +145,14 @@ class Order {
                             }
                         }
                     ],
+                    totalCommission: [
+                        {
+                            $group: {
+                                _id: null,
+                                total: { $sum: "$commission" }
+                            }
+                        }
+                    ],
 
                     // Main data pipeline
                     data: [
@@ -180,6 +187,7 @@ class Order {
                             $project: {
                                 orderNumber: 1,
                                 commission: 1,
+                                totalCommission: 1,
                                 totalAmount: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
@@ -267,25 +275,9 @@ class Order {
         // Fetch the order with full population
         const order = await orderModel.findById(orderId)
             .populate([
-                {
-                    path: 'orderDetails' // this must be a field in your Order model
-                },
-                {
-                    path: 'shippingAddress'
-                }
+                { path: 'orderDetails' },
+                { path: 'shippingAddress' }
             ]);
-        // .populate({
-        //     path: 'items.productId',
-        //     model: 'Product', // or 'ProductVariation' if that's what productId refers to
-        //     populate: [
-        //         { path: 'categories', select: 'name' },
-        //         { path: 'attributes', select: 'name' },
-        //         { path: 'attributeVariations', select: 'name' },
-        //         { path: 'variationImages', select: 'fileName fileUrl' },
-        //         { path: 'productFeaturedImage', select: 'fileName fileUrl' },
-        //         { path: 'supplier', select: 'name' }
-        //     ]
-        // })
 
         if (!order) {
             const error = new Error('Order not found');

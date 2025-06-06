@@ -48,11 +48,12 @@ const helpers = {
 			.toLowerCase(); // Convert to lowercase
 	},
 
-	generateSku: function () {
-		const prefix = 'EUR-'; // You can change this prefix as needed
-		const randomNumber = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
-		return `${prefix}${randomNumber}`;
+	generateOrderId: function () {
+		const prefix = 'EUR-'; // Custom prefix
+		const timestamp = Date.now(); // Milliseconds since Unix epoch
+		return `${prefix}-${timestamp}`;
 	},
+
 
 
 	formatValidationErrors: function (errors) {
