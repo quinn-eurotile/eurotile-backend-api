@@ -1,3 +1,4 @@
+const { generateSku } = require('../_helpers/common');
 const orderService = require('../services/orderService');
 const paymentService = require('../services/paymentService');
 const { validatePaymentIntent, validateKlarnaSession } = require('../validators/paymentValidator');
@@ -16,16 +17,14 @@ module.exports = class PaymentController {
       //   });
       // }
       const cartItems = req.body.cartItems;
-      delete req.body.cartItems;
-
-      console.log('createPaymentIntent called', req?.body);
-   
+      delete req.body.cartItems;      
+      const userId =  req?.user?.id
       const result = await paymentService.createPaymentIntent(req.body);
 
       if (!result.success) {
         return res.status(400).json(result);
       }
-      const userId =  req?.user?.id
+      
       orderService.createOrder({ userId: userId, cartItems : cartItems, paymentIntent: result.data.paymentIntent });
       res.status(200).json(result);
     } catch (error) {

@@ -21,7 +21,7 @@ class Order {
 
         try {
             const newData = {
-                orderId : 'EUR-2315656',
+                orderId : paymentInfo?.metadata?.orderId,
                 shippingAddress: data?.shippingAddress ?? new mongoose.Types.ObjectId("684003b37728f8e7d48b295e"),
                 paymentMethod: data?.paymentMethod ?? 'stripe',
                 subtotal: data?.subtotal ?? 0,

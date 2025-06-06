@@ -1,3 +1,5 @@
+const { generateSku } = require('../_helpers/common');
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // const Klarna = require('@klarna/node-sdk');
 
@@ -12,15 +14,17 @@ class PaymentService {
   // Create Stripe Payment Intent
   async createPaymentIntent({ amount, currency, customerId, saveCard }) {
     try {
+
+      const orderId = generateSku();
       // Create payment intent
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,
         customer: customerId,
         setup_future_usage: saveCard ? 'off_session' : undefined,
-        automatic_payment_methods: {          enabled: true,        },
+        automatic_payment_methods: { enabled: true, },
         metadata: {
-          
+          orderId: orderId
         }
       });
 
@@ -44,7 +48,7 @@ class PaymentService {
   async verifyStripePayment(paymentIntentId) {
     try {
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      
+
       return {
         success: true,
         data: {
@@ -63,65 +67,65 @@ class PaymentService {
   }
 
   // Create Klarna Session
-  async createKlarnaSession({
-    amount,
-    currency,
-    order_lines,
-    shipping_address
-  }) {
-    try {
-      const session = await klarna.checkout.createOrder({
-        purchase_country: "US",
-        purchase_currency: currency,
-        locale: "en-US",
-        order_amount: amount,
-        order_lines,
-        shipping_address,
-        merchant_urls: {
-          terms: `${process.env.FRONTEND_URL}/terms`,
-          checkout: `${process.env.FRONTEND_URL}/checkout`,
-          confirmation: `${process.env.FRONTEND_URL}/confirmation?klarna_order_id={checkout.order.id}`,
-          push: `${process.env.BACKEND_URL}/api/klarna/push?klarna_order_id={checkout.order.id}`
-        }
-      });
+  // async createKlarnaSession({
+  //   amount,
+  //   currency,
+  //   order_lines,
+  //   shipping_address
+  // }) {
+  //   try {
+  //     const session = await klarna.checkout.createOrder({
+  //       purchase_country: "US",
+  //       purchase_currency: currency,
+  //       locale: "en-US",
+  //       order_amount: amount,
+  //       order_lines,
+  //       shipping_address,
+  //       merchant_urls: {
+  //         terms: `${process.env.FRONTEND_URL}/terms`,
+  //         checkout: `${process.env.FRONTEND_URL}/checkout`,
+  //         confirmation: `${process.env.FRONTEND_URL}/confirmation?klarna_order_id={checkout.order.id}`,
+  //         push: `${process.env.BACKEND_URL}/api/klarna/push?klarna_order_id={checkout.order.id}`
+  //       }
+  //     });
 
-      return {
-        success: true,
-        data: {
-          session_id: session.order_id,
-          redirect_url: session.html_snippet
-        }
-      };
-    } catch (error) {
-      console.error('Error creating Klarna session:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to create Klarna session'
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       data: {
+  //         session_id: session.order_id,
+  //         redirect_url: session.html_snippet
+  //       }
+  //     };
+  //   } catch (error) {
+  //     console.error('Error creating Klarna session:', error);
+  //     return {
+  //       success: false,
+  //       message: error.message || 'Failed to create Klarna session'
+  //     };
+  //   }
+  // }
 
   // Verify Klarna Payment
-  async verifyKlarnaPayment(orderId) {
-    try {
-      const order = await klarna.checkout.retrieveOrder(orderId);
-      
-      return {
-        success: true,
-        data: {
-          status: order.status,
-          order_id: order.order_id,
-          amount: order.order_amount
-        }
-      };
-    } catch (error) {
-      console.error('Error verifying Klarna payment:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to verify Klarna payment'
-      };
-    }
-  }
+  // async verifyKlarnaPayment(orderId) {
+  //   try {
+  //     const order = await klarna.checkout.retrieveOrder(orderId);
+
+  //     return {
+  //       success: true,
+  //       data: {
+  //         status: order.status,
+  //         order_id: order.order_id,
+  //         amount: order.order_amount
+  //       }
+  //     };
+  //   } catch (error) {
+  //     console.error('Error verifying Klarna payment:', error);
+  //     return {
+  //       success: false,
+  //       message: error.message || 'Failed to verify Klarna payment'
+  //     };
+  //   }
+  // }
 }
 
 module.exports = new PaymentService(); 
