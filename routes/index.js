@@ -51,7 +51,7 @@ routes.use(`/api/${API_V}/address`, addressRoutes);
 
 /************* Webhook route**************/
 const webhookRoutes = require('./WebhookRoutes');
-routes.use(`/api/${API_V}/webhhok`, webhookRoutes);
+routes.use(`/api/${API_V}/webhook`, webhookRoutes);
 
 /************* PaymentRoutes route**************/
 const paymentRoutes = require('./paymentRoutes');

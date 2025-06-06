@@ -25,6 +25,7 @@ app.use(cors(corsOptions));
 /***** for parsing Cookie Parser ****/
 app.use(cookieParser());
 /***for parsing application/json***/
+
 //app.use(BodyParser.json());
 app.use(BodyParser.json({ limit: "50mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 /*****for parsing application/xwww-*****/

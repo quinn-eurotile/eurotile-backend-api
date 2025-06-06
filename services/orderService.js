@@ -65,6 +65,8 @@ class Order {
                 orderDetailModel.create([{
                     order: orderDoc[0]._id,
                     product: item.product?._id,
+                    price: item?.price ?? 0,
+                    quantity: item?.quantity ?? 0,
                     productVariation: item.variation?._id,
                     productDetail: JSON.stringify(item.variation)
                 }], { session })
