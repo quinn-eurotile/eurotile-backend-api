@@ -23,13 +23,13 @@ module.exports = class WebhookController {
                 case 'payment_intent.canceled':
                     const paymentIntentCreated = event.data.object;
                     console.log('PaymentIntent was canceled!', paymentIntentCreated);
-                    await this.updatePaymentStatus(paymentIntentCreated);
+                    await new WebhookController().updatePaymentStatus(paymentIntentCreated);
                     break;
 
                 case 'payment_intent.succeeded':
                     const paymentIntentSucceeded = event.data.object;
                     console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
-                    await this.updatePaymentStatus(paymentIntentSucceeded, true);
+                    await new WebhookController().updatePaymentStatus(paymentIntentSucceeded, true);
                     break;
 
                 default:
