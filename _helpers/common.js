@@ -51,7 +51,7 @@ const helpers = {
 	generateOrderId: function () {
 		const prefix = 'EUR-'; // Custom prefix
 		const timestamp = Date.now(); // Milliseconds since Unix epoch
-		return `${prefix}-${timestamp}`;
+		return `${prefix}${timestamp}`;
 	},
 
 
