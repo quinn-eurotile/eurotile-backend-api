@@ -20,7 +20,6 @@ class PaymentService {
       const paymentIntent = await stripe.paymentIntents.create({
         amount,
         currency,
-        customer: customerId,
         setup_future_usage: saveCard ? 'off_session' : undefined,
         automatic_payment_methods: { enabled: true, },
         metadata: {

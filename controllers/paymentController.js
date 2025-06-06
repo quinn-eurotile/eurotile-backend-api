@@ -17,6 +17,7 @@ module.exports = class PaymentController {
       //   });
       // }
       const cartItems = req.body.cartItems;
+      const orderData = req.body.orderData;
       delete req.body.cartItems;      
       const userId =  req?.user?.id
       const result = await paymentService.createPaymentIntent(req.body);
@@ -25,7 +26,7 @@ module.exports = class PaymentController {
         return res.status(400).json(result);
       }
       
-      orderService.createOrder({ userId: userId, cartItems : cartItems, paymentIntent: result.data.paymentIntent });
+      orderService.createOrder({ userId: userId, cartItems : cartItems,orderData:orderData, paymentIntent: result.data.paymentIntent });
       res.status(200).json(result);
     } catch (error) {
       console.error('Payment intent creation error:', error);

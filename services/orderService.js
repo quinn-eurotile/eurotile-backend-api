@@ -117,10 +117,13 @@ async createOrder(data) {
   const orderData = data?.orderData;
   const userId = orderData?.userId;
 
+  console.log('orderData', orderData);
   console.log('orderItems', orderItems);
   console.log('paymentInfo', { ...paymentInfo });
   console.log('userId', userId);
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const newData = {
       orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
@@ -139,22 +142,72 @@ async createOrder(data) {
       createdBy: userId,
       updatedBy: userId,
     };
+ 
+  // 1. Save payment detail
+        const paymentDetailDoc = await paymentDetailModel.create(
+            [{ 
+                ...paymentInfo,
+                amount: paymentInfo.amount / 100, // Convert from cents back to dollars
+                status: paymentInfo.status,
+                paymentMethod: orderData?.paymentMethod,
+                createdBy: userId
+            }],
+            { session }
+        );
+          // 2. Create order (temporarily empty orderDetails)
+          const orderDoc = await orderModel.create(
+            [{
+                ...newData,
+                paymentDetail: paymentDetailDoc[0]._id,
+                orderDetails: [],
+            }],
+            { session }
+        );
+      // 3. Link paymentDetail to order
+      await paymentDetailModel.findByIdAndUpdate(
+            paymentDetailDoc[0]._id,
+            { order: orderDoc[0]._id },
+            { session }
+        );
+        // 4. Create OrderDetails with all required fields
+        const orderDetails = await Promise.all(orderItems.map(item =>
+            orderDetailModel.create([{
+                order: orderDoc[0]._id,
+                product: item.product?._id,
+                price: item?.price ?? 0,
+                quantity: item?.quantity ?? 0,
+                productVariation: item.variation?._id,
+                productImages: item.productImages || '',
+                productDetail: JSON.stringify({
+                    ...item.variation,
+                    product: {
+                        name: item.product?.name,
+                        sku: item.product?.sku,
+                        description: item.product?.description
+                    }
+                }),
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }], { session })
+        ));
 
-    // Save payment detail without session
-    const paymentDetailDoc = await paymentDetailModel.create({
-      ...paymentInfo,
-      amount: paymentInfo.amount / 100,
-      status: paymentInfo.status,
-      paymentMethod: orderData?.paymentMethod,
-      createdBy: userId,
-    });
+         // 5. Update order with orderDetail references
+         orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
+         await orderDoc[0].save({ session });
 
-    // Create order
-    const orderDoc = await orderModel.create({
-      ...newData,
-      paymentDetail: paymentDetailDoc._id,
-      orderDetails: [],
-    });
+
+
+            await session.commitTransaction();
+            session.endSession();
+
+                      // Return populated order
+       return await orderModel
+        .findById(orderDoc[0]._id)
+        .populate('orderDetails')
+        .populate('shippingAddress')
+        .populate('paymentDetail')
+        .populate('createdBy', 'name email');
+      
 
     // Continue as needed...
 

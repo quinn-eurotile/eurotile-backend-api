@@ -15,7 +15,7 @@ const orderDetailSchema = new Schema({
         ref: 'ProductVariation',
         default: null,
     },
-    productImages: { type: String, required: true },
+    // productImages: [{ type: String, required: true }],
     productDetail: { type: String, default : null }, // get all details from the prduct variations include their attributes
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
