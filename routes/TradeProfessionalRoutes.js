@@ -46,6 +46,7 @@ router.get('/trade-professional', auth, tradeProfessionalController.getDashboard
 router.post('/trade-professional/create-connect-account', auth, tradeProfessionalController.createConnectAccount);
 router.get('/trade-professional/stripe-account-status', auth, tradeProfessionalController.getStripeAccountStatus);
 router.post('/stripe-account-reverify', auth, tradeProfessionalController.reVerifyStripeAccount);
+router.post('/trade-professional/payout-process', auth, tradeProfessionalController.processPayout);
 
 /* Client Management */
 router.get('/trade-professional/client', multer().any(), auth, tradeProfessionalController.clientList);

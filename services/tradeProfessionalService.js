@@ -12,6 +12,87 @@ const StripeConnectAccount = require('../models/StripeConnectAccount');
 
 class TradeProfessional {
 
+    async processPayout(req) {
+        try {
+            const { amount } = req.body;
+            console.log('amount',amount, typeof amount);
+            const userId = req.user.id;
+    
+            // Get user's connect account
+            const connectAccount = await StripeConnectAccount.findOne({ createdBy: userId });
+            if (!connectAccount) {
+                throw { message: 'Connect account not found', statusCode: 404 };
+            }
+    
+            // Verify the account is ready for payouts
+            if (!connectAccount.payoutsEnabled) {
+                throw { message: 'Payouts are not enabled for this account', statusCode: 400 };
+            }
+    
+            // Get eligible orders (status 4 and shipped 14+ days ago)
+            const fourteenDaysAgo = new Date();
+            fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    
+            const eligibleOrders = await Order.find({
+                createdBy: userId,
+                orderStatus: 4,
+                updatedAt: { $lte: fourteenDaysAgo },
+                commission: { $gt: 0 }
+            });
+    
+            // Calculate total eligible commission
+            const totalEligibleCommission = eligibleOrders.reduce((sum, order) => sum + order.commission, 0);
+    
+            // Validate requested amount
+            if (amount <= 0 || amount > totalEligibleCommission) {
+                throw { message: 'Invalid payout amount', statusCode: 400 };
+            }
+    
+            // Create transfer to connected account
+            const transfer = await stripe.transfers.create({
+                amount: Math.round(parseFloat(amount) * 100), // Convert to cents
+                currency: 'eur',
+                destination: connectAccount.stripeAccountId,
+                description: 'Commission payout'
+            });
+
+            console.log('transfer',transfer);
+    
+            // Update orders to mark commission as paid
+            // const ordersToUpdate = eligibleOrders.slice();
+            // let remainingAmount = amount;
+    
+            // for (const order of ordersToUpdate) {
+            //     if (remainingAmount <= 0) break;
+    
+            //     const commissionToPay = Math.min(order.commission, remainingAmount);
+            //     remainingAmount -= commissionToPay;
+    
+            //     // Update order with paid commission amount
+            //     await Order.findByIdAndUpdate(order._id, {
+            //         $set: {
+            //             commissionPaid: true,
+            //             commissionPaidAmount: commissionToPay,
+            //             commissionPaidAt: new Date(),
+            //             commissionTransferId: transfer.id
+            //         }
+            //     });
+            // }
+    
+            return {
+                transferId: transfer.id,
+                amount: amount,
+                remainingCommission: totalEligibleCommission - amount
+            };
+    
+        } catch (error) {
+            throw {
+                message: error.message || 'Failed to process payout',
+                statusCode: error.statusCode || 500
+            };
+        }
+    }
+
 
     /** Create Connect Account */
     async createConnectAccount(req) {

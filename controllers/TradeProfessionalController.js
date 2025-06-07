@@ -157,4 +157,13 @@ module.exports = class TradeProfessionalController {
         }
     }
 
+    async processPayout(req, res) {
+        try {
+            const result = await tradeProfessionalService.processPayout(req);
+            console.log('result', result);
+            return res.status(200).json({ message: 'Payout processed successfully', data: result });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
 };
