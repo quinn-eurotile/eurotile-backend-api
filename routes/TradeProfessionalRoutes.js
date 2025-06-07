@@ -41,7 +41,11 @@ router.put(  '/trade-professional/:id',
 
 router.patch('/trade-professional/:token/status', multer().any(), tradeProfessionalController.updateTradeProfessionalStatus);
 router.get('/trade-professional', auth, tradeProfessionalController.getDashboardData);
+
+/** Connect Account Stripe Routes */
 router.post('/trade-professional/create-connect-account', auth, tradeProfessionalController.createConnectAccount);
+router.get('/trade-professional/stripe-account-status', auth, tradeProfessionalController.getStripeAccountStatus);
+router.post('/stripe-account-reverify', auth, tradeProfessionalController.reVerifyStripeAccount);
 
 /* Client Management */
 router.get('/trade-professional/client', multer().any(), auth, tradeProfessionalController.clientList);

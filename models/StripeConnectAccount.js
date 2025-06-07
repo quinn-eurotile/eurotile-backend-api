@@ -50,13 +50,6 @@ const stripeConnectAccountSchema = new Schema({
       transfers: { type: String, enum: ['active', 'inactive', 'pending'], default: 'inactive' }
     },
 
-    // Information about verification status
-    verification: {
-      status: { type: String, enum: ['verified', 'pending', 'unverified'], default: 'pending' },
-      disabledReason: { type: String },
-      dueBy: { type: Date }
-    },
-
     // Detailed onboarding requirements
     requirements: {
       currentlyDue: [String],
@@ -65,15 +58,83 @@ const stripeConnectAccountSchema = new Schema({
       pendingVerification: [String]
     },
 
-    // Bank or external account ID linked
-    externalAccountId: {
-      type: String
+    
+
+    // Business type (individual, company, etc.)
+    businessType: {
+      type: String,
+      enum: ['individual', 'company', 'non_profit', 'government_entity'],
+      required: true
     },
 
     // Business profile information
     businessProfile: {
       mcc: { type: String }, // Merchant Category Code
-      url: { type: String }
+      url: { type: String },
+      name: { type: String },
+      annualRevenue: { type: Number },
+      estimatedWorkerCount: { type: Number },
+      supportAddress: { type: Object },
+      supportEmail: { type: String },
+      supportPhone: { type: String },
+      supportUrl: { type: String }
+    },
+
+    // Account settings
+    settings: {
+      bacsDebitPayments: {
+        displayName: { type: String },
+        serviceUserNumber: { type: String }
+      },
+      branding: {
+        icon: { type: String },
+        logo: { type: String },
+        primaryColor: { type: String },
+        secondaryColor: { type: String }
+      },
+      cardPayments: {
+        statementDescriptorPrefix: { type: String },
+        statementDescriptorPrefixKanji: { type: String },
+        statementDescriptorPrefixKana: { type: String }
+      },
+      dashboard: {
+        displayName: { type: String },
+        timezone: { type: String }
+      },
+      payments: {
+        statementDescriptor: { type: String },
+        statementDescriptorKana: { type: String },
+        statementDescriptorKanji: { type: String }
+      },
+      payouts: {
+        debitNegativeBalances: { type: Boolean },
+        schedule: { type: Object },
+        statementDescriptor: { type: String }
+      }
+    },
+
+    // Account details
+    country: { type: String },
+    defaultCurrency: { type: String },
+    detailsSubmitted: { type: Boolean },
+    email: { type: String },
+
+    // Individual or company information
+    individual: {
+      id: { type: String },
+      created: { type: Number }
+    },
+
+    // External accounts (bank accounts, debit cards)
+    externalAccounts: {
+      totalCount: { type: Number },
+      hasMore: { type: Boolean },
+      data: [{ type: Object }]
+    },
+
+    // Terms of service acceptance
+    tosAcceptance: {
+      date: { type: Number }
     },
 
     // Whether the account is soft-deleted or restricted

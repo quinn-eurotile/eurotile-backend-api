@@ -10,10 +10,33 @@ module.exports = class TradeProfessionalController {
     /** Create Connect Account */
     async createConnectAccount(req, res) {
         try {
+            console.log('`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,',`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,)
             const data = await tradeProfessionalService.createConnectAccount(req);
             return res.status(200).json({ type: "success", message: "Account connected successfully", data: data });
         } catch (error) {
             // console.log('error comming here',error);
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Re-Verify Stripe Account */
+    async reVerifyStripeAccount(req, res) {
+        try {
+            const result = await tradeProfessionalService.reVerifyStripeAccount(req);
+            return res.status(200).json({ type: "success", message: "Stripe account re-verified successfully", data: result });
+        } catch (error) {
+            console.error('Controller error in reVerifyStripeAccount:', error);
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Stripe Account Status */
+    async getStripeAccountStatus(req, res) {
+        try {
+            const result = await tradeProfessionalService.getStripeAccountStatus(req);
+            return res.status(200).json({ type: "success", message: "", data: result });
+        } catch (error) {
+            console.error('Controller error in getStripeAccountStatus:', error);
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }

@@ -2,19 +2,19 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const AddressSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
   companyId: { type: Schema.Types.ObjectId, ref: "UserBusiness", default: null }, // B2B optional
-  name: { type: String, required: true },
-  phone: { type: String, required: true },
+  name: { type: String, default: null },
+  phone: { type: String, default: null },
   addressLine1: { type: String, default: null },
   addressLine2: { type: String, default: null },
   lat: { type: String, default: null },
   long: { type: String, default: null },
   street: { type: String, default: null },
-  city: { type: String, required: true },
-  state: { type: String, required: true },
-  postalCode: { type: String, required: true },
-  country: { type: String, required: true },
+  city: { type: String, default: null },
+  state: { type: String, default: null },
+  postalCode: { type: String, default: null },
+  country: { type: String, default: null },
   type: {
     type: String,
     enum: ["Home", "Office", "Warehouse", "Billing", "Shipping"],

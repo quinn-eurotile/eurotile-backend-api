@@ -21,38 +21,57 @@ async function getAddressesByUser(userId) {
  * Create or update an address for a user
  */
 async function saveAddressData(userId, addressData) {
-	try {
-		const isUpdating = !!addressData?._id;
-		let address;
-		if (isUpdating) {
-			address = await Address.findOne({
-				_id:  new mongoose.Types.ObjectId(String(addressData._id)),
-				userId : new mongoose.Types.ObjectId(String(userId)),
-				isDeleted: false
-			});
-			if (!address) throw { message: 'Address not found', statusCode: 404 };
-			Object.assign(address, addressData);
-		} else {
-			address = new Address({ userId, ...addressData });
-		}
+  try {
+    const isUpdating = !!addressData?._id;
+    let address;
 
-		if (addressData.isDefault) {
-			await Address.updateMany(
-				{ userId, _id: { $ne: address._id } },
-				{ $set: { isDefault: false } }
-			);
-		}
+    if (isUpdating) {
+      address = await Address.findOne({
+        _id: new mongoose.Types.ObjectId(String(addressData._id)),
+        userId: new mongoose.Types.ObjectId(String(userId)),
+        isDeleted: false
+      });
+      if (!address) throw { message: 'Address not found', statusCode: 404 };
+      Object.assign(address, addressData);
+    } else {
+      address = new Address({ userId, ...addressData });
+    }
 
-		await address.save();
-		return address;
+    // Validate and set location if lat & long are valid numbers
+    const latitude = parseFloat(addressData.lat);
+    const longitude = parseFloat(addressData.long);
 
-	} catch (error) {
-		throw {
-			message: error?.message || 'Failed to save address',
-			statusCode: error?.statusCode || 500
-		};
-	}
+    if (!isNaN(latitude) && !isNaN(longitude)) {
+      address.location = {
+        type: "Point",
+        coordinates: [longitude, latitude],
+      };
+    } else {
+      address.location = {
+        type: "Point",
+        coordinates: [0, 0], // or omit this if preferred
+      };
+    }
+
+    // Handle default address logic
+    if (addressData.isDefault) {
+      await Address.updateMany(
+        { userId, _id: { $ne: address._id } },
+        { $set: { isDefault: false } }
+      );
+    }
+
+    await address.save();
+    return address;
+
+  } catch (error) {
+    throw {
+      message: error?.message || 'Failed to save address',
+      statusCode: error?.statusCode || 500
+    };
+  }
 }
+
 
 
 /**
