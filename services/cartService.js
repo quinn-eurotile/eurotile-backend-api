@@ -71,6 +71,41 @@ async function getCartByUser(userId) {
       }
     ]);
 }
+async function getCartById(cartId) {
+  return await Cart.findOne({ _id: cartId, isDeleted: false })
+    .populate([
+      {
+        path: 'items.product',
+        populate: [
+          { path: 'supplier' },
+          { path: 'productFeaturedImage' }
+        ]
+      },
+      {
+        path: 'items.variation',
+        populate: [
+          { path: 'variationImages' ,
+            select: 'fileName filePath _id isDeleted isFeaturedImage'
+          },
+          { path: 'productFeaturedImage'
+         
+
+           },
+          { path: 'categories' ,
+               select: 'name parent _id isDeleted'
+          },
+          { path: 'attributes' },
+          {
+            path: 'attributeVariations',
+            populate: [
+              { path: 'productAttribute' },
+              { path: 'productMeasurementUnit' }
+            ]
+          }
+        ]
+      }
+    ]);
+}
 
 async function saveCart(userId, items = [], clientId = null) {
   try {
@@ -177,6 +212,13 @@ async function saveCart(userId, items = [], clientId = null) {
 async function deleteCart(userId) {
   return await Cart.findOneAndUpdate(
     { userId },
+    { isDeleted: true },
+    { new: true }
+  );
+}
+async function deleteCartWhole(id) {
+  return await Cart.findOneAndUpdate(
+    { _id: id },
     { isDeleted: true },
     { new: true }
   );
@@ -306,5 +348,7 @@ module.exports = {
   updateCartItem,
   removeCartItem,
   addItemToCart,
-  updateShippingMethod
+  updateShippingMethod,
+  getCartById,
+  deleteCartWhole
 };

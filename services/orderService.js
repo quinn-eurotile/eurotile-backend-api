@@ -117,8 +117,8 @@ class Order {
         const orderData = data?.orderData;
         const userId = orderData?.userId;
 
-        // console.log('orderData', orderData);
-        // console.log('orderItems', orderItems);
+        console.log('orderData', orderData);
+        console.log('orderItems', orderItems);
         // console.log('paymentInfo', { ...paymentInfo });
         // console.log('userId', userId);
 
@@ -127,7 +127,7 @@ class Order {
         try {
             const newData = {
                 orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
-                commission: data?.commission ?? 0,
+                commission: orderData?.commission ?? 0,
                 shippingAddress: orderData?.shippingAddress || null,
                 paymentMethod: orderData?.paymentMethod || 'stripe',
                 paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
@@ -176,7 +176,8 @@ class Order {
                     product: item.product?._id,
                     price: item?.price ?? 0,
                     quantity: item?.quantity ?? 0,
-                    
+                    commission: item?.commission ?? 0,
+                    totalCommission: item?.totalCommission ?? 0,
                     productVariation: item.variation?._id,
                     productImages: item.productImages || '',
                     productDetail: JSON.stringify({
@@ -418,6 +419,21 @@ class Order {
 
         return order;
     }
+    async  updateOrderStatus(orderId, status) {
+        const order = await orderModel.findByIdAndUpdate(orderId, { orderStatus: status }, { new: true });
+        return order;
+    }
+    async  getOrderById(orderId) {
+        const order = await orderModel.findById(orderId) .populate([
+            { path: 'orderDetails' },
+            { path: 'shippingAddress' },
+            { path: 'createdBy' },
+            { path: 'updatedBy' }
+        ]);
+
+        return order;
+    }
 }
+
 
 module.exports = new Order();
