@@ -4,6 +4,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'your_webhook_secret';
 const Order = require('../models/Order');
 const PaymentDetail = require('../models/PaymentDetail');
+const StripeConnectAccount = require('../models/StripeConnectAccount');
 
 module.exports = class WebhookController {
 
@@ -18,6 +19,8 @@ module.exports = class WebhookController {
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
 
+        console.log('Received webhook event:', event.type);
+
         try {
             switch (event.type) {
                 case 'payment_intent.canceled':
@@ -30,6 +33,29 @@ module.exports = class WebhookController {
                     const paymentIntentSucceeded = event.data.object;
                     // console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
                     await new WebhookController().updatePaymentStatus(paymentIntentSucceeded, true);
+                    break;
+
+                case 'account.updated':
+                    const account = event.data.object;
+                    console.log('Stripe connect account ==> ',account)
+                    await StripeConnectAccount.findOneAndUpdate(
+                        { stripeAccountId: account.id },
+                        {
+                            chargesEnabled: account.charges_enabled,
+                            payoutsEnabled: account.payouts_enabled,
+                            isOnboardingCompleted: account.details_submitted,
+                            capabilities: account.capabilities,
+                            detailsSubmitted: account.details_submitted,
+                        }
+                    );
+                    break;
+
+                case 'account.application.deauthorized':
+                    const deauthorizedAccount = event.data.object;
+                    await StripeConnectAccount.findOneAndUpdate(
+                        { stripeAccountId: deauthorizedAccount.id },
+                        { status: 'deauthorized' }
+                    );
                     break;
 
                 default:

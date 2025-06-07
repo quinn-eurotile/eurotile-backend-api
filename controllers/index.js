@@ -10,6 +10,6 @@ const SupportTicketController = require('./SupportTicketController');
 const OrderController = require('./OrderController');
 const CommonController = require('./CommonController');
 const WebhookController = require('./WebhookController');
-const PaymentController = require('./PaymentController');
+const PaymentController = require('./paymentController');
 
 module.exports = { PaymentController,WebhookController,CommonController,OrderController,ProductController, TradeProfessionalController, TaxController, AdminController, UserController, LocationController, RolePermissionController, CategoryController, SupportTicketController };

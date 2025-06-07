@@ -26,30 +26,48 @@ const register = (req, res, next) => {
 
 
 const saveCustomer = (req, res, next) => {
-    const id = req?.params?.id; // this will be undefined if creating
-    // console.log('id',id)
+    const id = req?.params?.id;
+
+    console.log('req.body', req.body);
+
     // Normalize phone number
     if (req.body.phone && typeof req.body.phone === 'string') {
         req.body.phone = req.body.phone.replace(/[^\d]/g, ''); // Keep only digits
     }
-    let validationRule = {
-        "name": "required|string",
-        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
-        "phone": id ? `required|numeric|exist_update:Supplier,phone,${id}` : "required|numeric|exist:User,phone",
-    };
 
+    console.log('req.body.phone', req.body.phone);
+
+    // Normalize email
     if (req.body.email && typeof req.body.email === 'string') {
         req.body.email = req.body.email.trim().toLowerCase();
     }
 
+    // ✅ Validate and sanitize lat/long in address
+    if (req.body.address) {
+        const { lat, long } = req.body.address;
+        if (lat && isNaN(parseFloat(lat))) req.body.address.lat = null;
+        if (long && isNaN(parseFloat(long))) req.body.address.long = null;
+    }
+
+    let validationRule = {
+        "name": "required|string",
+        "email": id ? `required|email|exist_update:User,email,${id}` : "required|email|exist:User,email",
+        "phone": id ? `required|numeric|exist_update:User,phone,${id}` : "required|numeric|exist:User,phone",
+    };
+
     validator(req.body, validationRule, {}, (err, status) => {
         if (!status) {
-            res.status(422)
-                .send({
-                    type: 'validation_error',
-                    message: 'You form data is invalid',
-                    data: formatValidationErrors(err.all())
-                });
+            const allErrors = formatValidationErrors(err.all());
+
+            // Get first key-value pair from the errors object
+            const firstErrorKey = Object.keys(allErrors)[0];
+            const firstErrorMessage = allErrors[firstErrorKey];
+
+            res.status(422).send({
+                type: 'validation_error',
+                message: firstErrorMessage,  // 👈 this is now the actual error message
+                data: allErrors
+            });
         } else {
             next();
         }

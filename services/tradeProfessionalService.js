@@ -8,15 +8,222 @@ const { Order } = require('../models');
 const bcrypt = require("bcryptjs");
 const stripe = require('../utils/stripeClient');
 const { saveAddressData } = require('./addressService');
+const StripeConnectAccount = require('../models/StripeConnectAccount');
 
 class TradeProfessional {
+
+
+    /** Create Connect Account */
+    async createConnectAccount(req) {
+        try {
+            const account = await stripe.accounts.create({
+                country: 'GB',
+                email: req?.user?.email,
+                controller: {
+                    fees: { payer: 'application' },
+                    losses: { payments: 'application' },
+                    stripe_dashboard: { type: 'express' }, // or 'none'
+                },
+                capabilities: {
+                    card_payments: { requested: true },
+                    transfers: { requested: true },
+                },
+            });
+
+            // Validate required fields from Stripe response
+            if (!account.id) {
+                throw new Error('Stripe account ID is missing from response');
+            }
+
+            if (!account.capabilities) {
+                throw new Error('Stripe account capabilities are missing');
+            }
+
+            if (!account.controller?.stripe_dashboard?.type) {
+                throw new Error('Stripe dashboard type is missing');
+            }
+
+            // Create local database entry with validation
+            const connectAccount = new StripeConnectAccount({
+                createdBy: req.user.id,
+                stripeAccountId: account.id,
+                accountType: account.controller.stripe_dashboard.type,
+                chargesEnabled: !!account.charges_enabled,
+                payoutsEnabled: !!account.payouts_enabled,
+                isOnboardingCompleted: !!account.details_submitted,
+                capabilities: {
+                    cardPayments: account.capabilities.card_payments || 'inactive',
+                    transfers: account.capabilities.transfers || 'inactive'
+                },
+                verification: {
+                    status: account.verification?.status || 'pending',
+                    disabledReason: account.verification?.disabled_reason
+                },
+                requirements: {
+                    currentlyDue: account.requirements?.currently_due || [],
+                    eventuallyDue: account.requirements?.eventually_due || [],
+                    pastDue: account.requirements?.past_due || [],
+                    pendingVerification: account.requirements?.pending_verification || []
+                },
+                businessType: account.business_type || 'individual',
+                businessProfile: {
+                    mcc: account.business_profile?.mcc,
+                    url: account.business_profile?.url,
+                    name: account.business_profile?.name,
+                    supportEmail: account.business_profile?.support_email,
+                    supportPhone: account.business_profile?.support_phone,
+                    supportUrl: account.business_profile?.support_url
+                },
+                settings: account.settings ? {
+                    bacsDebitPayments: account.settings.bacs_debit_payments ? {
+                        displayName: account.settings.bacs_debit_payments.display_name,
+                        serviceUserNumber: account.settings.bacs_debit_payments.service_user_number
+                    } : undefined,
+                    branding: account.settings.branding ? {
+                        icon: account.settings.branding.icon,
+                        logo: account.settings.branding.logo,
+                        primaryColor: account.settings.branding.primary_color,
+                        secondaryColor: account.settings.branding.secondary_color
+                    } : undefined,
+                    cardPayments: account.settings.card_payments ? {
+                        statementDescriptorPrefix: account.settings.card_payments.statement_descriptor_prefix
+                    } : undefined,
+                    dashboard: account.settings.dashboard ? {
+                        displayName: account.settings.dashboard.display_name,
+                        timezone: account.settings.dashboard.timezone
+                    } : undefined,
+                    payments: account.settings.payments ? {
+                        statementDescriptor: account.settings.payments.statement_descriptor
+                    } : undefined,
+                    payouts: account.settings.payouts ? {
+                        debitNegativeBalances: account.settings.payouts.debit_negative_balances,
+                        schedule: account.settings.payouts.schedule,
+                        statementDescriptor: account.settings.payouts.statement_descriptor
+                    } : undefined
+                } : undefined,
+                country: account.country,
+                defaultCurrency: account.default_currency,
+                detailsSubmitted: !!account.details_submitted,
+                email: account.email,
+                individual: account.individual ? {
+                    id: account.individual.id,
+                    created: account.individual.created
+                } : undefined,
+                externalAccounts: account.external_accounts ? {
+                    totalCount: account.external_accounts.total_count,
+                    hasMore: account.external_accounts.has_more,
+                    data: account.external_accounts.data
+                } : undefined,
+                tosAcceptance: account.tos_acceptance ? {
+                    date: account.tos_acceptance.date
+                } : undefined,
+                lastSyncedAt: new Date()
+            });
+
+            await connectAccount.save();
+
+            const accountLink = await stripe.accountLinks.create({
+                account: account.id,
+                refresh_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
+                return_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
+                type: 'account_onboarding',
+            });
+
+            return accountLink;
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to create Stripe Connect account',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    async getStripeAccountStatus(req) {
+        try {
+            const userId = req?.user?.id;
+            // Find the connected account in our database
+            const connectAccount = await StripeConnectAccount.findOne({ createdBy: userId });
+            if (!connectAccount) {
+                return { success: false, message: 'No connected account found' };
+            }
+
+            // Retrieve fresh account details from Stripe
+            const stripeAccount = await stripe.accounts.retrieve(connectAccount.stripeAccountId);
+
+            // Update our database with latest status
+            await StripeConnectAccount.findByIdAndUpdate(connectAccount._id, {
+                chargesEnabled: stripeAccount.charges_enabled,
+                payoutsEnabled: stripeAccount.payouts_enabled,
+                isOnboardingCompleted: stripeAccount.details_submitted,
+                capabilities: {
+                    cardPayments: stripeAccount.capabilities?.card_payments || 'inactive',
+                    transfers: stripeAccount.capabilities?.transfers || 'inactive'
+                },
+                requirements: {
+                    currentlyDue: stripeAccount.requirements?.currently_due || [],
+                    eventuallyDue: stripeAccount.requirements?.eventually_due || [],
+                    pastDue: stripeAccount.requirements?.past_due || [],
+                    pendingVerification: stripeAccount.requirements?.pending_verification || []
+                },
+                lastSyncedAt: new Date()
+            });
+
+            return {
+                success: true,
+                data: {
+                    status: stripeAccount.payouts_enabled && stripeAccount.details_submitted  ? true : false,
+                    stripe_account_id: stripeAccount.id,
+                    details_submitted: stripeAccount.details_submitted,
+                    charges_enabled: stripeAccount.charges_enabled,
+                    payouts_enabled: stripeAccount.payouts_enabled,
+                    requirements: stripeAccount.requirements
+                }
+            };
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to fetch clients',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    async reVerifyStripeAccount(req) {
+        try {
+            const userId = req?.user?.id;
+            // Find the connected account
+            const connectAccount = await StripeConnectAccount.findOne({ createdBy: userId });
+            if (!connectAccount) {
+                return { success: false, message: 'No connected account found' };
+            }
+
+            // Create an account link for verification
+            const accountLink = await stripe.accountLinks.create({
+                account: connectAccount.stripeAccountId,
+                refresh_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
+                return_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
+                type: 'account_onboarding',
+                collect: 'eventually_due'
+            });
+
+            return {
+                success: true,
+                data: {
+                    object: 'account_link',
+                    url: accountLink.url
+                }
+            };
+        } catch (error) {
+            console.error('Error in reVerifyStripeAccount:', error);
+            return { success: false, message: error.message };
+        }
+    }
 
     /** Get All Client For Specific Trade Professional */
     async allClient(req) {
         try {
             const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id));
             const createdById = new mongoose.Types.ObjectId(String(req?.user?.id));
-     
+
             const pipeline = [
                 {
                     $match: {
@@ -81,10 +288,10 @@ class TradeProfessional {
                     $sort: { _id: -1 }
                 }
             ];
-     
+
             const clients = await User.aggregate(pipeline);
             return clients;
-     
+
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to fetch clients',
@@ -92,7 +299,7 @@ class TradeProfessional {
             };
         }
     }
-    
+
 
     /** Save A Client */
     async saveClient(req) {
@@ -138,6 +345,8 @@ class TradeProfessional {
             return { client, isNew };
 
         } catch (error) {
+
+            console.error('Error saving client:', error);
             throw {
                 message: error?.message || 'Error occurred while saving client',
                 statusCode: error?.statusCode || 500
@@ -215,7 +424,7 @@ class TradeProfessional {
                         status: 1,
                         userId: 1,
                         isDeleted: 1,
-                        createdAt: 1,   
+                        createdAt: 1,
                         updatedAt: 1,
                         createdBy: 1,
                         updatedBy: 1,
@@ -260,36 +469,7 @@ class TradeProfessional {
     }
 
 
-    /** Create Connect Account */
-    async createConnectAccount(req) {
-        try {
-            const account = await stripe.accounts.create({
-                country: 'GB',
-                email: req?.user?.email,
-                controller: {
-                    fees: { payer: 'application' },
-                    losses: { payments: 'application' },
-                    stripe_dashboard: { type: 'express' }, // or 'none'
-                },
-                capabilities: {
-                    card_payments: { requested: true },
-                    transfers: { requested: true },
-                },
-            });
 
-            const accountLink = await stripe.accountLinks.create({
-                account: account.id,
-                refresh_url: 'http://localhost:3000/en/trade-professional/profile',
-                return_url: 'http://localhost:3000/en/trade-professional/profile',
-                type: 'account_onboarding',
-            });
-
-            // Redirect user to accountLink.url
-            return accountLink;
-        } catch (error) {
-            throw { message: error?.message || 'Something went wrong while fetching users', statusCode: error?.statusCode || 500 };
-        }
-    }
 
     /** Get Trade Professional List */
     async tradeProfessionalList(query, options) {
