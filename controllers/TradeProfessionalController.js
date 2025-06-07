@@ -156,6 +156,16 @@ module.exports = class TradeProfessionalController {
             res.send({ type: 'failure', message: error.message });
         }
     }
+    async getClientById(req, res) {
+        try {
+            
+            const data = await tradeProfessionalService.getClientById(req);
+            res.send({ message: "", data: data });
+        } catch (error) {
+            res.send({ type: 'failure', message: error.message });
+        }
+    }
+    
 
     async processPayout(req, res) {
         try {

@@ -10,6 +10,8 @@ const orderDetailSchema = new Schema({
     },
     price : { type: Number, default: 0 },
     quantity : { type: Number, default: 0 },
+    commission: { type: Number, default: 0 },
+    totalCommission: { type: Number, default: 0 },
     productVariation: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ProductVariation',

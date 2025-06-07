@@ -7,7 +7,12 @@ const {
   updateCartItemController,
   removeCartItemController,
   addToWishlistController,
-  applyPromoCodeController
+  applyPromoCodeController,
+  sendPaymentLink,
+  getCartByIdController,
+  updateOrderStatusController,
+  getOrderByIdController,
+  deleteCartWholeController
 } = require('../controllers/cartController'); 
 const auth = require("../middleware/authMiddleware");
 // Get user's cart
@@ -18,7 +23,7 @@ router.post('/', auth, saveCartController);
 
 // Delete cart
 router.delete('/:userId', auth, deleteCartController);
-
+router.delete('/cart/:id', deleteCartWholeController);
 // Update cart item quantity
 router.put('/item', auth, updateCartItemController);
 
@@ -31,4 +36,8 @@ router.post('/wishlist', auth, addToWishlistController);
 // Apply promo code
 router.post('/promo', auth, applyPromoCodeController);
 
+router.post('/send-payment-link', auth, sendPaymentLink);
+router.get('/cart/:id', getCartByIdController);
+router.post('/update-order-status', auth, updateOrderStatusController);
+router.get('/order/:id', getOrderByIdController);
 module.exports = router;

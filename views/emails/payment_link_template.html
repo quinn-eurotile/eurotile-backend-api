@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Payment Link</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #ffffff;
+            border-radius: 5px 5px 0 0;
+        }
+        .logo {
+            max-width: 200px;
+        }
+        .content {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #991b1b;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+            text-align: center;
+            min-width: 200px;
+        }
+        .button:hover {
+            background-color: #7f1d1d;
+        }
+        .order-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        .product-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #ffffff;
+        }
+        .product-list th,
+        .product-list td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .product-list th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .product-details {
+            padding-left: 10px;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 5px;
+        }
+        .totals p {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        .total-line {
+            border-top: 2px solid #ddd;
+            font-weight: bold;
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 1.1em;
+            color: #991b1b;
+        }
+        .important-note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        .order-id {
+            background-color: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="[LOGO]" alt="[APP_NAME]" class="logo">
+        </div>
+        <div class="content">
+            <h2>Hello [USER_NAME],</h2>
+            <p>A payment request has been created for your order at [APP_NAME]. Please review the order details below and complete your payment.</p>
+            
+            <div class="order-summary">
+                <h3>Order Summary</h3>
+                <p>Order ID: <span class="order-id">[ORDER_ID]</span></p>
+                
+                <table class="product-list">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        [PRODUCT_LIST]
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <p>
+                        <span>Subtotal:</span>
+                        <span>€[SUBTOTAL]</span>
+                    </p>
+                    <p>
+                        <span>Shipping:</span>
+                        <span>€[SHIPPING]</span>
+                    </p>
+                    <p class="total-line">
+                        <span>Total:</span>
+                        <span>€[TOTAL]</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="important-note">
+                <strong>Important:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    <li>This payment link will expire in 24 hours</li>
+                    <li>Please ensure your billing information is correct before proceeding</li>
+                    <li>For security reasons, this link can only be used once</li>
+                </ul>
+            </div>
+
+            <p>To complete your purchase, please click the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="[PAYMENT_LINK]" class="button">Complete Payment</a>
+            </div>
+
+            <p>If you did not request this payment link or have any questions, please contact our support team immediately.</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message, please do not reply directly to this email.</p>
+            <p>If you need assistance, please contact our support team.</p>
+            <p>&copy; [CURRENT_YEAR] [APP_NAME]. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html> 

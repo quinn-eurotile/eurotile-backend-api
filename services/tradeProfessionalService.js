@@ -999,8 +999,102 @@ class TradeProfessional {
             throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
         }
     }
+    async getClientByIdOld(req) {
+        try {
+            const data = await User.findById(req.params.id);
+            return data;
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
+        }
+    }
 
+    async getClientById(req) {
+        try {
+            const clientId = req?.params?.id;
+ 
+            const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id)); 
+            const userId = new mongoose.Types.ObjectId(String(clientId));
 
+            const pipeline = [
+                {
+                    $match: {
+                        _id: userId,
+                        isDeleted: false,
+                        roles: { $in: [clientRoleId] }, 
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'addresses',
+                        let: { userId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } },
+                            { $match: { isDefault: true } },
+                            { $limit: 1 }
+                        ],
+                        as: 'addressDetails'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$addressDetails',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'createdBy',
+                        foreignField: '_id',
+                        as: 'createdBy'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$createdBy',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        email: 1,
+                        phone: 1,
+                        addressDetails: 1,
+                        status: 1,
+                        userId: 1,
+                        isDeleted: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        createdBy: {
+                            _id: '$createdBy._id',
+                            name: '$createdBy.name',
+                            status: '$createdBy.status'
+                        },
+                        updatedBy: 1
+                    }
+                }
+            ];
+
+            const client = await User.aggregate(pipeline);
+            
+            if (!client || client.length === 0) {
+                throw {
+                    message: 'Client not found',
+                    statusCode: 404
+                };
+            }
+
+            return client[0]; // Return the first (and should be only) result
+
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to fetch client',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
 
 }
 

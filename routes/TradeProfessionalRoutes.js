@@ -54,6 +54,6 @@ router.post('/trade-professional/client', multer().any(), auth,  user_validation
 router.put('/trade-professional/client/:id', multer().any(), auth, user_validation.saveCustomer, tradeProfessionalController.saveClient);
 router.delete('/trade-professional/client/:id', multer().any(), auth, tradeProfessionalController.deleteClient);
 router.get('/trade-professional/client/all', multer().any(), auth, tradeProfessionalController.allClient);
-
-
+router.get('/trade-professional/client/:id', multer().any(), auth, tradeProfessionalController.getClientById);
+router.get('/trade-professional/client-public/:id', multer().any(), tradeProfessionalController.getClientById);
 module.exports = router;

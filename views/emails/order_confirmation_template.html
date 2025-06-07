@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .logo { max-width: 200px; height: auto; }
+        .order-details { background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .product-list { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .product-list th, .product-list td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        .product-image { width: 60px; height: 60px; object-fit: cover; margin-right: 10px; }
+        .total-section { margin-top: 20px; text-align: right; }
+        .success-message { color: #38c172; font-size: 18px; margin-bottom: 20px; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="[LOGO]" alt="[APP_NAME]" class="logo">
+            <h2 class="success-message">Thank you for your order!</h2>
+        </div>
+
+        <p>Dear [USER_NAME],</p>
+        
+        <p>Your order has been successfully placed and confirmed. Here are your order details:</p>
+
+        <div class="order-details">
+            <p><strong>Order Number:</strong> [ORDER_ID]</p>
+            <p><strong>Order Date:</strong> [ORDER_DATE]</p>
+            <p><strong>Shipping Address:</strong><br>
+            [SHIPPING_ADDRESS]</p>
+        </div>
+
+        <h3>Order Summary</h3>
+        <table class="product-list">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                [PRODUCT_LIST]
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <p><strong>Subtotal:</strong> €[SUBTOTAL]</p>
+            <p><strong>Shipping:</strong> €[SHIPPING]</p>
+            <p><strong>Total:</strong> €[TOTAL]</p>
+        </div>
+
+        <p>We will notify you when your order has been shipped. You can track your order status by logging into your account.</p>
+
+        <div class="footer">
+            <p>If you have any questions about your order, please contact our customer service.</p>
+            <p>&copy; [CURRENT_YEAR] [APP_NAME]. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html> 

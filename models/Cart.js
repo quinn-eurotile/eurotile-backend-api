@@ -41,4 +41,13 @@ CartSchema.pre('save', function (next) {
   next();
 });
 
+// Index for expired carts cleanup
+CartSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// Index for faster lookups
+CartSchema.index({ userId: 1 });
+CartSchema.index({ isDeleted: 1 });
+CartSchema.index({ promoCode: 1 });
+CartSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Cart', CartSchema);

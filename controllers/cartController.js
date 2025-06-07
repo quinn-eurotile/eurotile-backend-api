@@ -1,12 +1,31 @@
 // const { validationResult } = require('express-validator');
-const { getCartByUser, saveCart, deleteCart, updateCartItem, removeCartItem } = require('../services/cartService');
+const { getCartByUser, saveCart, deleteCart, updateCartItem, removeCartItem, getCartById, deleteCartWhole } = require('../services/cartService');
 const { addToWishlist } = require('../services/wishlistService.js');
 const { validatePromoCode } = require('../services/promoService');
-
+const { sendPaymentLinkEmail } = require('../services/emailService');
+const Cart = require('../models/Cart');
+const User = require('../models/User');
+const constants = require('../configs/constant');
+const { getOrderById, updateOrderStatus } = require('../services/orderService.js');
 // Get cart
 const getCartController = async (req, res) => {
   try {
     const cart = await getCartByUser(req.user.id);
+    res.json({
+      success: true,
+      data: cart
+    });
+  } catch (error) {
+    console.error('Error getting cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get cart'
+    });
+  }
+};
+const getCartByIdController = async (req, res) => {
+  try {
+    const cart = await getCartById(req.params.id);
     res.json({
       success: true,
       data: cart
@@ -162,6 +181,31 @@ const deleteCartController = async (req, res) => {
     });
   }
 };
+const deleteCartWholeController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedCart = await deleteCartWhole(id);
+    if (!deletedCart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cart not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: deletedCart
+    });
+  } catch (error) {
+    console.error('Error deleting cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete cart'
+    });
+  }
+};
+
 
 const addToWishlistController = async (req, res) => {
   try {
@@ -289,6 +333,121 @@ const formatCartResponse = async (cart) => {
   };
 };
 
+// Send payment link to client
+async function sendPaymentLink(req, res) {
+  try {
+    const {
+      cartId,
+      clientId,
+      cartItems,
+      shippingAddress,
+      shippingMethod,
+      orderSummary
+    } = req.body;
+
+    // Validate required fields
+    if (!cartId || !clientId || !cartItems || !orderSummary) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+   
+    // Get client details from User model where role is Client
+    const client = await User.findOne({ _id: clientId, roles: { $in: [constants?.clientRole.id] } });
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+
+    // Save cart data
+    const cart = new Cart({
+      // cartId,
+      userId:clientId,
+      items: cartItems,
+      // shippingAddress,
+      // shippingMethod,
+      orderSummary,
+      // expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+    });
+    await cart.save();
+
+    // Send email
+    const emailData = {
+      cartId:cart._id,
+      clientId,
+      clientName: client.name || `${client.firstName} ${client.lastName}`,
+      clientEmail: client.email,
+      cartItems,
+      orderSummary
+    };
+
+    const emailSent = await sendPaymentLinkEmail(emailData);
+   console.log(emailSent, 'emailSentemailSent');
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send payment link email'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment link sent successfully',
+      data: {
+        cartId,
+        expiresAt: cart.expiresAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in sendPaymentLink:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+}
+
+const updateOrderStatusController = async (req, res) => {
+  try {
+    const { orderId, status } = req.body;
+    const updatedOrder = await updateOrderStatus(orderId, status);
+    res.status(200).json({
+      success: true,
+      data: updatedOrder
+    });
+  } catch (error) {
+    console.error('Error in updateOrderStatus:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+}
+const getOrderByIdController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(id,'id');
+    const order = await getOrderById(id);
+    console.log(order,'order');
+    res.status(200).json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    console.error('Error in getOrderById:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+}
+
 module.exports = {
   getCartController,
   saveCartController,
@@ -297,5 +456,10 @@ module.exports = {
   removeCartItemController,
   addToCartController,
   addToWishlistController,
-  applyPromoCodeController
+  applyPromoCodeController,
+  sendPaymentLink,
+  getCartByIdController,
+  updateOrderStatusController,
+  getOrderByIdController,
+  deleteCartWholeController
 };
