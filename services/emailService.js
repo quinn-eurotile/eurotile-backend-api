@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getClientUrlByRole } = require('../_helpers/common');
 
-// SMTP Configuration
+/* // SMTP Configuration
 const smtpConfig = {
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
@@ -29,7 +29,17 @@ console.log('Setting up nodemailer with config:', {
     }
 });
 
-const transporter = nodemailer.createTransport(smtpConfig);
+const transporter = nodemailer.createTransport(smtpConfig); */
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD
+    }
+});
+
+
 
 // Verify transporter configuration
 transporter.verify(function(error, success) {
