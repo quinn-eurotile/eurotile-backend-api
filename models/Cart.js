@@ -10,6 +10,8 @@ const CartItemSchema = new Schema({
   numberOfPallets: { type: Number, default: 0 },
   attributes: { type: Schema.Types.Mixed, default: {} }, // store selected attribute key-values
   price: { type: Number, required: true, min: 0 },
+  isSample: { type: Boolean, default: false },
+  sampleAttributes: { type: Schema.Types.Mixed, default: null }
 }, {
   timestamps: true,
 });
