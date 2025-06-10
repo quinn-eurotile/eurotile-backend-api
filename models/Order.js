@@ -7,9 +7,21 @@ const orderSchema = new mongoose.Schema({
   shippingAddress: { type: mongoose.Schema.Types.ObjectId, ref: 'Address', default: null  },
   paymentMethod: { type: String, enum: ['stripe', 'klarna', 'cash_on_delivery'], default: 'stripe'},
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending'},
-  orderStatus: {type: Number,
-    enum: [0, 1, 2, 3, 4], //0=Cancelled, 1 = Delivered, 2= Processing, 3 = New, 4 = Shipped,
-    default: 2
+  orderStatus: {
+    type: Number,
+    enum: [0, 1, 2, 3, 4, 5], //0=Cancelled, 1=Delivered, 2=Processing, 3=New, 4=Shipped, 5=Pending
+    default: 3
+  },
+  customerType: {
+    type: String,
+    enum: ['retail', 'trade'],
+    required: true
+  },
+  clientOf: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    description: 'If order is placed by Trade Professional for their client',
+    default: null
   },
   subtotal: {type: Number, required: true},
   shipping: {type: Number, required: true },
@@ -20,9 +32,10 @@ const orderSchema = new mongoose.Schema({
   paymentDetail: { type: mongoose.Schema.Types.ObjectId, ref: 'PaymentDetail', default: null  },
   shippingMethod: {
     type: String,
-    enum: ['standard', 'express', 'overnight'],
+    enum: ['standard', 'express', 'next-day'],
     default: 'standard'
   },
+  trackingId: { type: String, default: null },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, {

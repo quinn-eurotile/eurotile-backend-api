@@ -1,4 +1,3 @@
-
 const orderService = require('../services/orderService');
 const commonService = require('../services/commonService');
 
@@ -8,18 +7,56 @@ module.exports = class OrderController {
     async orderList(req, res) {
         try {
             const query = await orderService.buildOrderListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate : { path : 'createdBy'} };
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate: { path: 'createdBy' } };
             const data = await orderService.orderList(query, options);
+
+            console.log(data, 'Order list get successfully');  
             return res.status(200).json({ data: data, message: 'Order list get successfully.' });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
 
+    /** Get Order Details **/
     async orderDetails(req, res) {
         try {
             const data = await orderService.orderDetails(req);
-            return res.status(200).json({ data: data, message: 'Order list get successfully.' });
+            return res.status(200).json({ data: data, message: 'Order details get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Order Stats **/
+    async getStats(req, res) {
+        try {
+            const data = await orderService.getStats();
+            return res.status(200).json({ data: data, message: 'Order stats retrieved successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Update Order Status **/
+    async updateOrderStatus(req, res) {
+        try {
+            const { status, trackingId } = req.body;
+            const orderId = req.params.id;
+            const data = await orderService.updateOrderStatus(orderId, status, trackingId);
+            return res.status(200).json({ data: data, message: 'Order status updated successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** Get Customer Orders **/
+    async getCustomerOrders(req, res) {
+        try {
+            req.query.customerId = req.params.customerId;
+            const query = await orderService.buildOrderListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const data = await orderService.orderList(query, options);
+            return res.status(200).json({ data: data, message: 'Customer orders get successfully.' });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
