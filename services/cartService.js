@@ -132,6 +132,8 @@ async function saveCart(userId, items = [], clientId = null) {
       return await cart.save();
     }
 
+    console.log('itemsArray......................', itemsArray);
+
     // Validate and format items before saving
     const validatedItems = [];
     for (const item of itemsArray) {
@@ -166,7 +168,7 @@ async function saveCart(userId, items = [], clientId = null) {
           cart.items[existingItemIndex].quantity = item.quantity || 1;
           cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (item.numberOfTiles || 0);
           cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (item.numberOfPallets || 0);
-          if (item.price) {
+          if (item.price || item.isSample) {
             cart.items[existingItemIndex].price = item.price;
           }
         } else {
@@ -178,8 +180,10 @@ async function saveCart(userId, items = [], clientId = null) {
             numberOfTiles: item.numberOfTiles || 0,
             numberOfPallets: item.numberOfPallets || 0,
             attributes: item.attributes || {},
-            price: item.price || (clientId ? variation.regularPriceB2B : variation.regularPriceB2C),
-            isNewVariation: item.isNewVariation || false
+            price: item.price || (item.isSample ? 0 : (clientId ? variation.regularPriceB2B : variation.regularPriceB2C)),
+            isNewVariation: item.isNewVariation || false,
+            isSample: item.isSample || false,
+            sampleAttributes: item.sampleAttributes || null
           });
         }
       } catch (error) {
