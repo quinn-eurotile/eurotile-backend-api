@@ -116,6 +116,7 @@ class Order {
         const paymentInfo = data?.paymentIntent;
         const orderData = data?.orderData;
         const userId = orderData?.userId;
+        const tradeProfessionalId = orderData?.tradeProfessionalId;
 
         console.log('orderData', orderData);
         console.log('orderItems', orderItems);
@@ -139,6 +140,7 @@ class Order {
                 total: orderData?.total ?? 0,
                 promoCode: orderData?.promoCode ?? null,
                 shippingMethod: orderData?.shippingMethod ?? 'standard',
+                clientOf: tradeProfessionalId || null,
                 createdBy: userId,
                 updatedBy: userId,
             };
@@ -218,7 +220,7 @@ class Order {
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;
-        // console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
+        console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
         // Date range filter
         if (queryParams?.startDate && queryParams?.endDate) {
@@ -279,6 +281,10 @@ class Order {
     async orderList(query, options) {
         const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
         const skip = (page - 1) * limit;
+
+        // Calculate date 14 days ago for eligible commission
+        const fourteenDaysAgoDate = new Date();
+        fourteenDaysAgoDate.setDate(fourteenDaysAgoDate.getDate() - 14);
 
         const pipeline = [
             { $match: query },
@@ -344,6 +350,20 @@ class Order {
                             }
                         }
                     ],
+                    eligibleCommission: [
+                        {
+                          $match: {
+                            orderStatus: 4,
+                            shippedAt: { $lt: fourteenDaysAgoDate }
+                          }
+                        },
+                        {
+                          $group: {
+                            _id: null,
+                            total: { $sum: "$commission" }
+                          }
+                        }
+                      ],
 
                     // Main data pipeline
                     data: [
@@ -389,6 +409,7 @@ class Order {
                                 updatedAt: 1,
                                 createdBy: 1,
                                 updatedBy: 1,
+                                clientOf: 1,
                                 createdByDetails: {
                                     _id: 1,
                                     name: 1,
@@ -477,7 +498,8 @@ class Order {
                 { path: 'orderDetails' },
                 { path: 'shippingAddress' },
                 { path: 'createdBy' },
-                { path: 'updatedBy' }
+                { path: 'updatedBy' },
+                { path: 'clientOf', select: 'name email companyName userImage' }
             ]);
 
         if (!order) {

@@ -342,8 +342,11 @@ async function sendPaymentLink(req, res) {
       cartItems,
       shippingAddress,
       shippingMethod,
-      orderSummary
+      orderSummary,
+      tradeProfessionalId
     } = req.body;
+
+    console.log(req.body,'req.body');
 
     // Validate required fields
     if (!cartId || !clientId || !cartItems || !orderSummary) {
@@ -371,6 +374,7 @@ async function sendPaymentLink(req, res) {
       // shippingAddress,
       // shippingMethod,
       orderSummary,
+      tradeProfessionalId: tradeProfessionalId||null
       // expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
     });
     await cart.save();

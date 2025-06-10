@@ -42,6 +42,9 @@ module.exports = class OrderController {
         try {
             const { status, trackingId } = req.body;
             const orderId = req.params.id;
+            console.log(status, 'status');
+            console.log(trackingId, 'trackingId');
+            console.log(orderId, 'orderId');
             const data = await orderService.updateOrderStatus(orderId, status, trackingId);
             return res.status(200).json({ data: data, message: 'Order status updated successfully.' });
         } catch (error) {

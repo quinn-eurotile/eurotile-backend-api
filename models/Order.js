@@ -15,7 +15,8 @@ const orderSchema = new mongoose.Schema({
   customerType: {
     type: String,
     enum: ['retail', 'trade'],
-    required: true
+    required: true,
+    default: 'trade'
   },
   clientOf: {
     type: mongoose.Schema.Types.ObjectId,
@@ -36,6 +37,7 @@ const orderSchema = new mongoose.Schema({
     default: 'standard'
   },
   trackingId: { type: String, default: null },
+  shippedAt: {type: Date, default: null},
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
