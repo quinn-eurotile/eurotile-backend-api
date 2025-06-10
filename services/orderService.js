@@ -260,6 +260,8 @@ class Order {
         const { page, limit, sort } = options;
         const skip = (page - 1) * limit;
 
+
+
         const pipeline = [
             { $match: query },
             {
@@ -284,6 +286,20 @@ class Order {
                             }
                         }
                     ],
+                    eligibleCommission: [
+                        {
+                          $match: {
+                            orderStatus: 4,
+                            shippedAt: { $lt: fourteenDaysAgoDate }
+                          }
+                        },
+                        {
+                          $group: {
+                            _id: null,
+                            total: { $sum: "$commission" }
+                          }
+                        }
+                      ],
 
                     // Main data pipeline
                     data: [
