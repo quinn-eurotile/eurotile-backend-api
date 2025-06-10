@@ -488,7 +488,7 @@ class Product {
                         product: product._id,
                         fileName: file.originalname,
                         fileType: file.mimetype.split('/')[0] || 'other',
-                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        filePath: `/uploads/products/${productId}/${file.originalname}`,
                         fileSize: file.size,
                         isFeaturedImage: 1
                     });
@@ -520,7 +520,7 @@ class Product {
                         product: product._id,
                         fileName: file.originalname,
                         fileType: file.mimetype.split('/')[0] || 'other',
-                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        filePath: `/uploads/products/${productId}/${file.originalname}`,
                         fileSize: file.size,
                         isFeaturedImage: 0
                     });
@@ -666,7 +666,7 @@ class Product {
                         product: product._id,
                         fileName: file.originalname,
                         fileType: file.mimetype.split('/')[0] || 'other',
-                        filePath: `/uploads/${productId}/${file.originalname}`,
+                        filePath: `/uploads/products/${productId}/${file.originalname}`,
                         fileSize: file.size,
                         isFeaturedImage: 1
                     });
@@ -730,7 +730,7 @@ class Product {
                             product: product._id,
                             fileName: file.originalname,
                             fileType: file.mimetype.split('/')[0] || 'other',
-                            filePath: `/uploads/${productId}/${file.originalname}`,
+                            filePath: `/uploads/products/${productId}/${file.originalname}`,
                             fileSize: file.size,
                             isFeaturedImage: 0
                         });
