@@ -236,7 +236,9 @@ async function updateCartItem(itemId, quantity) {
   if (!item) return null;
 
   item.quantity = quantity;
-  return await cart.save();
+  await cart.save();
+  return await getCartById(cart?._id)
+  
 }
 
 async function removeCartItem(itemId) {
@@ -246,7 +248,8 @@ async function removeCartItem(itemId) {
   if (!cart) return null;
 
   cart.items = cart.items.filter(item => item._id.toString() !== itemId);
-  return await cart.save();
+  await cart.save();
+  return await getCartById(cart?._id)
 }
 
 async function addItemToCart(userId, productId, variationId, quantity, attributes = {}, price = null, isNewVariation = false) {

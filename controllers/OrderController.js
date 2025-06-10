@@ -65,4 +65,15 @@ module.exports = class OrderController {
         }
     }
 
+    /** * Get order list for support ticket (last 1 month) for admin */
+    async getOrderListForSupportTicket(req, res) {
+        try {
+            const data = await orderService.getOrderListForSupportTicket(req)
+            return res.status(200).json({ data: data, message: '' });
+        } catch (error) {
+            console.log(error, 'error')
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
 };

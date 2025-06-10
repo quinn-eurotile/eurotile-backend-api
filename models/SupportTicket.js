@@ -7,6 +7,7 @@ const supportTicketSchema = new Schema({
     message: { type: String, required: true },
     sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     order: { type: Schema.Types.ObjectId, ref: 'Order', default: null },
+    issue_type: { type: Number, default: 5 }, // 1: 'Order Issue', 2: 'Payment Issue', 3: 'Invoice Issue', 4: 'Product Issue', 5: 'General Issue'
     status: { type: Number, default: 1 }, //  1: 'Open', 2: 'Closed', 3: 'Pending', 4: 'In Progress', 5: 'Resolved', 6: 'Rejected', 7: 'Cancelled'
     assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     isDeleted: { type: Boolean, default: false },

@@ -10,5 +10,6 @@ router.get('/stats', multer().any(), auth, orderController.getStats);
 router.get('/customer/:customerId', multer().any(), auth, orderController.getCustomerOrders);
 router.get('/:id', multer().any(), auth, orderController.orderDetails);
 router.put('/:id/status', multer().any(), auth, orderController.updateOrderStatus);
+router.get('/support/ticket', multer().any(), auth, orderController.getOrderListForSupportTicket);
 
 module.exports = router;
