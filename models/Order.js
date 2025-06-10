@@ -23,6 +23,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['standard', 'express', 'overnight'],
     default: 'standard'
   },
+  shippedAt: {type: Date, default: null},
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 }, {
