@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
-const adminRole = { id: '680f110aa6224872fab09569', name: 'Admin' };
-const teamMemberRole = { id: '680f606cb47c317ad30841b5', name: 'Team Member' };
-const tradeProfessionalRole = { id: '6819ce06bb8f30e6c73eba48', name: 'Trade Professional' };
+
+const adminRole = { id: '680f110aa6224872fab09569', name: 'Admin', slug: 'admin' };
+const teamMemberRole = { id: '680f606cb47c317ad30841b5', name: 'Team Member', slug: 'team-member' };
+const tradeProfessionalRole = { id: '6819ce06bb8f30e6c73eba48', name: 'Trade Professional', slug: 'trade-professional' };
 const adminSettingId = `683eaa785fabaae3a4c5de04`;
-const clientRole = { id: '683ec5d85fabaae3a4c5de07', name: 'Client' };
+const clientRole = { id: '683ec5d85fabaae3a4c5de07', name: 'Client', slug: 'client' };
 // Predefined ObjectIDs for consistency
 const measurementUnit = [
  // Length Units

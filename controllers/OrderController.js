@@ -8,7 +8,7 @@ module.exports = class OrderController {
     async orderList(req, res) {
         try {
             const query = await orderService.buildOrderListQuery(req);
-            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate : { path : 'createdBy'} };
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit), populate: { path: 'createdBy' } };
             const data = await orderService.orderList(query, options);
             return res.status(200).json({ data: data, message: 'Order list get successfully.' });
         } catch (error) {
@@ -16,11 +16,23 @@ module.exports = class OrderController {
         }
     }
 
+    /** * Get order details */
     async orderDetails(req, res) {
         try {
             const data = await orderService.orderDetails(req);
             return res.status(200).json({ data: data, message: 'Order list get successfully.' });
         } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+    /** * Get order list for support ticket (last 1 month) for admin */
+    async getOrderListForSupportTicket(req, res) {
+        try {
+            const data = await orderService.getOrderListForSupportTicket(req)
+            return res.status(200).json({ data: data, message: '' });
+        } catch (error) {
+            console.log(error, 'error')
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }

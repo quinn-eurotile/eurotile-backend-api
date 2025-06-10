@@ -145,8 +145,6 @@ class SupportTicket {
         }
     }
     
-    
-
     async uploadTicketFile(file, ticketId) {
         // console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
@@ -171,7 +169,8 @@ class SupportTicket {
     }
 
     async saveTicket(req) {
-        const { message, subject, status } = req.body;
+        console.log('req.body', req.body)
+        const { message, subject, status, order } = req.body;
         const sender = req.user?.id || req.user?._id;
         const ticketId = req.method === 'PUT' ? req.params.id : null;
 
@@ -192,6 +191,7 @@ class SupportTicket {
             ticketDoc = new supportTicketModel({
                 sender: new mongoose.Types.ObjectId(String(sender)),
                 assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
+                order: new mongoose.Types.ObjectId(String(order)),
                 subject,
                 status,
                 message,
@@ -224,6 +224,7 @@ class SupportTicket {
         const ticketMsg = new supportTicketMsgModel({
             ticket: ticketDoc._id,
             sender: new mongoose.Types.ObjectId(String(sender)),
+            order: new mongoose.Types.ObjectId(String(order)),
             message,
             ...fileData
         });
@@ -375,6 +376,7 @@ class SupportTicket {
                                 $project: {
                                     subject: 1,
                                     ticketNumber: 1,
+                                    issue_type: 1,
                                     message: 1,
                                     status: 1,
                                     createdAt: 1,
