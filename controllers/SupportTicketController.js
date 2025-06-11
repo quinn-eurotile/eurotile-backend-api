@@ -16,6 +16,7 @@ module.exports = class SupportTicketController {
     /** Get Chat According To Ticket  */
     getChatByTicket = async (req, res) => {
         try {
+            console.log('getChatByTicket req', req?.params);
             const result = await supportTicketService.getChatByTicket(req);
             return res.status(200).json({ message: 'Chat fetched successfully.', data: result });
         } catch (error) {

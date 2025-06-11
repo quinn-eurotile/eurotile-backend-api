@@ -12,9 +12,12 @@ class SupportTicket {
 
     async getChatByTicket(req) {
         try {
-            // // console.log('req.params', req.params);
+            console.log('req.params', req.params);
+            console.log('req.query', req.query);
             
-            const { page = 1, limit = 20 } = req.params;
+            let { page = 1, limit = 20 } = req.query;
+            limit = Number(limit);
+            page = Number(page);
             const skip = (page - 1) * limit;
     
             const matchStage = {
@@ -63,7 +66,7 @@ class SupportTicket {
                 },
     
                 { $skip: skip },
-                { $limit: limit }
+                { $limit: Number(limit) }
             ];
     
             const tickets = await supportTicketModel.aggregate(pipeline);
