@@ -4,7 +4,12 @@ const { validatePaymentIntent, validateKlarnaSession } = require('../validators/
 const emailService = require('../services/emailService');
 const AdminSetting = require('../models/AdminSetting');
 const User = require('../models/User');
+<<<<<<< HEAD
 const { removeCartItem } = require('../services/cartService');
+=======
+const Product = require('../models/Product');
+
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
 
 module.exports = class PaymentController {
   // Create Stripe Payment Intent
@@ -13,14 +18,39 @@ module.exports = class PaymentController {
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;
       delete req.body.cartItems;      
+<<<<<<< HEAD
       const userId = req?.user?.id;
+=======
+      const userId =  req?.user?.id
+
+      // Populate product and supplier information
+      const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
+        const product = await Product.findById(item.product?._id)
+          .populate('supplier')
+          .lean();
+        return {
+          ...item,
+          product: product
+        };
+      }));
+
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
       const result = await paymentService.createPaymentIntent(req.body);
 
       if (!result.success) {
         return res.status(400).json(result);
       }
       
+<<<<<<< HEAD
       const order = await orderService.createOrder({ userId: userId, cartItems: cartItems, orderData: orderData, paymentIntent: result.data.paymentIntent });
+=======
+      const order = await orderService.createOrder({ 
+        userId: userId, 
+        cartItems: populatedCartItems,
+        orderData: orderData, 
+        paymentIntent: result.data.paymentIntent 
+      });
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
    
       // Remove cart items after successful order creation
       try {
@@ -81,6 +111,18 @@ module.exports = class PaymentController {
         });
       }
 
+      // Populate product and supplier information
+      console.log('Populating product and supplier information...');
+      const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
+        const product = await Product.findById(item.product?._id)
+          .populate('supplier')
+          .lean();
+        return {
+          ...item,
+          product: product
+        };
+      }));
+
       console.log('Creating payment intent...');
       const result = await paymentService.createPaymentIntent(req.body);
 
@@ -104,7 +146,7 @@ module.exports = class PaymentController {
       // Calculate commission for each item and total commission
       console.log('Calculating commissions...');
       let totalCommission = 0;
-      const itemsWithCommission = cartItems.map(item => {
+      const itemsWithCommission = populatedCartItems.map(item => {
         const basePrice = item.variation?.regularPriceB2B || 0;
         const sellingPrice = item.price || 0;
         const itemCommission = Math.max(0, sellingPrice - basePrice);
