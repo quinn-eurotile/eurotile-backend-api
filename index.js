@@ -47,10 +47,10 @@ const io = socketIo(server, {
 });
 
 io.on('connection', socket => {
-	// console.log('Socket connected:', socket.id);
+	console.log('Socket connected:', socket.id);
 
 	socket.on('sendMessage', async  msg => {
-		// console.log('Message sendMessage:', msg);
+		console.log('Message sendMessage:', msg);
 
 		try {
 			const parsedMsg = JSON.parse(msg); // or if msg is already a JSON object, skip this line
@@ -76,14 +76,12 @@ io.on('connection', socket => {
 
 	/** Join By Ticket Id ***/
 	socket.on("join", (requestData) => {
-		// console.log("requestData", requestData);
-		
+		console.log("Join time requestData", requestData);
 		socket.join(requestData.ticketId);
-		
 	});
 
 	socket.on('disconnect', () => {
-		// console.log('Socket disconnected:', socket.id);
+		console.log('Socket disconnected:', socket.id);
 	});
 });
 
