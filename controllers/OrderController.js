@@ -76,4 +76,14 @@ module.exports = class OrderController {
         }
     }
 
+    /** Get order history **/
+    async getOrderHistory(req, res) {
+        try {
+            const data = await orderService.getOrderHistory(req.params.id);
+            return res.status(200).json({ data: data, message: 'Order history get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
 };
