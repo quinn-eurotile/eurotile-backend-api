@@ -16,6 +16,8 @@ router.patch('/:id/status', multer().any(), auth, supportTicketController.update
 /** Chat Related Routes For Support Ticket */
 router.get('/chat', multer().any(), auth, supportTicketController.getChatByTicket);
 router.get('/chat/:id', multer().any(), auth, supportTicketController.getChatByTicket);
+router.get('/chat/load-more/tickets', multer().any(), auth, supportTicketController.loadMoreTickets);
+router.get('/chat/load-more/message/:id', multer().any(), auth, supportTicketController.loadMoreMessage);
 router.post('/chat', multer().any(),auth,  supportTicketController.sendChatMessage );
 
 module.exports = router;

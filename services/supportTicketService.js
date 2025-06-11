@@ -10,32 +10,79 @@ const constants = require('../configs/constant');
 
 class SupportTicket {
 
-    async getChatByTicket(req) {
+    async loadMoreMessages(req, res) {
         try {
-            console.log('req.params', req.params);
-            console.log('req.query', req.query);
-            
-            let { page = 1, limit = 20 } = req.query;
+            const { id : ticketId } = req?.params;
+            let { page = 1, limit = 10 } = req?.query;
             limit = Number(limit);
             page = Number(page);
-            const skip = (page - 1) * limit;
     
+            const skip = (page - 1) * limit; // Calculate skip value based on pagination
+    
+            // Build match condition for filtering messages
             const matchStage = {
-                //...req.params,
-                isDeleted: false,
-                status: { $in: [1, 2, 3, 4, 5, 6, 7] }
+                ticket: ticketId, // Match ticketId to get messages for specific ticket
             };
+    
+            // You can adjust or add aggregation pipeline stages if you need to populate data
+            const messages = await supportTicketMsgModel.aggregate([
+                { $match: matchStage }, // Apply filters
+                { $skip: skip }, // Skip based on page and limit
+                { $limit: limit }, // Limit to the number of results per page
+                {
+                    $lookup: {
+                        from: 'users', // Assuming the collection name for users is 'users'
+                        localField: 'sender',
+                        foreignField: '_id',
+                        as: 'senderDetails' // Populating sender details
+                    }
+                },
+                { $unwind: { path: '$senderDetails', preserveNullAndEmptyArrays: true } }, // Unwind sender details
+                {
+                    $project: {
+                        ticket: 1,
+                        sender: 1,
+                        message: 1,
+                        fileName: 1,
+                        fileType: 1,
+                        filePath: 1,
+                        fileSize: 1,
+                        senderName: { $concat: ['$senderDetails.firstName', ' ', '$senderDetails.lastName'] }, // Adjust field names based on your schema
+                        createdAt: 1
+                    }
+                }
+            ]);
+    
+            // Send the response with messages
+            res.status(200).json({
+                success: true,
+                data: messages
+            });
+        } catch (error) {
+            // Handle errors and send response
+            res.status(error?.statusCode || 500).json({
+                success: false,
+                message: error?.message || 'Failed to load more messages'
+            });
+        }
+    }
 
+    async loadMoreTickets(req) {
+        try {
+            let { page = 1, limit = 10, sort = { createdAt: -1 } } = req?.query;
+            limit = Number(limit);
+            page = Number(page);
+
+            const skip = (page - 1) * limit;
+            const matchStage = { isDeleted: false, status: { $in: [1, 2, 3, 4, 5, 6, 7] } };
             const roles = req?.user?.roles?.map((el) => el?.id);
-            
-            if(!roles?.includes(constants?.adminRole?.id)){
+
+            if (!roles?.includes(constants?.adminRole?.id)) {
                 matchStage['sender'] = new mongoose.Types.ObjectId(String(req?.user?.id))
             }
-            
-    
+
             const pipeline = [
                 { $match: matchStage },
-    
                 {
                     $lookup: {
                         from: 'supportticketmsgs',
@@ -48,10 +95,92 @@ class SupportTicket {
                         as: 'supportticketmsgs_detail'
                     }
                 },
-               
-    
+                { $sort: sort },
+                { $skip: skip },
+                { $limit: limit }
+            ];
+            const tickets = await supportTicketModel.aggregate(pipeline);
+
+            const docs = tickets.map(ticket => ({
+                id: ticket._id,
+                fullName: ticket.subject,
+                role: 'Ticket',
+                about: ticket.subject,
+                avatar: ticket?.supportticketmsgs_detail?.[0]?.filePath || null,
+                status: 'online'
+            }));
+
+            const chats = tickets.map(ticket => {
+                const chatMessages = ticket.supportticketmsgs_detail
+                    .slice()
+                    .reverse() // To get oldest-to-newest order
+                    .map(msg => ({
+                        message: msg.message,
+                        time: msg.createdAt,
+                        senderId: msg.sender,
+                        msgStatus: {
+                            isSent: true,
+                            isDelivered: true,
+                            isSeen: true
+                        }
+                    }));
+
+                return {
+                    id: ticket._id,
+                    userId: ticket._id, // Or replace with appropriate user/ticket reference
+                    unseenMsgs: 0, // Add logic to calculate unseen if needed
+                    chat: chatMessages
+                };
+            });
+
+            return { contacts: docs, chats: chats };
+        } catch (error) {
+            throw { message: error?.message || 'Failed to load more tickets', statusCode: error?.statusCode || 500 };
+        }
+    }
+
+    async getChatByTicket(req) {
+        try {
+            console.log('req.params', req.params);
+            console.log('req.query', req.query);
+
+            let { page = 1, limit = 20 } = req.query;
+            limit = Number(limit);
+            page = Number(page);
+            const skip = (page - 1) * limit;
+
+            const matchStage = {
+                //...req.params,
+                isDeleted: false,
+                status: { $in: [1, 2, 3, 4, 5, 6, 7] }
+            };
+
+            const roles = req?.user?.roles?.map((el) => el?.id);
+
+            if (!roles?.includes(constants?.adminRole?.id)) {
+                matchStage['sender'] = new mongoose.Types.ObjectId(String(req?.user?.id))
+            }
+
+
+            const pipeline = [
+                { $match: matchStage },
+
+                {
+                    $lookup: {
+                        from: 'supportticketmsgs',
+                        let: { ticketId: '$_id' },
+                        pipeline: [
+                            { $match: { $expr: { $eq: ['$ticket', '$$ticketId'] } } },
+                            { $sort: { createdAt: -1 } },
+                            { $limit: limit }
+                        ],
+                        as: 'supportticketmsgs_detail'
+                    }
+                },
+
+
                 { $sort: { createdAt: -1 } },
-    
+
                 {
                     $project: {
                         _id: 1,
@@ -64,13 +193,13 @@ class SupportTicket {
                         }
                     }
                 },
-    
+
                 { $skip: skip },
                 { $limit: Number(limit) }
             ];
-    
+
             const tickets = await supportTicketModel.aggregate(pipeline);
-    
+
             const docs = tickets.map(ticket => ({
                 id: ticket._id,
                 fullName: ticket.subject,
@@ -79,14 +208,14 @@ class SupportTicket {
                 avatar: ticket?.supportticketmsgs_detail?.[0]?.filePath || null,
                 status: 'online'
             }));
-    
+
             // Count total matching documents
             const countResult = await supportTicketModel.aggregate([
                 { $match: matchStage },
                 { $count: 'total' }
             ]);
             const totalDocs = countResult[0]?.total || 0;
-    
+
             // Profile User
             const profileUserData = req.user;
             const profileUser = {
@@ -119,7 +248,7 @@ class SupportTicket {
                             isSeen: true
                         }
                     }));
-    
+
                 return {
                     id: ticket._id,
                     userId: ticket._id, // Or replace with appropriate user/ticket reference
@@ -127,7 +256,7 @@ class SupportTicket {
                     chat: chatMessages
                 };
             });
-    
+
             return {
                 docs,
                 profileUser,
@@ -147,7 +276,7 @@ class SupportTicket {
             };
         }
     }
-    
+
     async uploadTicketFile(file, ticketId) {
         // console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
@@ -172,83 +301,106 @@ class SupportTicket {
     }
 
     async saveTicket(req) {
-        console.log('req.body', req.body)
-        const { message, subject, status, order } = req.body;
-        const sender = req.user?.id || req.user?._id;
-        const ticketId = req.method === 'PUT' ? req.params.id : null;
+        try {
+            console.log('req.body', req.body);
+            let { message, subject, status, order, issue_type } = req?.body;
+            status = Number(status);
+            issue_type = Number(issue_type);
+            const sender = req?.user?.id || req?.user?._id;
+            const ticketId = req?.method === 'PUT' ? req?.params?.id : null;
 
-        const files = req.files?.filter(file => file.fieldname === 'ticketFile') || [];
+            const files = req?.files?.filter(file => file?.fieldname === 'ticketFile') || [];
 
-        let ticketDoc;
+            let ticketDoc;
+            
+            if (req?.method === 'POST') {
+                
+                if (!subject) {
+                    const error = new Error('Subject is required for creating a ticket.');
+                    error.statusCode = 422;
+                    throw error;
+                }
 
-        if (req.method === 'POST') {
-            if (!subject) {
-                const error = new Error('Subject is required for creating a ticket.');
-                error.statusCode = 422;
-                throw error;
+                const ticketNumber = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                const admin = await User.findOne({ roles: { $in: [String(constants?.adminRole?.id)] } });
+               
+                ticketDoc = new supportTicketModel({
+                    sender: new mongoose.Types.ObjectId(String(sender)),
+                    assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
+                    order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
+                    subject,
+                    status,
+                    issue_type,
+                    message,
+                    ticketNumber
+                });
+
+                console.log('ticketDoc',{
+                    sender: new mongoose.Types.ObjectId(String(sender)),
+                    assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
+                    order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
+                    subject,
+                    status,
+                    issue_type,
+                    message,
+                    ticketNumber
+                });
+
+                await ticketDoc.save();
+            } else if (req?.method === 'PUT') {
+                ticketDoc = await supportTicketModel.findById(ticketId);
+                if (!ticketDoc) {
+                    const error = new Error('Ticket not found.');
+                    error.statusCode = 404;
+                    throw error;
+                }
             }
 
-            const ticketNumber = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            const admin = await User.findOne({ roles: { $in: [String(constants?.adminRole?.id)] } });
+            
 
-            ticketDoc = new supportTicketModel({
+            let fileData = {
+                fileName: null,
+                fileType: null,
+                filePath: null,
+                fileSize: 0
+            };
+
+            if (files.length > 0 && files[0]?.buffer) {
+                fileData = await this.uploadTicketFile(files[0], ticketDoc._id);
+            }
+
+            const ticketMsg = new supportTicketMsgModel({
+                ticket: ticketDoc._id,
                 sender: new mongoose.Types.ObjectId(String(sender)),
-                assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
-                order: new mongoose.Types.ObjectId(String(order)),
-                subject,
-                status,
+                order: order ? new mongoose.Types.ObjectId(String(order)) : null,
                 message,
-                ticketNumber
+                ...fileData
             });
 
-            await ticketDoc.save();
-        } else if (req.method === 'PUT') {
-            ticketDoc = await supportTicketModel.findById(ticketId);
-            if (!ticketDoc) {
-                const error = new Error('Ticket not found.');
-                error.statusCode = 404;
-                throw error;
-            }
+            await ticketMsg.save();
+
+            return {
+                ticket: ticketDoc,
+                message: ticketMsg
+            };
+        } catch (error) {
+            throw {
+                message: error?.message || 'Something went wrong while fetching support tickets',
+                statusCode: error?.statusCode || 500
+            };
         }
-
-        let fileData = {
-            fileName: null,
-            fileType: null,
-            filePath: null,
-            fileSize: 0
-        };
-
-        // console.log('files------------', files);
-
-        if (files.length > 0 && files[0]?.buffer) {
-            fileData = await this.uploadTicketFile(files[0], ticketDoc._id);
-        }
-
-        const ticketMsg = new supportTicketMsgModel({
-            ticket: ticketDoc._id,
-            sender: new mongoose.Types.ObjectId(String(sender)),
-            order: new mongoose.Types.ObjectId(String(order)),
-            message,
-            ...fileData
-        });
-
-        await ticketMsg.save();
-
-        return {
-            ticket: ticketDoc,
-            message: ticketMsg
-        };
     }
+
 
     async buildSupportTicketListQuery(req) {
         const query = req.query;
-        
+
         const conditionArr = [{ isDeleted: false }];
-         const roles = req?.user?.roles?.map((el) => el?.id);
-            
-            if(!roles?.includes(constants?.adminRole?.id)){
-                conditionArr.push({sender :  new mongoose.Types.ObjectId(String(req?.user?.id))})
-            }
+        const roles = req?.user?.roles?.map((el) => el?.id);
+
+        if (!roles?.includes(constants?.adminRole?.id)) {
+            conditionArr.push({ sender: new mongoose.Types.ObjectId(String(req?.user?.id)) })
+        }
 
         // Normalize and validate status
         const status = Number(query.status);
@@ -312,7 +464,7 @@ class SupportTicket {
                                     as: 'allMessages'
                                 }
                             },
-                           
+
 
                             {
                                 $lookup: {
@@ -325,12 +477,12 @@ class SupportTicket {
 
                             {
                                 $lookup: {
-                                  from: 'roles',
-                                  localField: 'sender_detail.roles',
-                                  foreignField: '_id',
-                                  as: 'sender_roles'
+                                    from: 'roles',
+                                    localField: 'sender_detail.roles',
+                                    foreignField: '_id',
+                                    as: 'sender_roles'
                                 }
-                              },
+                            },
 
                             // Filter only messages with a non-null filePath
                             {
@@ -386,13 +538,13 @@ class SupportTicket {
                                     updatedAt: 1,
                                     sender_detail: {
                                         _id: 1,
-                                        name:1
+                                        name: 1
                                     },
                                     assignedTo: 1,
                                     order: 1,
                                     sender_roles: {
-                                        _id : 1,
-                                        name : 1,
+                                        _id: 1,
+                                        name: 1,
                                     },
                                     supportticketmsgs: 1
                                 }
