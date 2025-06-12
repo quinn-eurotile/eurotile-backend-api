@@ -4,12 +4,9 @@ const { validatePaymentIntent, validateKlarnaSession } = require('../validators/
 const emailService = require('../services/emailService');
 const AdminSetting = require('../models/AdminSetting');
 const User = require('../models/User');
-<<<<<<< HEAD
 const { removeCartItem } = require('../services/cartService');
-=======
 const Product = require('../models/Product');
 
->>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
 
 module.exports = class PaymentController {
   // Create Stripe Payment Intent
@@ -17,10 +14,7 @@ module.exports = class PaymentController {
     try {
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;
-      delete req.body.cartItems;      
-<<<<<<< HEAD
-      const userId = req?.user?.id;
-=======
+      delete req.body.cartItems; 
       const userId =  req?.user?.id
 
       // Populate product and supplier information
@@ -34,23 +28,18 @@ module.exports = class PaymentController {
         };
       }));
 
->>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
       const result = await paymentService.createPaymentIntent(req.body);
 
       if (!result.success) {
         return res.status(400).json(result);
       }
       
-<<<<<<< HEAD
-      const order = await orderService.createOrder({ userId: userId, cartItems: cartItems, orderData: orderData, paymentIntent: result.data.paymentIntent });
-=======
       const order = await orderService.createOrder({ 
         userId: userId, 
         cartItems: populatedCartItems,
         orderData: orderData, 
         paymentIntent: result.data.paymentIntent 
       });
->>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
    
       // Remove cart items after successful order creation
       try {

@@ -231,10 +231,28 @@ class Order {
         const { page, limit, sort } = options;
         const skip = (page - 1) * limit;
 
-        // Calculate date 14 days ago for eligible commission
-        const fourteenDaysAgoDate = new Date();
-        fourteenDaysAgoDate.setDate(fourteenDaysAgoDate.getDate() - 14);
+        // Calculate total commission and eligible commission separately
+        const commissionResult = await orderModel.aggregate([
+            { $match: query },
+            {
+                $group: {
+                    _id: null,
+                    totalCommission: { $sum: "$commission" },
+                    eligibleCommission: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ["$orderStatus", 4] }, // Only include shipped orders (status 4)
+                                "$commission",
+                                0
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
 
+        const commissionData = commissionResult.length > 0 ? commissionResult[0] : { totalCommission: 0, eligibleCommission: 0 };
+        
         const pipeline = [
             { $match: query },
             {
@@ -242,8 +260,11 @@ class Order {
                     from: 'users',
                     localField: 'createdBy',
                     foreignField: '_id',
-                    as: 'customerDetails'
+                    as: 'createdByDetails'
                 }
+            },
+            {
+                $unwind: "$createdByDetails"
             },
             {
                 $lookup: {
@@ -279,10 +300,7 @@ class Order {
             },
             {
                 $facet: {
-                    // Total document count for pagination
                     metadata: [{ $count: "totalDocs" }],
-
-                    // Grouping order statuses for summary
                     orderStatus: [
                         {
                             $group: {
@@ -291,64 +309,15 @@ class Order {
                             }
                         }
                     ],
-                    totalCommission: [
-                        {
-                            $group: {
-                                _id: null,
-                                total: { $sum: "$commission" }
-                            }
-                        }
-                    ],
-                    eligibleCommission: [
-                        {
-                            $match: {
-                                orderStatus: 4,
-                                shippedAt: { $lt: fourteenDaysAgoDate }
-                            }
-                        },
-                        {
-                            $group: {
-                                _id: null,
-                                total: { $sum: "$commission" }
-                            }
-                        }
-                    ],
-
-                    // Main data pipeline
                     data: [
                         { $sort: sort },
                         { $skip: skip },
                         { $limit: limit },
-
-                        // Join OrderDetails with the current Order
-                        {
-                            $lookup: {
-                                from: "orderdetails", // Make sure this matches your MongoDB collection name
-                                localField: "_id",
-                                foreignField: "order",
-                                as: "orderDetails"
-                            }
-                        },
-
-                        {
-                            $lookup: {
-                                from: "users",            // collection to join
-                                localField: "createdBy",  // field in orders
-                                foreignField: "_id",      // field in users
-                                as: "createdByDetails"    // output array field
-                            }
-                        },
-                        {
-                            $unwind: "$createdByDetails" // optional: convert array to object if only one user per order
-                        },
-
-                        // Select required fields
                         {
                             $project: {
                                 orderId: 1,
                                 customerType: 1,
                                 commission: 1,
-                                totalCommission: 1,
                                 total: 1,
                                 orderStatus: 1,
                                 paymentStatus: 1,
@@ -358,13 +327,13 @@ class Order {
                                 updatedAt: 1,
                                 createdBy: 1,
                                 updatedBy: 1,
-                                clientOf: 1,
                                 createdByDetails: {
                                     _id: 1,
                                     name: 1,
                                     email: 1,
                                     userImage: 1
                                 },
+                                clientOf: 1,
                                 orderDetails: {
                                     productId: 1,
                                     productDetail: 1,
@@ -380,7 +349,6 @@ class Order {
                 }
             },
             {
-                // Final structure
                 $project: {
                     data: 1,
                     totalDocs: { $ifNull: [{ $arrayElemAt: ["$metadata.totalDocs", 0] }, 0] },
@@ -420,6 +388,8 @@ class Order {
         return {
             docs: result.data,
             totalDocs: result.totalDocs,
+            totalCommission: commissionData.totalCommission,
+            eligibleCommission: commissionData.eligibleCommission,
             limit,
             page,
             totalPages: Math.ceil(result.totalDocs / limit),
@@ -429,7 +399,6 @@ class Order {
             prevPage: page > 1 ? page - 1 : null,
             statusSummary
         };
-        
     }
 
     async orderDetails(req) {
