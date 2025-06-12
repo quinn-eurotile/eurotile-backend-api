@@ -1,167 +1,264 @@
-const nodemailer = require('nodemailer');
 const { getClientUrlByRole } = require('../utils/url');
 const Supplier = require('../models/Supplier');
 const Order = require('../models/Order');
+const Notification = require('../models/Notification');
+const emailService = require('./emailService');
 
 class NotificationService {
-    constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-            }
-        });
+    constructor() {}
+
+    async createNotification(data) {
+        try {
+            const notification = new Notification(data);
+            await notification.save();
+            return notification;
+        } catch (error) {
+            throw new Error('Failed to create notification: ' + error.message);
+        }
     }
 
-    async sendSupplierOrderNotification(order, supplier, items) {
+    async getUserNotifications(userId, query = {}) {
         try {
-            const CLIENT_URL = getClientUrlByRole('Supplier');
-            const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+            const { page = 1, limit = 10, status } = query;
+            const skip = (page - 1) * limit;
 
-            // Calculate supplier-specific totals
-            const supplierSubtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const supplierShipping = order.shipping * (supplierSubtotal / order.subtotal); // Proportional shipping
-            const supplierTotal = supplierSubtotal + supplierShipping;
+            const filter = { userId };
+            if (status) {
+                filter.status = status;
+            }
 
-            // Generate product list HTML
-            const productListHtml = items.map(item => {
-                const productDetail = JSON.parse(item.productDetail);
-                return `
-                    <tr>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                            <img src="${productDetail.images[0]}" alt="${productDetail.name}" style="width: 50px; height: 50px; object-fit: cover;">
-                        </td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                            ${productDetail.name}<br>
-                            <small style="color: #666;">SKU: ${productDetail.sku}</small>
-                        </td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
-                            ${item.quantity}
-                        </td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
-                            ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(item.price)}
-                        </td>
-                        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
-                            ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(item.price * item.quantity)}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            const notifications = await Notification.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate('metadata.orderId')
+                .populate('metadata.paymentId')
+                .populate('metadata.documentId');
 
-            const emailTemplate = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { text-align: center; margin-bottom: 30px; }
-                        .logo { max-width: 200px; }
-                        .order-info { margin-bottom: 30px; }
-                        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-                        .total-section { text-align: right; margin-top: 20px; }
-                        .button { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <img src="${logo}" alt="Logo" class="logo">
-                            <h2>New Order Notification</h2>
-                        </div>
-                        
-                        <div class="order-info">
-                            <p>Dear ${supplier.companyName},</p>
-                            <p>You have received a new order (#${order.orderId}). Please review and confirm the following items:</p>
-                        </div>
+            const total = await Notification.countDocuments(filter);
 
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th style="padding: 10px; background: #f8f9fa; text-align: left;">Image</th>
-                                    <th style="padding: 10px; background: #f8f9fa; text-align: left;">Product</th>
-                                    <th style="padding: 10px; background: #f8f9fa; text-align: center;">Quantity</th>
-                                    <th style="padding: 10px; background: #f8f9fa; text-align: right;">Price</th>
-                                    <th style="padding: 10px; background: #f8f9fa; text-align: right;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${productListHtml}
-                            </tbody>
-                        </table>
+            return {
+                notifications,
+                total,
+                page: parseInt(page),
+                totalPages: Math.ceil(total / limit)
+            };
+        } catch (error) {
+            throw new Error('Failed to fetch notifications: ' + error.message);
+        }
+    }
 
-                        <div class="total-section">
-                            <p>Subtotal: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(supplierSubtotal)}</p>
-                            <p>Shipping: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(supplierShipping)}</p>
-                            <p><strong>Total: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PHP' }).format(supplierTotal)}</strong></p>
-                        </div>
+    async markAsRead(notificationId, userId) {
+        try {
+            const notification = await Notification.findOneAndUpdate(
+                { _id: notificationId, userId },
+                { status: 'read' },
+                { new: true }
+            );
+            return notification;
+        } catch (error) {
+            throw new Error('Failed to mark notification as read: ' + error.message);
+        }
+    }
 
-                        <div style="text-align: center; margin-top: 30px;">
-                            <a href="${CLIENT_URL}/supplier/orders/${order._id}" class="button">View Order Details</a>
-                        </div>
+    async markAllAsRead(userId) {
+        try {
+            await Notification.updateMany(
+                { userId, status: 'unread' },
+                { status: 'read' }
+            );
+            return true;
+        } catch (error) {
+            throw new Error('Failed to mark all notifications as read: ' + error.message);
+        }
+    }
 
-                        <div style="margin-top: 30px;">
-                            <p>Please log in to your supplier dashboard to confirm this order and update its status.</p>
-                            <p>Thank you for your business!</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
+    async getUnreadCount(userId) {
+        try {
+            return await Notification.countDocuments({ userId, status: 'unread' });
+        } catch (error) {
+            throw new Error('Failed to get unread count: ' + error.message);
+        }
+    }
 
-            await this.transporter.sendMail({
-                from: process.env.SMTP_FROM,
-                to: supplier.email,
-                subject: `New Order Notification - ${order.orderId}`,
-                html: emailTemplate
+    // Order Status Notifications
+    async notifyOrderStatusUpdate(order, newStatus, notes = '') {
+        try {
+            // Create notification for customer
+            await this.createNotification({
+                userId: order.customerId,
+                type: 'ORDER_STATUS',
+                title: `Order #${order.orderId} Status Updated`,
+                message: `Your order status has been updated to: ${newStatus}${notes ? `. Notes: ${notes}` : ''}`,
+                metadata: {
+                    orderId: order._id
+                }
+            });
+
+            // Send email to customer
+            await emailService.sendEmail({
+                template: 'order-status-update',
+                email: order.customer.email,
+                subject: `Order Status Update - #${order.orderId}`,
+                context: {
+                    orderId: order.orderId,
+                    status: newStatus,
+                    notes,
+                    customerName: order.customer.name
+                }
             });
 
             return true;
         } catch (error) {
-            console.error('Error sending supplier notification:', error);
+            console.error('Error sending order status notification:', error);
             return false;
         }
     }
 
-    async sendOrderStatusUpdateNotification(order, supplier, status, notes) {
+    // Payment Notifications
+    async notifyPaymentConfirmation(payment, order) {
         try {
-            const customerEmail = order.customer.email;
-            const statusUpdateTemplate = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h2>Order Status Update</h2>
-                        <p>Dear Customer,</p>
-                        <p>There has been an update to your order #${order.orderId}.</p>
-                        <p>Supplier ${supplier.companyName} has updated the status of their items to: <strong>${status}</strong></p>
-                        ${notes ? `<p>Notes from supplier: ${notes}</p>` : ''}
-                        <p>You can view your order details by logging into your account.</p>
-                        <p>Thank you for shopping with us!</p>
-                    </div>
-                </body>
-                </html>
-            `;
+            // Create notification for customer
+            await this.createNotification({
+                userId: order.customerId,
+                type: 'PAYMENT_CONFIRMATION',
+                title: `Payment Confirmed for Order #${order.orderId}`,
+                message: `Your payment of PHP ${payment.amount} has been confirmed for order #${order.orderId}`,
+                metadata: {
+                    orderId: order._id,
+                    paymentId: payment._id
+                }
+            });
 
-            await this.transporter.sendMail({
-                from: process.env.SMTP_FROM,
-                to: customerEmail,
-                subject: `Order Status Update - ${order.orderId}`,
-                html: statusUpdateTemplate
+            // Send email
+            await emailService.sendEmail({
+                template: 'payment-confirmation',
+                email: order.customer.email,
+                subject: `Payment Confirmed - Order #${order.orderId}`,
+                context: {
+                    orderId: order.orderId,
+                    amount: payment.amount,
+                    customerName: order.customer.name,
+                    paymentMethod: payment.method
+                }
             });
 
             return true;
         } catch (error) {
-            console.error('Error sending status update notification:', error);
+            console.error('Error sending payment confirmation notification:', error);
+            return false;
+        }
+    }
+
+    // Document Approval/Rejection Notifications
+    async notifyDocumentStatus(userId, document, status, reason = '') {
+        try {
+            // Create notification
+            await this.createNotification({
+                userId,
+                type: 'ADMIN_MESSAGE',
+                title: `Document ${status === 'approved' ? 'Approved' : 'Rejected'}: ${document.type}`,
+                message: `Your ${document.type} has been ${status}${reason ? `. Reason: ${reason}` : ''}`,
+                metadata: {
+                    documentId: document._id
+                }
+            });
+
+            // Get user email
+            const user = await User.findById(userId);
+
+            // Send email
+            await emailService.sendEmail({
+                template: 'document-status',
+                email: user.email,
+                subject: `Document ${status === 'approved' ? 'Approved' : 'Rejected'}: ${document.type}`,
+                context: {
+                    documentType: document.type,
+                    status,
+                    reason,
+                    userName: user.name
+                }
+            });
+
+            return true;
+        } catch (error) {
+            console.error('Error sending document status notification:', error);
+            return false;
+        }
+    }
+
+    // Account Verification Notifications
+    async notifyAccountVerification(userId, status, reason = '') {
+        try {
+            // Create notification
+            await this.createNotification({
+                userId,
+                type: 'ADMIN_MESSAGE',
+                title: `Account ${status === 'verified' ? 'Verified' : 'Verification Failed'}`,
+                message: `Your account has been ${status}${reason ? `. Reason: ${reason}` : ''}`,
+                metadata: {}
+            });
+
+            // Get user email
+            const user = await User.findById(userId);
+
+            // Send email
+            await emailService.sendEmail({
+                template: 'account-verification',
+                email: user.email,
+                subject: `Account ${status === 'verified' ? 'Verified' : 'Verification Failed'}`,
+                context: {
+                    status,
+                    reason,
+                    userName: user.name
+                }
+            });
+
+            return true;
+        } catch (error) {
+            console.error('Error sending account verification notification:', error);
+            return false;
+        }
+    }
+
+    // Supplier Order Notifications
+    async notifySupplierNewOrder(order, supplier, items) {
+        try {
+            // Calculate supplier-specific totals
+            const supplierSubtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const supplierShipping = order.shipping * (supplierSubtotal / order.subtotal);
+            const supplierTotal = supplierSubtotal + supplierShipping;
+
+            // Create notification for supplier
+            await this.createNotification({
+                userId: supplier._id,
+                type: 'ORDER_STATUS',
+                title: `New Order #${order.orderId}`,
+                message: `You have received a new order worth PHP ${supplierTotal}`,
+                metadata: {
+                    orderId: order._id
+                }
+            });
+
+            // Send email to supplier
+            await emailService.sendEmail({
+                template: 'supplier-new-order',
+                email: supplier.email,
+                subject: `New Order Notification - #${order.orderId}`,
+                context: {
+                    orderId: order.orderId,
+                    items,
+                    supplierName: supplier.companyName,
+                    subtotal: supplierSubtotal,
+                    shipping: supplierShipping,
+                    total: supplierTotal,
+                    clientUrl: getClientUrlByRole('Supplier')
+                }
+            });
+
+            return true;
+        } catch (error) {
+            console.error('Error sending supplier order notification:', error);
             return false;
         }
     }

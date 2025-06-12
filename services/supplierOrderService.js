@@ -206,6 +206,17 @@ class SupplierOrderService {
             throw error;
         }
     }
+    async createSupplierOrder(orderData, supplierId) {
+        
+        try {
+            const order = new Order(orderData);
+            await order.save();
+            return order;
+        } catch (error) {
+            console.error('Error creating supplier order:', error); 
+            throw error;
+        }
+    }   
 }
 
 module.exports = new SupplierOrderService(); 

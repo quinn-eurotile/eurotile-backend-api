@@ -89,6 +89,27 @@ class SupplierOrderController {
             });
         }
     }
+
+    async createOrder(req, res) {
+        try {
+            const orderData = req.body;
+            const supplierId = req.supplier._id;
+
+            const result = await supplierOrderService.createSupplierOrder(orderData, supplierId);
+
+            res.json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            console.error('Error in createOrder:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to create order',
+                error: error.message
+            });
+        }
+    }
 }
 
 module.exports = new SupplierOrderController(); 

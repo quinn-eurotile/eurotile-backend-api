@@ -139,7 +139,10 @@ class Order {
             );
 
             // Notify suppliers about their portion of the order
-            await this.notifySuppliers(completeOrder);
+            // const notifyRes = await this.notifySuppliers(completeOrder);
+            
+            // console.log(notifyRes,'notifyRes');
+            
 
             return completeOrder;
         } catch (error) {
@@ -650,6 +653,8 @@ class Order {
         try {
             const supplierGroups = await this.groupOrderItemsBySupplier(order);
             const notifications = [];
+            console.log(supplierGroups,' supplierGroups ');
+            
 
             for (const [supplierId, group] of Object.entries(supplierGroups)) {
                 try {
