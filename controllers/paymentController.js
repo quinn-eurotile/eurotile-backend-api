@@ -4,24 +4,23 @@ const { validatePaymentIntent, validateKlarnaSession } = require('../validators/
 const emailService = require('../services/emailService');
 const AdminSetting = require('../models/AdminSetting');
 const User = require('../models/User');
+<<<<<<< HEAD
+const { removeCartItem } = require('../services/cartService');
+=======
 const Product = require('../models/Product');
 
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
 
 module.exports = class PaymentController {
   // Create Stripe Payment Intent
   async createPaymentIntent(req, res) {
-    
     try {
-      // const { error } = validatePaymentIntent(req.body);
-      // if (error) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: error.details[0].message
-      //   });
-      // }
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;
       delete req.body.cartItems;      
+<<<<<<< HEAD
+      const userId = req?.user?.id;
+=======
       const userId =  req?.user?.id
 
       // Populate product and supplier information
@@ -35,24 +34,39 @@ module.exports = class PaymentController {
         };
       }));
 
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
       const result = await paymentService.createPaymentIntent(req.body);
 
       if (!result.success) {
         return res.status(400).json(result);
       }
       
+<<<<<<< HEAD
+      const order = await orderService.createOrder({ userId: userId, cartItems: cartItems, orderData: orderData, paymentIntent: result.data.paymentIntent });
+=======
       const order = await orderService.createOrder({ 
         userId: userId, 
         cartItems: populatedCartItems,
         orderData: orderData, 
         paymentIntent: result.data.paymentIntent 
       });
+>>>>>>> af48d0a7ff0639c9b785e0697e5c78f838cda993
    
+      // Remove cart items after successful order creation
+      try {
+        for (const item of cartItems) {
+          await removeCartItem(item._id);
+        }
+        console.log('Cart items removed successfully after order creation');
+      } catch (cartError) {
+        console.error('Failed to remove cart items, but order was created:', cartError);
+      }
+
       res.status(200).json({
         ...result,
         data: {
           ...result.data,
-          orderId: order._id // Include the order ID in the response
+          orderId: order._id
         }
       });
     } catch (error) {
@@ -169,7 +183,6 @@ module.exports = class PaymentController {
         cartItems: itemsWithCommission,
         orderData: {
           ...orderData,
-          // commission: commissionWithVAT
           commission: totalCommission
         }, 
         paymentIntent: result.data.paymentIntent 
@@ -178,9 +191,18 @@ module.exports = class PaymentController {
       console.log('Order created successfully:', {
         orderId: order._id,
         total: order.total,
-        // commission: commissionWithVAT
         commission: totalCommission
       });
+
+      // Remove cart items after successful order creation
+      try {
+        for (const item of cartItems) {
+          await removeCartItem(item._id);
+        }
+        console.log('Cart items removed successfully after order creation');
+      } catch (cartError) {
+        console.error('Failed to remove cart items, but order was created:', cartError);
+      }
 
       // Send confirmation email to both shipping address and user email
       console.log('Sending confirmation emails...');

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const AdminSettingSchema = new mongoose.Schema({
-  commissionRate: Number,
+  currencyConversionRate: Number,
   vatOnOrder: Number,
   vatOnCommission: Number,
   // Add new fields here as needed
