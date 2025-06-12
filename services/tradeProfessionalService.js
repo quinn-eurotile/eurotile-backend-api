@@ -9,6 +9,7 @@ const bcrypt = require("bcryptjs");
 const stripe = require('../utils/stripeClient');
 const { saveAddressData } = require('./addressService');
 const StripeConnectAccount = require('../models/StripeConnectAccount');
+const TransferPayout = require('../models/TransferPayout');
 
 class TradeProfessional {
 
@@ -57,27 +58,31 @@ class TradeProfessional {
             });
 
             console.log('transfer',transfer);
-    
-            // Update orders to mark commission as paid
-            // const ordersToUpdate = eligibleOrders.slice();
-            // let remainingAmount = amount;
-    
-            // for (const order of ordersToUpdate) {
-            //     if (remainingAmount <= 0) break;
-    
-            //     const commissionToPay = Math.min(order.commission, remainingAmount);
-            //     remainingAmount -= commissionToPay;
-    
-            //     // Update order with paid commission amount
-            //     await Order.findByIdAndUpdate(order._id, {
-            //         $set: {
-            //             commissionPaid: true,
-            //             commissionPaidAmount: commissionToPay,
-            //             commissionPaidAt: new Date(),
-            //             commissionTransferId: transfer.id
-            //         }
-            //     });
-            // }
+
+            // Save transfer response to database
+            const transferPayout = new TransferPayout({
+                transferId: transfer.id,
+                object: transfer.object,
+                amount: transfer.amount / 100, // Convert from cents to euros
+                amountReversed: transfer.amount_reversed / 100,
+                balanceTransaction: transfer.balance_transaction,
+                created: transfer.created,
+                currency: transfer.currency,
+                description: transfer.description,
+                destination: transfer.destination,
+                destinationPayment: transfer.destination_payment,
+                livemode: transfer.livemode,
+                metadata: transfer.metadata,
+                reversals: transfer.reversals,
+                reversed: transfer.reversed,
+                sourceTransaction: transfer.source_transaction,
+                sourceType: transfer.source_type,
+                transferGroup: transfer.transfer_group,
+                createdBy: userId,
+                updatedBy: userId
+            });
+
+            await transferPayout.save();
     
             return {
                 transferId: transfer.id,
