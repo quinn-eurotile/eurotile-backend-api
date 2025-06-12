@@ -1,12 +1,12 @@
 // const { validationResult } = require('express-validator');
-const { getCartByUser, saveCart, deleteCart, updateCartItem, removeCartItem, getCartById, deleteCartWhole } = require('../services/cartService');
+const { getCartByUser, saveCart, deleteCart, updateCartItem, removeCartItem, getCartById, deleteCartWhole, deleteCartByUserId } = require('../services/cartService');
 const { addToWishlist } = require('../services/wishlistService.js');
 const { validatePromoCode } = require('../services/promoService');
 const { sendPaymentLinkEmail } = require('../services/emailService');
 const Cart = require('../models/Cart');
 const User = require('../models/User');
 const constants = require('../configs/constant');
-const { getOrderById, updateOrderStatus } = require('../services/orderService.js');
+const { getOrderById, updateOrderStatus } = require('../services/orderService');
 // Get cart
 const getCartController = async (req, res) => {
   try {
@@ -206,8 +206,31 @@ const deleteCartWholeController = async (req, res) => {
   }
 };
 
+const removeCartByUserIdController = async (req, res) => {
 
-const addToWishlistController = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const deletedCart = await deleteCartByUserId(userId);
+    if (!deletedCart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cart not found'
+      });
+    }
+    res.json({
+      success: true,
+      data: deletedCart
+    });
+  } catch (error) {
+    console.error('Error deleting cart:', error);
+    res.status(500).json({
+      success: false, 
+      message: 'Failed to delete cart'
+    });
+  }
+}
+
+  const addToWishlistController = async (req, res) => {
   try {
     const { itemId } = req.body;
     const userId = req.user.id; // Assuming user is authenticated
@@ -416,10 +439,12 @@ async function sendPaymentLink(req, res) {
   }
 }
 
-const updateOrderStatusController = async (req, res) => {
+const updateOrderStatusController = async (req, res) => { 
   try {
-    const { orderId, status } = req.body;
-    const updatedOrder = await updateOrderStatus(orderId, status);
+    
+    const { id } = req.params;
+    console.log(req.body ,req.params,'req.body ,req.params');
+    const updatedOrder = await updateOrderStatus(id, req.body);
     res.status(200).json({
       success: true,
       data: updatedOrder
@@ -465,5 +490,6 @@ module.exports = {
   getCartByIdController,
   updateOrderStatusController,
   getOrderByIdController,
-  deleteCartWholeController
+  deleteCartWholeController,
+  removeCartByUserIdController
 };

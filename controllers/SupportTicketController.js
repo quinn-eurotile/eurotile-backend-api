@@ -13,6 +13,28 @@ module.exports = class SupportTicketController {
         }
     }
 
+    /** Load More Tickets */
+    loadMoreTickets = async (req, res) => {
+        try {
+            console.log('loadMoreTickets req', req?.params);
+            console.log('loadMoreTickets req', req?.query);
+            const result = await supportTicketService.loadMoreTickets(req);
+            return res.status(200).json({ data: result, message: 'Tickets loaded successfully.', });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Something went wrong.' });
+        }
+    }
+
+    /** Load More Messages */
+    loadMoreMessage = async (req, res) => {
+        try {
+            const result = await supportTicketService.loadMoreMessages(req);
+            return res.status(200).json({ data: result, message: 'Messages loaded successfully.', });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message || 'Something went wrong.' });
+        }
+    }
+
     /** Get Chat According To Ticket  */
     getChatByTicket = async (req, res) => {
         try {

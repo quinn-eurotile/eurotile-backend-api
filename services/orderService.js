@@ -2,8 +2,17 @@ const mongoose = require('mongoose');
 const orderModel = require('../models/Order');
 const orderDetailModel = require('../models/OrderDetail');
 const paymentDetailModel = require('../models/PaymentDetail');
+const orderHistoryModel = require('../models/OrderHistory');
+const supplierModel = require('../models/Supplier');
+const nodemailer = require('nodemailer');
+const emailService = require('./emailService');
 
 class Order {
+    constructor() {
+        // Bind methods to preserve 'this' context
+        this.updateOrderStatus = this.updateOrderStatus.bind(this);
+        this.addOrderHistory = this.addOrderHistory.bind(this);
+    }
 
     /** Create a new order */
     async createOrder(data) {
@@ -21,6 +30,11 @@ class Order {
         const session = await mongoose.startSession();
         session.startTransaction();
         try {
+            // Collect unique suppliers from order items
+            const uniqueSuppliers = [...new Set(orderItems
+                .map(item => item.product?.supplier)
+                .filter(supplier => supplier))];
+
             const newData = {
                 orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
                 commission: orderData?.commission ?? 0,
@@ -38,6 +52,12 @@ class Order {
                 clientOf: tradeProfessionalId || null,
                 createdBy: userId,
                 updatedBy: userId,
+                supplierStatuses: uniqueSuppliers.map(supplier => ({
+                    supplier: supplier,
+                    status: 'pending',
+                    confirmedAt: null,
+                    lastUpdated: new Date()
+                }))
             };
 
             // 1. Save payment detail
@@ -67,10 +87,15 @@ class Order {
                 { session }
             );
             // 4. Create OrderDetails with all required fields
-            const orderDetails = await Promise.all(orderItems.map(item =>
-                orderDetailModel.create([{
+            const orderDetails = await Promise.all(orderItems.map(item => {
+                if (!item.product?.supplier) {
+                    throw new Error(`Supplier is required for product ${item.product?.name || 'unknown'}`);
+                }
+                return orderDetailModel.create([{
+                    orderId: orderDoc[0]._id,
                     order: orderDoc[0]._id,
                     product: item.product?._id,
+                    supplier: item.product.supplier,
                     price: item?.price ?? 0,
                     quantity: item?.quantity ?? 0,
                     commission: item?.commission ?? 0,
@@ -89,7 +114,7 @@ class Order {
                     createdAt: new Date(),
                     updatedAt: new Date()
                 }], { session })
-            ));
+            }));
 
             // 5. Update order with orderDetail references
             orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
@@ -98,17 +123,30 @@ class Order {
             await session.commitTransaction();
             session.endSession();
 
-            // Return populated order
-            return await orderModel
+            // Fetch the complete order with all details
+            const completeOrder = await orderModel
                 .findById(orderDoc[0]._id)
                 .populate('orderDetails')
                 .populate('shippingAddress')
                 .populate('paymentDetail')
                 .populate('createdBy', 'name email');
 
-        } catch (err) {
-            console.error(err);
-            throw err;
+            // Send order confirmation to customer
+            await emailService.sendOrderConfirmationEmail(
+                completeOrder, 
+                completeOrder.createdBy.email,
+                completeOrder.createdBy.name
+            );
+
+            // Notify suppliers about their portion of the order
+            await this.notifySuppliers(completeOrder);
+
+            return completeOrder;
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            console.error('Order creation error:', error);
+            throw error;
         }
     }
 
@@ -422,9 +460,59 @@ class Order {
         return order;
     }
 
-    async updateOrderStatus(orderId, status) {
-        const order = await orderModel.findByIdAndUpdate(orderId, { orderStatus: status }, { new: true });
-        return order;
+    async updateOrderStatus(orderId, data) {
+        try {
+            console.log(data, orderId, 'data, orderId in updateOrderStatus');
+            
+            if (!orderId) {
+                throw new Error('Order ID is required');
+            }
+
+            if (!data || typeof data.status === 'undefined') {
+                throw new Error('Status is required');
+            }
+
+            const order = await orderModel.findById(orderId);
+            if (!order) {
+                throw new Error('Order not found');
+            }
+
+            const previousStatus = order.orderStatus;
+            const updates = { 
+                orderStatus: data.status,
+                updatedAt: new Date()
+            };
+            
+            if (data.trackingId) {
+                updates.trackingId = data.trackingId;
+            }
+
+            if (data.status === 4) { // If status is changed to "Shipped"
+                updates.shippedAt = new Date();
+            }
+
+            const updatedOrder = await orderModel.findByIdAndUpdate(
+                orderId,
+                updates,
+                { new: true }
+            ).populate(['orderDetails', 'shippingAddress', 'createdBy', 'updatedBy']);
+
+            // Add to order history
+            await this.addOrderHistory(
+                orderId,
+                'status_changed',
+                `Order status updated from ${previousStatus} to ${data.status}`,
+                data.userId,
+                { trackingId: data.trackingId },
+                previousStatus,
+                data.status
+            );
+
+            return updatedOrder;
+        } catch (error) {
+            console.error('Failed to update order status:', error);
+            throw error;
+        }
     }
 
     async getOrderById(orderId) {
@@ -513,6 +601,471 @@ class Order {
             totalRevenue: result.revenue[0]?.total || 0,
             totalCommission: result.commission[0]?.total || 0
         };
+    }
+
+    // Helper method to add order history
+    async addOrderHistory(orderId, action, description, userId, metadata = null, previousStatus = null, newStatus = null) {
+        try {
+            await orderHistoryModel.create({
+                order: orderId,
+                action,
+                description,
+                metadata,
+                previousStatus,
+                newStatus,
+                performedBy: userId,
+                createdAt: new Date()
+            });
+        } catch (error) {
+            console.error('Failed to add order history:', error);
+            // Don't throw the error to prevent blocking the main operation
+        }
+    }
+
+    // Helper method to send order confirmation email
+    async sendOrderConfirmation(order) {
+        try {
+            const emailContent = await this.generateOrderConfirmationEmail(order);
+            
+            await this.transporter.sendMail({
+                from: process.env.SMTP_FROM,
+                to: order.customerDetails.email,
+                subject: `Order Confirmation - ${order.orderId}`,
+                html: emailContent
+            });
+
+            await this.addOrderHistory(
+                order._id,
+                'email_sent',
+                'Order confirmation email sent to customer',
+                order.createdBy
+            );
+        } catch (error) {
+            console.error('Failed to send order confirmation:', error);
+        }
+    }
+
+    // Helper method to notify suppliers
+    async notifySuppliers(order) {
+        try {
+            const supplierGroups = await this.groupOrderItemsBySupplier(order);
+            const notifications = [];
+
+            for (const [supplierId, group] of Object.entries(supplierGroups)) {
+                try {
+                    // Generate supplier-specific order email
+                    const emailContent = await this.generateSupplierOrderEmail(order, group);
+                    
+                    // Send email to supplier
+                    await emailService.sendEmail({
+                        to: group.supplier.email,
+                        subject: `New Order Notification - ${order.orderId}`,
+                        html: emailContent
+                    });
+
+                    // Add to order history
+                    await this.addOrderHistory(
+                        order._id,
+                        'email_sent',
+                        `Order notification sent to supplier: ${group.supplier.companyName}`,
+                        order.createdBy,
+                        { 
+                            supplierId,
+                            supplierName: group.supplier.companyName,
+                            itemCount: group.items.length,
+                            total: group.total
+                        }
+                    );
+
+                    notifications.push({
+                        supplierId,
+                        status: 'success',
+                        message: `Notification sent to ${group.supplier.companyName}`
+                    });
+                } catch (error) {
+                    console.error(`Failed to notify supplier ${supplierId}:`, error);
+                    notifications.push({
+                        supplierId,
+                        status: 'error',
+                        message: `Failed to notify ${group.supplier.companyName}: ${error.message}`
+                    });
+                }
+            }
+
+            return notifications;
+        } catch (error) {
+            console.error('Error in notifySuppliers:', error);
+            throw error;
+        }
+    }
+
+    // Helper method to generate order confirmation email
+    async generateOrderConfirmationEmail(order) {
+        const CLIENT_URL = getClientUrlByRole('Client');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+
+        // Generate product list HTML
+        const productListHtml = order.orderDetails.map(detail => {
+            const productDetail = JSON.parse(detail.productDetail);
+            const imagePath = productDetail?.variationImages?.[0]?.filePath || 
+                            productDetail?.productFeaturedImage?.filePath ||
+                            '/images/placeholder.png';
+
+            return `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <img src="${process.env.APP_URL}${imagePath}" 
+                             alt="${productDetail?.product?.name || 'Product'}" 
+                             class="product-image">
+                        <div class="product-details">
+                            <div style="font-weight: bold;">${productDetail?.product?.name || 'Product'}</div>
+                            <div style="color: #666; font-size: 12px;">SKU: ${productDetail?.product?.sku || 'N/A'}</div>
+                            ${productDetail?.dimensions ? 
+                                `<div style="color: #666; font-size: 12px;">
+                                    Dimensions: ${productDetail.dimensions.length}x${productDetail.dimensions.width}x${productDetail.dimensions.height}
+                                </div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>${detail.quantity} SQ.M</td>
+                <td>€${detail.price.toFixed(2)}</td>
+                <td>€${(detail.price * detail.quantity).toFixed(2)}</td>
+            </tr>
+            `;
+        }).join('');
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/order_confirmation_template.html', 'utf-8');
+
+        return emailTemplate
+            .replace(/\[USER_NAME\]/g, order.customerDetails?.name || 'Valued Customer')
+            .replace(/\[LOGO\]/g, logo)
+            .replace(/\[APP_NAME\]/g, process.env.APP_NAME)
+            .replace(/\[ORDER_ID\]/g, order.orderId)
+            .replace(/\[ORDER_DATE\]/g, new Date(order.createdAt).toLocaleDateString())
+            .replace(/\[PRODUCT_LIST\]/g, productListHtml)
+            .replace(/\[SUBTOTAL\]/g, order.subtotal.toFixed(2))
+            .replace(/\[SHIPPING\]/g, order.shipping.toFixed(2))
+            .replace(/\[TOTAL\]/g, order.total.toFixed(2))
+            .replace(/\[SHIPPING_ADDRESS\]/g, this.formatShippingAddress(order.shippingAddress))
+            .replace(/\[SHIPPING_METHOD\]/g, order.shippingMethod || 'Standard Shipping')
+            .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear());
+    }
+
+    // Helper method to generate supplier order email
+    async generateSupplierOrderEmail(order, group) {
+        const CLIENT_URL = getClientUrlByRole('Client');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+
+        // Calculate supplier-specific totals
+        const supplierSubtotal = group.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const supplierShipping = order.shipping * (supplierSubtotal / order.subtotal); // Proportional shipping
+        const supplierTotal = supplierSubtotal + supplierShipping;
+
+        // Generate product list HTML for supplier's items only
+        const productListHtml = group.items.map(detail => {
+            const productDetail = JSON.parse(detail.productDetail);
+            const imagePath = productDetail?.variationImages?.[0]?.filePath || 
+                            productDetail?.productFeaturedImage?.filePath ||
+                            '/images/placeholder.png';
+
+            return `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <img src="${process.env.APP_URL}${imagePath}" 
+                             alt="${productDetail?.product?.name || 'Product'}" 
+                             class="product-image">
+                        <div class="product-details">
+                            <div style="font-weight: bold;">${productDetail?.product?.name || 'Product'}</div>
+                            <div style="color: #666; font-size: 12px;">SKU: ${productDetail?.product?.sku || 'N/A'}</div>
+                            ${productDetail?.dimensions ? 
+                                `<div style="color: #666; font-size: 12px;">
+                                    Dimensions: ${productDetail.dimensions.length}x${productDetail.dimensions.width}x${productDetail.dimensions.height}
+                                </div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>${detail.quantity} SQ.M</td>
+                <td>€${detail.price.toFixed(2)}</td>
+                <td>€${(detail.price * detail.quantity).toFixed(2)}</td>
+            </tr>
+            `;
+        }).join('');
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/supplier_order_notification_template.html', 'utf-8');
+
+        return emailTemplate
+            .replace(/\[SUPPLIER_NAME\]/g, group.supplier.companyName)
+            .replace(/\[LOGO\]/g, logo)
+            .replace(/\[APP_NAME\]/g, process.env.APP_NAME)
+            .replace(/\[ORDER_ID\]/g, order.orderId)
+            .replace(/\[ORDER_DATE\]/g, new Date(order.createdAt).toLocaleDateString())
+            .replace(/\[PAYMENT_STATUS\]/g, order.paymentStatus === 'paid' ? 'Paid' : 'Pending')
+            .replace(/\[PRODUCT_LIST\]/g, productListHtml)
+            .replace(/\[SUBTOTAL\]/g, supplierSubtotal.toFixed(2))
+            .replace(/\[SHIPPING\]/g, supplierShipping.toFixed(2))
+            .replace(/\[TOTAL\]/g, supplierTotal.toFixed(2))
+            .replace(/\[SHIPPING_ADDRESS\]/g, this.formatShippingAddress(order.shippingAddress))
+            .replace(/\[SHIPPING_METHOD\]/g, order.shippingMethod || 'Standard Shipping')
+            .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear());
+    }
+
+    // Helper method to format shipping address
+    formatShippingAddress(address) {
+        if (!address) return 'No shipping address provided';
+        return `${address.street}
+            ${address.city}
+            ${address.state} ${address.postalCode}
+            ${address.country}`;
+                }
+
+    // Add a method to get order history
+    async getOrderHistory(orderId) {
+        try {
+            return await orderHistoryModel
+                .find({ order: orderId })
+                .populate('performedBy', 'name email')
+                .sort({ createdAt: -1 });
+        } catch (error) {
+            console.error('Failed to get order history:', error);
+            throw error;
+        }
+    }
+
+    // Helper method to group order items by supplier
+    async groupOrderItemsBySupplier(order) {
+        try {
+            const supplierGroups = {};
+            
+            for (const item of order.orderDetails) {
+                const productDetail = typeof item.productDetail === 'string' 
+                    ? JSON.parse(item.productDetail)
+                    : item.productDetail;
+
+                const supplierId = productDetail.product.supplier;
+                if (!supplierId) continue;
+
+                if (!supplierGroups[supplierId]) {
+                    const supplier = await supplierModel.findById(supplierId);
+                    if (!supplier) continue;
+
+                    supplierGroups[supplierId] = {
+                        supplier: {
+                            _id: supplier._id,
+                            companyName: supplier.companyName,
+                            email: supplier.email,
+                            phone: supplier.phone,
+                            address: supplier.address
+                        },
+                        items: [],
+                        subtotal: 0,
+                        shipping: 0,
+                        total: 0
+                    };
+                }
+
+                supplierGroups[supplierId].items.push(item);
+                supplierGroups[supplierId].subtotal += item.price * item.quantity;
+            }
+
+            // Calculate shipping proportionally for each supplier
+            for (const supplierId in supplierGroups) {
+                const group = supplierGroups[supplierId];
+                // Calculate shipping based on proportion of order subtotal
+                group.shipping = (group.subtotal / order.subtotal) * order.shipping;
+                group.total = group.subtotal + group.shipping;
+            }
+
+            return supplierGroups;
+        } catch (error) {
+            console.error('Error grouping order items by supplier:', error);
+            throw error;
+        }
+    }
+
+    // Add a method to get supplier-specific order details
+    async getSupplierOrderDetails(orderId, supplierId) {
+        try {
+            const order = await orderModel
+                .findById(orderId)
+                .populate('orderDetails')
+                .populate('shippingAddress')
+                .populate('createdBy', 'name email');
+
+            if (!order) {
+                throw new Error('Order not found');
+            }
+
+            const supplierGroups = await this.groupOrderItemsBySupplier(order);
+            const supplierGroup = supplierGroups[supplierId];
+
+            if (!supplierGroup) {
+                throw new Error('No items found for this supplier in the order');
+            }
+
+            return {
+                orderId: order.orderId,
+                orderDate: order.createdAt,
+                shippingAddress: order.shippingAddress,
+                items: supplierGroup.items,
+                subtotal: supplierGroup.subtotal,
+                shipping: supplierGroup.shipping,
+                total: supplierGroup.total,
+                status: order.orderStatus,
+                paymentStatus: order.paymentStatus
+            };
+        } catch (error) {
+            console.error('Error getting supplier order details:', error);
+            throw error;
+        }
+    }
+
+    // Get orders for a specific supplier with pagination
+    async getSupplierOrders(supplierId, query = {}, page = 1, limit = 10) {
+        try {
+            const orders = await orderModel.aggregate([
+                {
+                    $lookup: {
+                        from: 'orderdetails',
+                        localField: '_id',
+                        foreignField: 'orderId',
+                        as: 'orderDetails'
+                    }
+                },
+                {
+                    $match: {
+                        'orderDetails.supplier': mongoose.Types.ObjectId(supplierId)
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'createdBy',
+                        foreignField: '_id',
+                        as: 'customer'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'addresses',
+                        localField: 'shippingAddress',
+                        foreignField: '_id',
+                        as: 'shippingAddressDetails'
+                    }
+                },
+                {
+                    $project: {
+                        orderId: 1,
+                        orderDate: '$createdAt',
+                        customer: { $arrayElemAt: ['$customer', 0] },
+                        shippingAddress: { $arrayElemAt: ['$shippingAddressDetails', 0] },
+                        orderDetails: {
+                            $filter: {
+                                input: '$orderDetails',
+                                as: 'detail',
+                                cond: { $eq: ['$$detail.supplier', mongoose.Types.ObjectId(supplierId)] }
+                            }
+                        },
+                        status: 1,
+                        paymentStatus: 1
+                    }
+                },
+                { $skip: (page - 1) * limit },
+                { $limit: limit }
+            ]);
+
+            const total = await orderModel.countDocuments(query);
+
+            return {
+                orders,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+        } catch (error) {
+            console.error('Error getting supplier orders:', error);
+            throw error;
+        }
+    }
+
+    // Update status for supplier's portion of an order
+    async updateSupplierOrderStatus(orderId, supplierId, status, notes) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            // Update order details for this supplier
+            const updatedDetails = await orderDetailModel.updateMany(
+                {
+                    orderId: mongoose.Types.ObjectId(orderId),
+                    supplier: mongoose.Types.ObjectId(supplierId)
+                },
+                {
+                    $set: {
+                        status,
+                        supplierNotes: notes,
+                        supplierConfirmed: true
+                    }
+                },
+                { session }
+            );
+
+            if (!updatedDetails.modifiedCount) {
+                throw new Error('No order details found for this supplier');
+            }
+
+            // Add to order history
+            await this.addOrderHistory(
+                orderId,
+                'supplier_status_update',
+                `Supplier updated order status to ${status}`,
+                supplierId,
+                { status, notes },
+                session
+            );
+
+            // Check if all suppliers have confirmed
+            const allDetails = await orderDetailModel.find({ orderId: mongoose.Types.ObjectId(orderId) });
+            const allConfirmed = allDetails.every(detail => detail.supplierConfirmed);
+
+            // If all suppliers confirmed, update main order status
+            if (allConfirmed) {
+                await orderModel.findByIdAndUpdate(
+                    orderId,
+                    { $set: { status: 'processing' } },
+                    { session }
+                );
+
+                await this.addOrderHistory(
+                    orderId,
+                    'status_update',
+                    'All suppliers confirmed - order moved to processing',
+                    null,
+                    { status: 'processing' },
+                    session
+                );
+            }
+
+            await session.commitTransaction();
+            session.endSession();
+
+            return {
+                success: true,
+                message: 'Order status updated successfully',
+                allConfirmed
+            };
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            console.error('Error updating supplier order status:', error);
+            throw error;
+        }
     }
 }
 
