@@ -28,7 +28,7 @@ module.exports = class SupportTicketController {
     /** Load More Messages */
     loadMoreMessage = async (req, res) => {
         try {
-            const result = await supportTicketService.loadMoreMessage(req);
+            const result = await supportTicketService.loadMoreMessages(req);
             return res.status(200).json({ data: result, message: 'Messages loaded successfully.', });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message || 'Something went wrong.' });

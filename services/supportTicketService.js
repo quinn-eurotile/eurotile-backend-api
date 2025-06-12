@@ -12,32 +12,20 @@ class SupportTicket {
 
     async loadMoreMessages(req, res) {
         try {
-            const { id : ticketId } = req?.params;
+            const { id: ticketId } = req?.params;
             let { page = 1, limit = 10 } = req?.query;
             limit = Number(limit);
             page = Number(page);
-    
-            const skip = (page - 1) * limit; // Calculate skip value based on pagination
-    
-            // Build match condition for filtering messages
-            const matchStage = {
-                ticket: ticketId, // Match ticketId to get messages for specific ticket
-            };
-    
-            // You can adjust or add aggregation pipeline stages if you need to populate data
+
+            const skip = (page - 1) * limit;
+
+            const matchStage = { ticket: new mongoose.Types.ObjectId(String(ticketId)), };
+
             const messages = await supportTicketMsgModel.aggregate([
-                { $match: matchStage }, // Apply filters
-                { $skip: skip }, // Skip based on page and limit
-                { $limit: limit }, // Limit to the number of results per page
-                {
-                    $lookup: {
-                        from: 'users', // Assuming the collection name for users is 'users'
-                        localField: 'sender',
-                        foreignField: '_id',
-                        as: 'senderDetails' // Populating sender details
-                    }
-                },
-                { $unwind: { path: '$senderDetails', preserveNullAndEmptyArrays: true } }, // Unwind sender details
+                { $match: matchStage },
+                { $sort: { createdAt: -1 } }, // Ensure newest-to-oldest before pagination
+                { $skip: skip },
+                { $limit: limit },
                 {
                     $project: {
                         ticket: 1,
@@ -47,25 +35,34 @@ class SupportTicket {
                         fileType: 1,
                         filePath: 1,
                         fileSize: 1,
-                        senderName: { $concat: ['$senderDetails.firstName', ' ', '$senderDetails.lastName'] }, // Adjust field names based on your schema
-                        createdAt: 1
-                    }
-                }
+                        createdAt: 1,
+                    },
+                },
             ]);
-    
-            // Send the response with messages
-            res.status(200).json({
-                success: true,
-                data: messages
-            });
+
+            console.log('what we get in query and params', req?.params, req?.query);
+            console.log('messages', messages);
+
+            // Format the response to match the `getChatByTicket` message structure
+            const formattedMessages = messages
+                .slice()
+                .reverse() // Reverse again to oldest-to-newest
+                .map((msg) => ({
+                    message: msg.message,
+                    time: msg.createdAt,
+                    senderId: msg.sender,
+                    msgStatus: {
+                        isSent: true,
+                        isDelivered: true,
+                        isSeen: true,
+                    },
+                }));
+            return { chats: formattedMessages };
         } catch (error) {
-            // Handle errors and send response
-            res.status(error?.statusCode || 500).json({
-                success: false,
-                message: error?.message || 'Failed to load more messages'
-            });
+            throw { message: error?.message || 'Failed to load more tickets', statusCode: error?.statusCode || 500 };
         }
     }
+
 
     async loadMoreTickets(req) {
         try {
@@ -312,9 +309,9 @@ class SupportTicket {
             const files = req?.files?.filter(file => file?.fieldname === 'ticketFile') || [];
 
             let ticketDoc;
-            
+
             if (req?.method === 'POST') {
-                
+
                 if (!subject) {
                     const error = new Error('Subject is required for creating a ticket.');
                     error.statusCode = 422;
@@ -323,7 +320,7 @@ class SupportTicket {
 
                 const ticketNumber = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
                 const admin = await User.findOne({ roles: { $in: [String(constants?.adminRole?.id)] } });
-               
+
                 ticketDoc = new supportTicketModel({
                     sender: new mongoose.Types.ObjectId(String(sender)),
                     assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
@@ -335,7 +332,7 @@ class SupportTicket {
                     ticketNumber
                 });
 
-                console.log('ticketDoc',{
+                console.log('ticketDoc', {
                     sender: new mongoose.Types.ObjectId(String(sender)),
                     assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
                     order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
@@ -356,7 +353,7 @@ class SupportTicket {
                 }
             }
 
-            
+
 
             let fileData = {
                 fileName: null,

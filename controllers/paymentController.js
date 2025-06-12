@@ -14,8 +14,8 @@ module.exports = class PaymentController {
     try {
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;
-      delete req.body.cartItems; 
-      const userId =  req?.user?.id
+      delete req.body.cartItems;
+      const userId = req?.user?.id
 
       // Populate product and supplier information
       const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
@@ -33,14 +33,13 @@ module.exports = class PaymentController {
       if (!result.success) {
         return res.status(400).json(result);
       }
-      
-      const order = await orderService.createOrder({ 
-        userId: userId, 
+
+      const order = await orderService.createOrder({
+        userId: userId,
         cartItems: populatedCartItems,
-        orderData: orderData, 
-        paymentIntent: result.data.paymentIntent 
+        orderData: orderData,
+        paymentIntent: result.data.paymentIntent
       });
-   
       // Remove cart items after successful order creation
       try {
         for (const item of cartItems) {
@@ -80,7 +79,7 @@ module.exports = class PaymentController {
     try {
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;
-      delete req.body.cartItems;      
+      delete req.body.cartItems;
       const userId = orderData?.userId;
 
       // Fetch user details to get email
@@ -164,17 +163,17 @@ module.exports = class PaymentController {
         vatRate: vatOnCommission,
         commissionWithVAT
       });
-      
+
       console.log('Creating order...');
       // Create order with commission information
-      const order = await orderService.createOrder({ 
-        userId: userId, 
+      const order = await orderService.createOrder({
+        userId: userId,
         cartItems: itemsWithCommission,
         orderData: {
           ...orderData,
           commission: totalCommission
-        }, 
-        paymentIntent: result.data.paymentIntent 
+        },
+        paymentIntent: result.data.paymentIntent
       });
 
       console.log('Order created successfully:', {
@@ -196,7 +195,7 @@ module.exports = class PaymentController {
       // Send confirmation email to both shipping address and user email
       console.log('Sending confirmation emails...');
       const shippingName = `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}`;
-     
+
       // Send to shipping address email
       if (user.email) {
         console.log('Sending confirmation to shipping email:', user.email);
