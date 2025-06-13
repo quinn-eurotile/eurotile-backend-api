@@ -16,7 +16,8 @@ class SupportTicket {
             let { page = 1, limit = 10 } = req?.query;
             limit = Number(limit);
             page = Number(page);
-
+            const totalCount = await supportTicketModel.countDocuments({ isDeleted: false, status: { $in: [1, 2, 3, 4, 5, 6, 7] } });
+            console.log('totalCount', totalCount);
             const skip = (page - 1) * limit;
 
             const matchStage = { ticket: new mongoose.Types.ObjectId(String(ticketId)), };
@@ -29,6 +30,12 @@ class SupportTicket {
                         localField: 'sender',
                         foreignField: '_id',
                         as: 'sender_detail'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$sender_detail',
+                        preserveNullAndEmptyArrays: true
                     }
                 },
                 { $sort: { createdAt: -1 } }, // Ensure newest-to-oldest before pagination
@@ -70,7 +77,11 @@ class SupportTicket {
                         isSeen: true,
                     },
                 }));
-            return { chats: formattedMessages };
+            return { 
+                chats: formattedMessages,
+                hasNextPage: page * limit < totalCount,
+                hasPrevPage: page > 1
+            };
         } catch (error) {
             throw { message: error?.message || 'Failed to load more tickets', statusCode: error?.statusCode || 500 };
         }
@@ -156,9 +167,6 @@ class SupportTicket {
 
     async getChatByTicket(req) {
         try {
-            console.log('req.params', req.params);
-            console.log('req.query', req.query);
-
             let { page = 1, limit = 20 } = req.query;
             limit = Number(limit);
             page = Number(page);
@@ -176,10 +184,11 @@ class SupportTicket {
                 matchStage['sender'] = new mongoose.Types.ObjectId(String(req?.user?.id))
             }
 
+           
 
             const pipeline = [
                 { $match: matchStage },
-               
+            
                 {
                     $lookup: {
                         from: 'supportticketmsgs',
@@ -187,37 +196,57 @@ class SupportTicket {
                         pipeline: [
                             { $match: { $expr: { $eq: ['$ticket', '$$ticketId'] } } },
                             { $sort: { createdAt: -1 } },
-                            { $limit: limit }
+                            { $limit: limit }, // Assuming you want the last message only
+            
+                            // Populate sender of message
+                            {
+                                $lookup: {
+                                    from: 'users',
+                                    localField: 'sender',
+                                    foreignField: '_id',
+                                    as: 'sender_detail'
+                                }
+                            },
+                            {
+                                $unwind: {
+                                    path: '$sender_detail',
+                                    preserveNullAndEmptyArrays: true
+                                }
+                            },
+                            {
+                                $project: {
+                                    filePath: 1,
+                                    message: 1,
+                                    createdAt: 1,
+                                    sender: 1,
+                                    sender_detail: {
+                                        _id: 1,
+                                        name: 1,
+                                        email: 1
+                                    }
+                                }
+                            }
                         ],
                         as: 'supportticketmsgs_detail'
                     }
                 },
-
-
+            
                 { $sort: { createdAt: -1 } },
-
+            
                 {
                     $project: {
                         _id: 1,
                         subject: 1,
                         sender: 1,
-                        sender_detail: {
-                            _id: 1,
-                            name: 1,
-                        },
-                        supportticketmsgs_detail: {
-                            filePath: 1,
-                            message: 1,
-                            createdAt: 1,
-                            sender: 1
-                        }
+                        supportticketmsgs_detail: 1 // includes sender_detail inside it
                     }
                 },
-
+            
                 { $skip: skip },
                 { $limit: Number(limit) }
             ];
 
+            
             const tickets = await supportTicketModel.aggregate(pipeline);
 
             const docs = tickets.map(ticket => ({
@@ -235,6 +264,13 @@ class SupportTicket {
                 { $count: 'total' }
             ]);
             const totalDocs = countResult[0]?.total || 0;
+
+            // count total matching message documents
+            const countsupportTicketMsgModel = await supportTicketMsgModel.aggregate([
+                { $match: matchStage },
+                { $count: 'total' }
+            ]);
+            const totalMsgDocs = countsupportTicketMsgModel[0]?.total || 0;
 
             // Profile User
             const profileUserData = req.user;
@@ -263,7 +299,7 @@ class SupportTicket {
                         ticket: ticket._id,
                         time: msg.createdAt,
                         senderId: msg.sender,
-                        sender_detail: ticket.sender_detail,
+                        sender_detail: msg.sender_detail,
                         msgStatus: {
                             isSent: true,
                             isDelivered: true,
@@ -284,11 +320,14 @@ class SupportTicket {
                 profileUser,
                 chats: chats, // You can fill this if needed
                 totalDocs,
+                totalMsgDocs,
                 limit,
                 page,
                 totalPages: Math.ceil(totalDocs / limit),
                 hasNextPage: page * limit < totalDocs,
-                hasPrevPage: page > 1
+                hasPrevPage: page > 1,
+                hasNextPageMessages: page * limit < totalMsgDocs,
+                hasPrevPageMessages: page > 1
             };
         } catch (error) {
             console.error('Error in getChatByTicket:', error);
@@ -300,7 +339,6 @@ class SupportTicket {
     }
 
     async uploadTicketFile(file, ticketId) {
-        // console.log('file-------', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });

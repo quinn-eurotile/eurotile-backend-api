@@ -5,6 +5,8 @@ const models = require('./models/index');
 const http = require('http');
 //const https = require('https');
 const socketIo = require('socket.io');
+const path = require('path');
+const fs = require('fs');
 
 const { SupportTicketMsg } = require('./models');
 const { default: mongoose } = require("mongoose");
@@ -49,26 +51,62 @@ const io = socketIo(server, {
 io.on('connection', socket => {
 	console.log('Socket connected:', socket.id);
 
-	socket.on('sendMessage', async  msg => {
-		console.log('Message sendMessage:', msg);
+	socket.on('sendMessage', async (msg) => {
+		console.log('Message sendMessage:', msg)
 
 		try {
-			const parsedMsg = JSON.parse(msg); // or if msg is already a JSON object, skip this line
+			const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', String(msg.ticketId));
+			let fileData = null;
 
-			// Save to database
+			// Handle file if present
+			if (msg.image) {
+				// Create upload directory if it doesn't exist
+				if (!fs.existsSync(uploadDir)) {
+					fs.mkdirSync(uploadDir, { recursive: true });
+				}
+
+				// Convert base64 to buffer
+				const base64Data = msg.image.replace(/^data:image\/\w+;base64,/, '');
+				const buffer = Buffer.from(base64Data, 'base64');
+
+				// Generate filename with timestamp
+				const timestampedName = `${Date.now()}_${msg.imageName}`;
+				const fullPath = path.join(uploadDir, timestampedName);
+
+				// Save file
+				fs.writeFileSync(fullPath, buffer);
+
+				// Prepare file data
+				fileData = {
+					fileName: msg.imageName,
+					fileType: 'image',
+					filePath: `uploads/support-tickets/${msg.ticketId}/${timestampedName}`,
+					fileSize: buffer.length
+				};
+			}
+
+			// Save message to database
 			const savedMsg = await SupportTicketMsg.create({
-				ticket: new mongoose.Types.ObjectId(String(parsedMsg.ticketId)),
-				sender: new mongoose.Types.ObjectId(String(parsedMsg.senderId)),
-				message: parsedMsg.content,
-				fileName: null,
-				fileType: null,
-				filePath: null,
-				fileSize:  0,
+				ticket: new mongoose.Types.ObjectId(String(msg.ticketId)),
+				sender: new mongoose.Types.ObjectId(String(msg.senderId)),
+				message: msg.content,
+				...(fileData && fileData)
 			});
 
-			// Emit message (could use `savedMsg` with `_id` or other info if needed)
-			io.to(parsedMsg.ticketId).emit('receiveMessage', JSON.stringify(savedMsg));
-			//io.emit('receiveMessage', JSON.stringify(savedMsg));
+			// Emit message to all clients in the ticket room
+			io.to(msg.ticketId).emit('receiveMessage', {
+				_id: savedMsg._id,
+				ticket: savedMsg.ticket,
+				sender: savedMsg.sender,
+				message: savedMsg.message,
+				fileName: savedMsg.fileName,
+				fileType: savedMsg.fileType,
+				filePath: savedMsg.filePath,
+				fileSize: savedMsg.fileSize,
+				createdAt: savedMsg.createdAt,
+				sender_detail: msg.sender_detail
+			});
+
 		} catch (error) {
 			console.error('Failed to save message:', error);
 		}
