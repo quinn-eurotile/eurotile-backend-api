@@ -340,6 +340,7 @@ class SupportTicket {
     }
 
     async uploadTicketFile(file, ticketId) {
+        console.log('file..............', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
