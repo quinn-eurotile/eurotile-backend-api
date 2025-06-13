@@ -41,14 +41,14 @@ module.exports = class PaymentController {
         paymentIntent: result.data.paymentIntent
       });
       // Remove cart items after successful order creation
-      // try {
-      //   for (const item of cartItems) {
-      //     await removeCartItem(item._id);
-      //   }
-      //   console.log('Cart items removed successfully after order creation');
-      // } catch (cartError) {
-      //   console.error('Failed to remove cart items, but order was created:', cartError);
-      // }
+      try {
+        for (const item of cartItems) {
+          await removeCartItem(item._id);
+        }
+        console.log('Cart items removed successfully after order creation');
+      } catch (cartError) {
+        console.error('Failed to remove cart items, but order was created:', cartError);
+      }
 
       res.status(200).json({
         ...result,
