@@ -176,4 +176,13 @@ module.exports = class TradeProfessionalController {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
+
+    async getTradeProfessionalCommission(req, res) {
+        try {
+            const data = await tradeProfessionalService.getTradeProfessionalCommission(req);
+            res.send({ message: "", data: data });
+        } catch (error) {
+            res.send({ type: 'failure', message: error.message });
+        }
+    }
 };

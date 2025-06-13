@@ -56,4 +56,8 @@ router.delete('/trade-professional/client/:id', multer().any(), auth, tradeProfe
 router.get('/trade-professional/client/all', multer().any(), auth, tradeProfessionalController.allClient);
 router.get('/trade-professional/client/:id', multer().any(), auth, tradeProfessionalController.getClientById);
 router.get('/trade-professional/client-public/:id', multer().any(), tradeProfessionalController.getClientById);
+
+/* Trade Professional Commission */
+router.get('/trade-professional/commission', auth, tradeProfessionalController.getTradeProfessionalCommission);
+
 module.exports = router;
