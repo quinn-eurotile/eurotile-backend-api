@@ -9,7 +9,7 @@ const orderHistorySchema = new mongoose.Schema({
     action: {
         type: String,
         required: true,
-        enum: ['created', 'updated', 'status_changed', 'tracking_updated', 'email_sent', 'note_added']
+        enum: ['created', 'updated', 'status_changed', 'tracking_updated', 'email_sent', 'note_added', 'forward_to_suppliers']
     },
     previousStatus: {
         type: Number,

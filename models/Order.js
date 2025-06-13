@@ -96,6 +96,7 @@ const orderSchema = new mongoose.Schema({
   shippedAt: {type: Date, default: null},
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  currency: { type: String, default: 'EUR' },
 }, {
   timestamps: true
 }); 

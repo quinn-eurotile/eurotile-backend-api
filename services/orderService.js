@@ -6,7 +6,10 @@ const orderHistoryModel = require('../models/OrderHistory');
 const supplierModel = require('../models/Supplier');
 const nodemailer = require('nodemailer');
 const emailService = require('./emailService');
-
+const notificationService = require('./notificationService');
+const constants = require('../configs/constant');
+const { getClientUrlByRole } = require('../_helpers/common');
+    
 class Order {
     constructor() {
         // Bind methods to preserve 'this' context
@@ -22,8 +25,8 @@ class Order {
         const userId = orderData?.userId;
         const tradeProfessionalId = orderData?.tradeProfessionalId;
 
-        console.log('orderData', orderData);
-        console.log('orderItems', orderItems);
+        // console.log('orderData', orderData);
+        // console.log('orderItems', orderItems);
         // console.log('paymentInfo', { ...paymentInfo });
         // console.log('userId', userId);
 
@@ -138,10 +141,17 @@ class Order {
                 completeOrder.createdBy.name
             );
 
+            const notification = await notificationService.notifyOrderCreation(completeOrder, {
+                senderId: completeOrder.createdBy._id,
+                userId: constants.adminRole.id,
+                additionalUsers: [],
+                additionalRoles: [],
+                excludeUsers: []
+            });
             // Notify suppliers about their portion of the order
-            // const notifyRes = await this.notifySuppliers(completeOrder);
+            const notifyRes = await this.notifySuppliers(completeOrder);
             
-            // console.log(notifyRes,'notifyRes');
+            console.log(notifyRes,'notifyRes');
             
 
             return completeOrder;
@@ -156,7 +166,7 @@ class Order {
     /** * Build MongoDB query object for filtering orders */
     async buildOrderListQuery(req) {
         const queryParams = req.query;
-        console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
+        // console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
         // Date range filter
         if (queryParams?.startDate && queryParams?.endDate) {
@@ -216,7 +226,7 @@ class Order {
     /*** Get order list for support ticket (last 1 month) for admin  */
     async getOrderListForSupportTicket(req) {
         try {
-            console.log('I am in')
+            // console.log('I am in')
             const oneMonthAgo = new Date()
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
             return await orderModel.find({ createdBy: new mongoose.Types.ObjectId(String(req?.user?.id)), createdAt: { $gte: oneMonthAgo } });
@@ -449,6 +459,9 @@ class Order {
             .populate([
                 { path: 'orderDetails' },
                 { path: 'shippingAddress' },
+                { path: 'paymentDetail' },
+                { path: 'supplierStatuses.supplier' },
+                { path: 'supplierStatuses.supplier.addresses' },
                 { path: 'createdBy' },
                 { path: 'updatedBy' },
                 { path: 'clientOf', select: 'name email companyName userImage' }
@@ -504,7 +517,7 @@ class Order {
             await this.addOrderHistory(
                 orderId,
                 'status_changed',
-                `Order status updated from ${previousStatus} to ${data.status}`,
+                `Order status updated from ${constants.orderStatusMap[previousStatus] || previousStatus} to ${constants.orderStatusMap[data.status] ||  data.status}`,
                 data.userId,
                 { trackingId: data.trackingId },
                 previousStatus,
@@ -616,7 +629,7 @@ class Order {
                 metadata,
                 previousStatus,
                 newStatus,
-                performedBy: userId,
+                performedBy: userId || null,
                 createdAt: new Date()
             });
         } catch (error) {
@@ -651,22 +664,41 @@ class Order {
     // Helper method to notify suppliers
     async notifySuppliers(order) {
         try {
+            // console.log(order,'order in notifySuppliers'); 
+
             const supplierGroups = await this.groupOrderItemsBySupplier(order);
             const notifications = [];
-            console.log(supplierGroups,' supplierGroups ');
+            // console.log(supplierGroups,' supplierGroups ');
             
-
             for (const [supplierId, group] of Object.entries(supplierGroups)) {
                 try {
-                    // Generate supplier-specific order email
-                    const emailContent = await this.generateSupplierOrderEmail(order, group);
-                    
-                    // Send email to supplier
-                    await emailService.sendEmail({
-                        to: group.supplier.email,
-                        subject: `New Order Notification - ${order.orderId}`,
-                        html: emailContent
+                    // Skip if supplier has already confirmed
+                    if (group.supplierStatus.status === 'confirmed') {
+                        notifications.push({
+                            supplierId,
+                            status: 'skipped',
+                            message: `Supplier ${group.supplier.companyName} has already confirmed the order`
+                        });
+                        continue;
+                    }
+
+                    // Verify supplier email exists
+                    if (!group.supplier.email) {
+                        throw new Error(`No email address found for supplier ${group.supplier.companyName}`);
+                    }
+
+                    console.log('Sending email to supplier:', {
+                        email: group.supplier.email,
+                        companyName: group.supplier.companyName,
+                        orderId: order.orderId
                     });
+
+                    // Send email to supplier
+                    await emailService.sendSupplierOrderConfirmationEmail(
+                        order, 
+                        group.supplier.email, 
+                        group.supplier.companyName
+                    );
 
                     // Add to order history
                     await this.addOrderHistory(
@@ -678,21 +710,24 @@ class Order {
                             supplierId,
                             supplierName: group.supplier.companyName,
                             itemCount: group.items.length,
-                            total: group.total
+                            total: group.total,
+                            supplierStatus: group.supplierStatus
                         }
                     );
 
                     notifications.push({
                         supplierId,
                         status: 'success',
-                        message: `Notification sent to ${group.supplier.companyName}`
+                        message: `Notification sent to ${group.supplier.companyName}`,
+                        supplierStatus: group.supplierStatus
                     });
                 } catch (error) {
                     console.error(`Failed to notify supplier ${supplierId}:`, error);
                     notifications.push({
                         supplierId,
                         status: 'error',
-                        message: `Failed to notify ${group.supplier.companyName}: ${error.message}`
+                        message: `Failed to notify ${group.supplier.companyName}: ${error.message}`,
+                        supplierStatus: group.supplierStatus
                     });
                 }
             }
@@ -845,26 +880,53 @@ class Order {
         try {
             const supplierGroups = {};
             
+            // First, create a map of supplier statuses for quick lookup
+            const supplierStatusMap = {};
+            if (order.supplierStatuses && Array.isArray(order.supplierStatuses)) {
+                order.supplierStatuses.forEach(status => {
+                    supplierStatusMap[status.supplier.toString()] = status;
+                });
+            }
+            console.log(supplierStatusMap,'supplierStatusMap');
+
             for (const item of order.orderDetails) {
                 const productDetail = typeof item.productDetail === 'string' 
                     ? JSON.parse(item.productDetail)
                     : item.productDetail;
 
-                const supplierId = productDetail.product.supplier;
+                console.log('productDetail',productDetail);
+                console.log('item',item);
+
+                const supplierId = productDetail.supplier;
                 if (!supplierId) continue;
 
+                console.log(supplierId,'supplierId');
                 if (!supplierGroups[supplierId]) {
                     const supplier = await supplierModel.findById(supplierId);
                     if (!supplier) continue;
+
+                    // Verify supplier has required email
+                    if (!supplier.companyEmail) {
+                        console.error(`Supplier ${supplier.companyName} has no email address`);
+                        continue;
+                    }
+
+                    // Get supplier status from the map
+                    const supplierStatus = supplierStatusMap[supplierId] || {
+                        status: 'pending',
+                        confirmedAt: null,
+                        lastUpdated: new Date()
+                    };
 
                     supplierGroups[supplierId] = {
                         supplier: {
                             _id: supplier._id,
                             companyName: supplier.companyName,
-                            email: supplier.email,
-                            phone: supplier.phone,
-                            address: supplier.address
+                            email: supplier.companyEmail,
+                            phone: supplier.companyPhone,
+                            address: supplier.addresses
                         },
+                        supplierStatus: supplierStatus,
                         items: [],
                         subtotal: 0,
                         shipping: 0,
@@ -876,6 +938,7 @@ class Order {
                 supplierGroups[supplierId].subtotal += item.price * item.quantity;
             }
 
+            console.log(supplierGroups,'supplierGroups 1');
             // Calculate shipping proportionally for each supplier
             for (const supplierId in supplierGroups) {
                 const group = supplierGroups[supplierId];
@@ -883,6 +946,7 @@ class Order {
                 group.shipping = (group.subtotal / order.subtotal) * order.shipping;
                 group.total = group.subtotal + group.shipping;
             }
+            console.log(supplierGroups,'supplierGroups 2');
 
             return supplierGroups;
         } catch (error) {
@@ -920,7 +984,9 @@ class Order {
                 shipping: supplierGroup.shipping,
                 total: supplierGroup.total,
                 status: order.orderStatus,
-                paymentStatus: order.paymentStatus
+                paymentStatus: order.paymentStatus,
+                supplierStatus: supplierGroup.supplierStatus,
+                supplier: supplierGroup.supplier
             };
         } catch (error) {
             console.error('Error getting supplier order details:', error);
@@ -1070,6 +1136,37 @@ class Order {
             session.endSession();
             console.error('Error updating supplier order status:', error);
             throw error;
+        }
+    }
+
+    // Forward to suppliers
+    async forwardToSuppliers(orderId, userId) { 
+        try {
+            const order = await orderModel.findById(orderId).populate('orderDetails')
+                .populate('shippingAddress')
+                .populate('paymentDetail')
+                .populate('createdBy')
+                .populate('updatedBy');
+            if (!order) {
+                throw new Error('Order not found');
+            }
+           
+            // Send email to suppliers
+            await this.notifySuppliers(order);
+            // Update order status
+            await orderModel.findByIdAndUpdate(orderId, { orderStatus: 2 });
+            // Add to order history
+            await this.addOrderHistory(orderId, 'forward_to_suppliers', 'Order forwarded to suppliers', userId, null, null, 2);    
+            
+            return {
+                success: true,
+                message: 'Order forwarded to suppliers successfully',
+                order: order
+            };
+        } catch (error) {
+
+            console.error('Error forwarding to suppliers:', error);
+            throw error;    
         }
     }
 }

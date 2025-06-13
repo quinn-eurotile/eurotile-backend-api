@@ -1,8 +1,8 @@
 const notificationService = require('../services/notificationService');
 const emailService = require('../services/emailService');
-const { validationResult } = require('express-validator');
+ 
 
-class NotificationController {
+module.exports =  class NotificationController {
   async getNotifications(req, res) {
     try {
       const { page = 1, limit = 10, status } = req.query;
@@ -12,21 +12,18 @@ class NotificationController {
         page: parseInt(page),
         limit: parseInt(limit),
         status
-      });
+      }); 
 
-      res.json(result);
+      return res.status(201).json({ message: "", data: result, });
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      res.status(500).json({ error: 'Failed to fetch notifications' });
+            return res.status(error?.statusCode || 500).json({ message: error?.message });
     }
   }
 
   async createNotification(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+      
 
       const { type, title, message, metadata, recipientId, sendEmail = false } = req.body;
       const userId = recipientId || req.user.id;
@@ -54,10 +51,10 @@ class NotificationController {
         });
       }
 
-      res.json(notification);
+      return res.status(201).json({ message: "", data: notification, });
     } catch (error) {
       console.error('Error creating notification:', error);
-      res.status(500).json({ error: 'Failed to create notification' });
+      return res.status(error?.statusCode || 500).json({ message: error?.message });
     }
   }
 
@@ -71,10 +68,10 @@ class NotificationController {
         return res.status(404).json({ error: 'Notification not found' });
       }
 
-      res.json(notification);
+      return res.status(201).json({ message: "", data: notification, });
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      res.status(500).json({ error: 'Failed to mark notification as read' });
+      return res.status(error?.statusCode || 500).json({ message: error?.message });
     }
   }
 
@@ -82,21 +79,23 @@ class NotificationController {
     try {
       const userId = req.user.id;
       await notificationService.markAllAsRead(userId);
-      res.json({ success: true });
+      return res.status(201).json({ message: "", data: { success: true }, });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      res.status(500).json({ error: 'Failed to mark all notifications as read' });
+      return res.status(error?.statusCode || 500).json({ message: error?.message });
     }
   }
 
   async getUnreadCount(req, res) {
     try {
       const userId = req.user.id;
+      console.log("userId", userId);
+
       const count = await notificationService.getUnreadCount(userId);
-      res.json({ count });
+      return res.status(201).json({ message: "", data: { count } });
     } catch (error) {
       console.error('Error getting unread count:', error);
-      res.status(500).json({ error: 'Failed to get unread count' });
+        return res.status(error?.statusCode || 500).json({ message: error?.message });
     }
   }
 
@@ -114,4 +113,4 @@ class NotificationController {
   }
 }
 
-module.exports = new NotificationController(); 
+ 

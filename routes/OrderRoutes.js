@@ -12,5 +12,6 @@ router.get('/:id', multer().any(), auth, orderController.orderDetails);
 router.put('/:id/status', multer().any(), auth, orderController.updateOrderStatus);
 router.get('/support/ticket', multer().any(), auth, orderController.getOrderListForSupportTicket);
 router.get('/history/:id', multer().any(), auth, orderController.getOrderHistory);
+router.post('/forward-to-suppliers/:id', multer().any(), auth, orderController.forwardToSuppliers);
 
 module.exports = router;

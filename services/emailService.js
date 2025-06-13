@@ -294,36 +294,36 @@ const sendPaymentLinkEmail = async (data) => {
 
 /** Send Order Confirmation Email ***/
 const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
-    console.log('Starting sendOrderConfirmationEmail with:', {
-        orderId: order?._id,
-        clientEmail,
-        clientName,
-        orderData: order?.orderData,
-        orderDetails: order?.orderDetails?.length
-    });
+    // console.log('Starting sendOrderConfirmationEmail with:', {
+    //     orderId: order?._id,
+    //     clientEmail,
+    //     clientName,
+    //     orderData: order?.orderData,
+    //     orderDetails: order?.orderDetails?.length
+    // });
 
     try {
         const CLIENT_URL = getClientUrlByRole('Client');
-        console.log('Client URL:', CLIENT_URL);
+        // console.log('Client URL:', CLIENT_URL);
         
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
 
         // Generate product list HTML with variants
         const productListHtml = order.orderDetails.map(detail => {
-            console.log('Processing order detail:', {
-                detailId: detail?._id,
-                productDetail: detail?.productDetail
-            });
+            // console.log('Processing order detail:', {
+            //     detailId: detail?._id,
+            //     productDetail: detail?.productDetail
+            // });
 
             // Parse the product detail JSON string
             let productInfo;
             try {
                 productInfo = JSON.parse(detail.productDetail);
-                console.log('Parsed product info:', {
-                    name: productInfo?.product?.name,
-                    dimensions: productInfo?.dimensions,
-                    attributes: productInfo?.attributeVariations
-                });
+                // console.log('Parsed product info:', {
+                //     name: productInfo?.product?.name,
+                //     dimensions: productInfo?.dimensions,
+                //     attributes: productInfo?.attributeVariations
+                // });
             } catch (e) {
                 console.error('Error parsing product detail:', e);
                 productInfo = {};
@@ -369,7 +369,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             </tr>
         `}).join('');
 
-        console.log('Generated product list HTML length:', productListHtml.length);
+        // console.log('Generated product list HTML length:', productListHtml.length);
 
         // Format shipping address
         const shippingAddress = order.shippingAddress ? 
@@ -379,12 +379,12 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             ${order?.shippingAddress.postalCode}
             ${order?.shippingAddress.country}` : 'Address not available';
 
-        console.log('Formatted shipping address:', shippingAddress);
+        // console.log('Formatted shipping address:', shippingAddress);
 
         // Read the HTML template
-        console.log('Reading email template...');
+        // console.log('Reading email template...');
         const emailTemplate = require('fs').readFileSync('views/emails/order_confirmation_template.html', 'utf-8');
-        console.log('Email template loaded, length:', emailTemplate.length);
+        // console.log('Email template loaded, length:', emailTemplate.length);
 
         // Replace placeholders in the template
         const emailContent = emailTemplate
@@ -401,7 +401,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())
             .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
 
-        console.log('Email content generated, length:', emailContent.length);
+        // console.log('Email content generated, length:', emailContent.length);
 
         // Send the email
         const mailOptions = {
@@ -411,14 +411,14 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             html: emailContent
         };
 
-        console.log('Sending email with options:', {
-            to: clientEmail,
-            subject: mailOptions.subject,
-            from: mailOptions.from
-        });
+        // console.log('Sending email with options:', {
+        //     to: clientEmail,
+        //     subject: mailOptions.subject,
+        //     from: mailOptions.from
+        // });
 
         const result = await sendEmailCommon(mailOptions);
-        console.log('Email send result:', result);
+        // console.log('Email send result:', result);
         return result;
     } catch (error) {
         console.error('Error in sendOrderConfirmationEmail:', error);
@@ -464,6 +464,206 @@ const sendEmailCommon = (mailOptions) => {
     });
 };
 
+const sendSupplierOrderConfirmationEmail = async (order, supplierEmail, supplierName) => {  
+    try {
+        const CLIENT_URL = getClientUrlByRole('Client');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+
+        // Generate product list HTML
+        const productListHtml = order.orderDetails.map(detail => {
+            const productDetail = typeof detail.productDetail === 'string' 
+                ? JSON.parse(detail.productDetail)
+                : detail.productDetail;
+
+            const imagePath = productDetail?.variationImages?.[0]?.filePath || 
+                            productDetail?.productFeaturedImage?.filePath ||
+                            '/images/placeholder.png';
+
+            return `
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <img src="${process.env.APP_URL}${imagePath}" 
+                             alt="${productDetail?.product?.name || 'Product'}" 
+                             class="product-image">
+                        <div class="product-details">
+                            <div style="font-weight: bold;">${productDetail?.product?.name || 'Product'}</div>
+                            <div style="color: #666; font-size: 12px;">SKU: ${productDetail?.product?.sku || 'N/A'}</div>
+                            ${productDetail?.dimensions ? 
+                                `<div style="color: #666; font-size: 12px;">
+                                    Dimensions: ${productDetail.dimensions.length}x${productDetail.dimensions.width}x${productDetail.dimensions.height}
+                                </div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td>${detail.quantity} SQ.M</td>
+                <td>€${detail.price.toFixed(2)}</td>
+                <td>€${(detail.price * detail.quantity).toFixed(2)}</td>
+            </tr>
+            `;
+        }).join('');
+
+        // Format shipping address
+        const shippingAddress = order.shippingAddress ? 
+            `${order.shippingAddress.street}
+            ${order.shippingAddress.city}
+            ${order.shippingAddress.state}
+            ${order.shippingAddress.postalCode}
+            ${order.shippingAddress.country}` : 'Address not available';
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/supplier_order_notification_template.html', 'utf-8');
+
+        // Replace placeholders in the template
+        const emailContent = emailTemplate  
+            .replace(/\[SUPPLIER_NAME\]/g, capitalize(supplierName))
+            .replace(/\[LOGO\]/g, logo)
+            .replace(/\[APP_NAME\]/g, APP_NAME)
+            .replace(/\[ORDER_ID\]/g, order.orderId)
+            .replace(/\[ORDER_DATE\]/g, new Date(order.createdAt).toLocaleDateString())
+            .replace(/\[PAYMENT_STATUS\]/g, order.paymentStatus === 'paid' ? 'Paid' : 'Pending')
+            .replace(/\[SHIPPING_ADDRESS\]/g, shippingAddress)
+            .replace(/\[SHIPPING_METHOD\]/g, order.shippingMethod || 'Standard Shipping')
+            .replace(/\[PRODUCT_LIST\]/g, productListHtml)
+            .replace(/\[SUBTOTAL\]/g, order.subtotal.toFixed(2))
+            .replace(/\[SHIPPING\]/g, order.shipping.toFixed(2))
+            .replace(/\[TOTAL\]/g, order.total.toFixed(2))
+            .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())
+            .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
+
+        // Send the email
+        const mailOptions = {
+            from: formatSender(),
+            to: supplierEmail,
+            subject: `New Order Notification - ${order.orderId}`,       
+            html: emailContent
+        };
+
+        console.log('Sending supplier order confirmation email:', {
+            to: supplierEmail,
+            subject: mailOptions.subject,
+            orderId: order.orderId
+        });
+
+        const result = await sendEmailCommon(mailOptions);
+        console.log('Email send result:', result);
+        return result;  
+    } catch (error) {
+        console.error('Error in sendSupplierOrderConfirmationEmail:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            order: order?._id,
+            supplierEmail
+        });
+        return false;
+    }
+}
+    
+const sendPaymentFailedEmail = async (order, clientEmail, clientName) => {
+    try {
+        const CLIENT_URL = getClientUrlByRole('Client');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/payment_failed_template.html', 'utf-8');
+        
+        // Replace placeholders in the template
+        const emailContent = emailTemplate
+            .replace(/\[USER_NAME\]/g, capitalize(clientName))
+            .replace(/\[LOGO\]/g, logo)
+            .replace(/\[APP_NAME\]/g, APP_NAME)
+            .replace(/\[ORDER_ID\]/g, order.orderId)
+            .replace(/\[ORDER_DATE\]/g, new Date(order.createdAt).toLocaleDateString())
+            .replace(/\[PAYMENT_STATUS\]/g, 'Failed')
+            .replace(/\[SHIPPING_ADDRESS\]/g, order.shippingAddress)
+            .replace(/\[SHIPPING_METHOD\]/g, order.shippingMethod || 'Standard Shipping')
+            .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())
+            .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
+
+        // Send the email
+        const mailOptions = {
+            from: formatSender(),
+            to: clientEmail,
+            subject: `Payment Failed - Order #${order.orderId}`,
+            html: emailContent
+        };
+
+        console.log('Sending payment failed email:', {
+            to: clientEmail,
+            subject: mailOptions.subject,
+            orderId: order.orderId
+        });
+
+        const result = await sendEmailCommon(mailOptions);
+        console.log('Email send result:', result);
+        return result;
+    } catch (error) {
+        console.error('Error in sendPaymentFailedEmail:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            order: order?._id,
+            clientEmail
+        });
+        return false;
+    }
+}  
+const sendPaymentConfirmationEmail = async (order, clientEmail, clientName) => {
+    try {
+        const CLIENT_URL = getClientUrlByRole('Client');
+        const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
+
+        // Read the HTML template
+        const emailTemplate = require('fs').readFileSync('views/emails/payment_confirmation_template.html', 'utf-8');
+        
+        // Replace placeholders in the template
+        const emailContent = emailTemplate
+            .replace(/\[USER_NAME\]/g, capitalize(clientName))
+            .replace(/\[LOGO\]/g, logo)
+            .replace(/\[APP_NAME\]/g, APP_NAME)
+            .replace(/\[ORDER_ID\]/g, order.orderId)
+            .replace(/\[ORDER_DATE\]/g, new Date(order.createdAt).toLocaleDateString())
+            .replace(/\[PAYMENT_STATUS\]/g, 'Confirmed')
+            .replace(/\[SHIPPING_ADDRESS\]/g, order.shippingAddress)
+            .replace(/\[SHIPPING_METHOD\]/g, order.shippingMethod || 'Standard Shipping')
+            .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())     
+            .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
+
+        // Send the email
+        const mailOptions = {
+            from: formatSender(),
+            to: clientEmail,
+            subject: `Payment Confirmed - Order #${order.orderId}`,
+            html: emailContent
+        };
+
+        console.log('Sending payment confirmation email:', {
+            to: clientEmail,
+            subject: mailOptions.subject,
+            orderId: order.orderId
+         });
+
+        const result = await sendEmailCommon(mailOptions);
+        console.log('Email send result:', result);
+        return result;
+    } catch (error) {   
+        console.error('Error in sendPaymentConfirmationEmail:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            order: order?._id,
+            clientEmail
+        });
+        return false;
+    }
+}
+
+
+
+
+
+
 // Export the new function along with existing ones
 module.exports = {
     sendVerificationEmail,
@@ -471,5 +671,8 @@ module.exports = {
     forgotPasswordEmail,
     sendPaymentLinkEmail,
     sendAccountStatusEmail,
-    sendOrderConfirmationEmail
+    sendOrderConfirmationEmail,
+    sendSupplierOrderConfirmationEmail,
+    sendPaymentFailedEmail,
+    sendPaymentConfirmationEmail
 };

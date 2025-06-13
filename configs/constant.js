@@ -6,6 +6,18 @@ const teamMemberRole = { id: '680f606cb47c317ad30841b5', name: 'Team Member', sl
 const tradeProfessionalRole = { id: '6819ce06bb8f30e6c73eba48', name: 'Trade Professional', slug: 'trade-professional' };
 const adminSettingId = `683eaa785fabaae3a4c5de04`;
 const clientRole = { id: '683ec5d85fabaae3a4c5de07', name: 'Client', slug: 'client' };
+
+const orderStatusMap = {
+    '0': 'Cancelled',
+    '1': 'Delivered',
+    '2': 'Processing',
+    '3': 'New',
+    '4': 'Shipped',
+    '5': 'Pending'
+};
+
+
+
 // Predefined ObjectIDs for consistency
 const measurementUnit = [
  // Length Units
@@ -37,4 +49,4 @@ const measurementUnit = [
   { _id: new mongoose.Types.ObjectId('000000000000000000000018'), name: 'Pallet', symbol: 'pallet', type: 'count' },
 ];
 
-module.exports = { adminRole, teamMemberRole, tradeProfessionalRole, measurementUnit, adminSettingId, clientRole };
+module.exports = { adminRole, teamMemberRole, tradeProfessionalRole, measurementUnit, adminSettingId, clientRole, orderStatusMap     };
