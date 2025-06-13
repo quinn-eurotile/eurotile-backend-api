@@ -86,4 +86,15 @@ module.exports = class OrderController {
         }
     }
 
+    /** Forward to suppliers **/
+    async forwardToSuppliers(req, res) {
+        try {
+            const userId = req?.user?.id
+            const data = await orderService.forwardToSuppliers(req.params.id, userId);
+            return res.status(200).json({ data: data, message: 'Order forwarded to suppliers successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }       
+
 };

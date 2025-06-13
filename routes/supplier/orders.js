@@ -9,6 +9,9 @@ router.get('/', authenticateSupplier, supplierOrderController.getOrders);
 // Get specific order details for a supplier
 router.get('/:orderId', authenticateSupplier, supplierOrderController.getOrderDetails);
 
+// Create a new order
+router.post('/', authenticateSupplier, supplierOrderController.createOrder);
+
 // Update supplier order status
 router.patch('/:orderId/status', authenticateSupplier, supplierOrderController.updateOrderStatus);
 

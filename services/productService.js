@@ -432,9 +432,6 @@ class Product {
 
 
 
-        // console.log(req.body,' aramy .................................');
-        // console.log(newSample,' newSample .................................');
-
         // return false
         try {
             let {
