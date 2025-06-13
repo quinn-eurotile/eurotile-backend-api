@@ -6,6 +6,7 @@ const orderHistoryModel = require('../models/OrderHistory');
 const supplierModel = require('../models/Supplier');
 const nodemailer = require('nodemailer');
 const emailService = require('./emailService');
+const { AdminSetting } = require('../models');
 
 class Order {
     constructor() {
@@ -231,6 +232,8 @@ class Order {
         const { page, limit, sort } = options;
         const skip = (page - 1) * limit;
 
+        const adminSettings = await AdminSetting.findOne();
+
         // Calculate total commission and eligible commission separately
         const commissionResult = await orderModel.aggregate([
             { $match: query },
@@ -390,6 +393,7 @@ class Order {
             totalDocs: result.totalDocs,
             totalCommission: commissionData.totalCommission,
             eligibleCommission: commissionData.eligibleCommission,
+            adminSettings: adminSettings ?? null,
             limit,
             page,
             totalPages: Math.ceil(result.totalDocs / limit),
