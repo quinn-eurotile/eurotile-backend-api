@@ -40,7 +40,6 @@ module.exports = class PaymentController {
         orderData: orderData,
         paymentIntent: result.data.paymentIntent
       });
-
       // Remove cart items after successful order creation
       // try {
       //   for (const item of cartItems) {

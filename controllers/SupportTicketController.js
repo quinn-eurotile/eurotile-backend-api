@@ -16,8 +16,6 @@ module.exports = class SupportTicketController {
     /** Load More Tickets */
     loadMoreTickets = async (req, res) => {
         try {
-            console.log('loadMoreTickets req', req?.params);
-            console.log('loadMoreTickets req', req?.query);
             const result = await supportTicketService.loadMoreTickets(req);
             return res.status(200).json({ data: result, message: 'Tickets loaded successfully.', });
         } catch (error) {

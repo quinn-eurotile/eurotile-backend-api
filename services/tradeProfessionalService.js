@@ -4,7 +4,7 @@ const userBusinessDocumentModel = require('../models/UserBusinessDocument');
 const mongoose = require('mongoose');
 const constants = require('../configs/constant');
 const helpers = require("../_helpers/common");
-const { Order } = require('../models');
+const { Order, AdminSetting } = require('../models');
 const bcrypt = require("bcryptjs");
 const stripe = require('../utils/stripeClient');
 const { saveAddressData } = require('./addressService');
@@ -15,7 +15,8 @@ class TradeProfessional {
 
     async processPayout(req) {
         try {
-            const { amount } = req.body;
+            let { amount } = req.body;
+            amount = parseFloat(amount);
             console.log('amount',amount, typeof amount);
             const userId = req.user.id;
     
@@ -48,16 +49,22 @@ class TradeProfessional {
             if (amount <= 0 || amount > totalEligibleCommission) {
                 throw { message: 'Invalid payout amount', statusCode: 400 };
             }
+            const adminSettings = await AdminSetting.findOne();
+
+            amount = amount - ((amount) * parseFloat(adminSettings?.vatOnCommission)) / 100;
+            console.log(' new amount',amount);
+
+  
     
             // Create transfer to connected account
             const transfer = await stripe.transfers.create({
-                amount: Math.round(parseFloat(amount) * 100), // Convert to cents
-                currency: 'eur',
+                amount: (parseFloat(amount) * 100), // Convert to cents
+                currency: 'gbp',
                 destination: connectAccount.stripeAccountId,
                 description: 'Commission payout'
             });
 
-            console.log('transfer',transfer);
+            // console.log('transfer',transfer);
 
             // Save transfer response to database
             const transferPayout = new TransferPayout({

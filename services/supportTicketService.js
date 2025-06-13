@@ -24,6 +24,14 @@ class SupportTicket {
 
             const messages = await supportTicketMsgModel.aggregate([
                 { $match: matchStage },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'sender',
+                        foreignField: '_id',
+                        as: 'sender_detail'
+                    }
+                },
                 { $sort: { createdAt: -1 } }, // Ensure newest-to-oldest before pagination
                 { $skip: skip },
                 { $limit: limit },
@@ -31,6 +39,10 @@ class SupportTicket {
                     $project: {
                         ticket: 1,
                         sender: 1,
+                        sender_detail: {
+                            _id: 1,
+                            name: 1,
+                        },
                         message: 1,
                         fileName: 1,
                         fileType: 1,
@@ -52,6 +64,7 @@ class SupportTicket {
                     message: msg.message,
                     time: msg.createdAt,
                     senderId: msg.sender,
+                    sender_detail: msg.sender_detail,
                     msgStatus: {
                         isSent: true,
                         isDelivered: true,
@@ -113,9 +126,14 @@ class SupportTicket {
                     .slice()
                     .reverse() // To get oldest-to-newest order
                     .map(msg => ({
+                        ticket: ticket._id,
                         message: msg.message,
                         time: msg.createdAt,
                         senderId: msg.sender,
+                        sender_detail: {
+                            _id: msg.sender,
+                            name: msg.sender_detail.name
+                        },
                         msgStatus: {
                             isSent: true,
                             isDelivered: true,
@@ -162,7 +180,7 @@ class SupportTicket {
 
             const pipeline = [
                 { $match: matchStage },
-
+               
                 {
                     $lookup: {
                         from: 'supportticketmsgs',
@@ -183,6 +201,11 @@ class SupportTicket {
                     $project: {
                         _id: 1,
                         subject: 1,
+                        sender: 1,
+                        sender_detail: {
+                            _id: 1,
+                            name: 1,
+                        },
                         supportticketmsgs_detail: {
                             filePath: 1,
                             message: 1,
@@ -238,8 +261,10 @@ class SupportTicket {
                     .reverse() // To get oldest-to-newest order
                     .map(msg => ({
                         message: msg.message,
+                        ticket: ticket._id,
                         time: msg.createdAt,
                         senderId: msg.sender,
+                        sender_detail: ticket.sender_detail,
                         msgStatus: {
                             isSent: true,
                             isDelivered: true,
@@ -470,6 +495,10 @@ class SupportTicket {
                                     foreignField: '_id',
                                     as: 'sender_detail'
                                 }
+                            },
+
+                            {
+                                $unwind: "$sender_detail"
                             },
 
                             {
