@@ -70,7 +70,7 @@ io.on('connection', socket => {
 				const buffer = Buffer.from(base64Data, 'base64');
 
 				// Generate filename with timestamp
-				const timestampedName = `${Date.now()}_${msg.imageName}`;
+				const timestampedName = `${Date.now()}_${msg.imageName.tirm()}`;
 				const fullPath = path.join(uploadDir, timestampedName);
 
 				// Save file
