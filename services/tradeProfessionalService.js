@@ -218,7 +218,7 @@ class TradeProfessional {
             const accountLink = await stripe.accountLinks.create({
                 account: account.id,
                 refresh_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
-                return_url: `${process.env.CLIENT_URL}/trade-professional/profile`,
+                return_url: `${process.env.CLIENT_URL}/trade-professional/profile/security`,
                 type: 'account_onboarding',
             });
 
@@ -1105,6 +1105,126 @@ class TradeProfessional {
                 message: error?.message || 'Failed to fetch client',
                 statusCode: error?.statusCode || 500
             };
+        }
+    }
+
+    async getTradeProfessionalCommission(req) {
+        try {
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = req.query;
+            const skip = (page - 1) * limit;
+            const userId = req.query.userId;
+            const search_string = req.query.search_string;
+
+            // Build match condition
+            const matchCondition = { createdBy: new mongoose.Types.ObjectId(userId) };
+
+            // Build aggregation pipeline for pagination
+            const pipeline = [];
+            if (search_string) {
+                pipeline.push({
+                    $addFields: {
+                        amountString: { $toString: "$amount" }
+                    }
+                });
+            }
+            pipeline.push({ $match: matchCondition });
+            if (search_string) {
+                // Overwrite $or to use the new string field for regex
+                pipeline[pipeline.findIndex(stage => stage.$match === matchCondition)].$match.$or = [
+                    { transferId: { $regex: search_string, $options: 'i' } },
+                    { amountString: { $regex: search_string, $options: 'i' } }
+                ];
+            }
+            pipeline.push(
+                { $sort: typeof sort === 'string' ? JSON.parse(sort) : sort },
+                { $skip: parseInt(skip) },
+                { $limit: parseInt(limit) }
+            );
+
+            // Get paginated data
+            const data = await TransferPayout.aggregate(pipeline);
+
+            // Get total count with search condition
+            const totalCountPipeline = [];
+            if (search_string) {
+                totalCountPipeline.push({
+                    $addFields: {
+                        amountString: { $toString: "$amount" }
+                    }
+                });
+            }
+            totalCountPipeline.push({ $match: matchCondition });
+            if (search_string) {
+                totalCountPipeline[totalCountPipeline.findIndex(stage => stage.$match === matchCondition)].$match.$or = [
+                    { transferId: { $regex: search_string, $options: 'i' } },
+                    { amountString: { $regex: search_string, $options: 'i' } }
+                ];
+            }
+            totalCountPipeline.push({ $count: 'total' });
+            const totalCountAgg = await TransferPayout.aggregate(totalCountPipeline);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            const pipeline2 = [
+                { $match: matchCondition },
+                {
+                    $facet: {
+                        // Sum of all amounts
+                        metadata: [
+                            {
+                                $group: {
+                                    _id: null,
+                                    total: { $sum: "$amount" }
+                                }
+                            }
+                        ],
+                    }
+                },
+                {
+                    // Final structure
+                    $project: {
+                        totalPayout: { $ifNull: [{ $arrayElemAt: ["$metadata.total", 0] }, 0] }
+                    }
+                }
+            ];
+    
+            const [result] = await TransferPayout.aggregate(pipeline2);
+
+            // Calculate total commission from orders
+            const totalCommissionPipeline = [
+                {
+                    $match: {
+                        createdBy: new mongoose.Types.ObjectId(userId),
+                        orderStatus: 4, // delivered orders
+                        commission: { $gt: 0 }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalCommission: { $sum: "$commission" }
+                    }
+                }
+            ];
+
+            const [commissionResult] = await Order.aggregate(totalCommissionPipeline);
+            const totalCommission = commissionResult?.totalCommission || 0;
+            const pendingPayout = totalCommission - result.totalPayout;
+
+            return {
+                docs: data,
+                totalPayout: result.totalPayout,
+                pendingPayout,
+                totalDocs,
+                limit: parseInt(limit),
+                page: parseInt(page),
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1,
+                nextPage: page * limit < totalDocs ? parseInt(page) + 1 : null,
+                prevPage: page > 1 ? parseInt(page) - 1 : null
+            };
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching data', statusCode: error?.statusCode || 500 };
         }
     }
 
