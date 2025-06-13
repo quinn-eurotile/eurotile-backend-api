@@ -10,6 +10,7 @@ const writeFileAsync = util.promisify(Fs.writeFile);
 const AdminSetting = require("../models/AdminSetting");
 const commonService = require('../services/commonService');
 const constants = require('../configs/constant');
+const notificationService = require('../services/notificationService');
 
 module.exports = class AdminController {
 
@@ -80,6 +81,13 @@ module.exports = class AdminController {
             const CLIENT_URL = getClientUrlByRole('Trade Professional'); // or user.role if it's a string
             const link = `${CLIENT_URL}`;
             sendAccountStatusEmail(req, link, message);
+            const notification = await notificationService.notifyTradeProfessionalBusinessStatus(data, {
+                senderId: req.user?._id,
+                userId: constants.adminRole.id,
+                additionalUsers: [],
+                additionalRoles: [],
+                excludeUsers: []
+            });
 
             return res.status(200).send({ message: 'Trade professional status updated successfully', data: data });
         } catch (error) {

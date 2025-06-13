@@ -5,6 +5,7 @@ const supportTicketModel = require('../models/SupportTicket');
 const supportTicketMsgModel = require('../models/SupportTicketMsg');
 const { User } = require('../models');
 const constants = require('../configs/constant');
+const notificationService = require('./notificationService');
 
 
 
@@ -362,7 +363,7 @@ class SupportTicket {
 
     async saveTicket(req) {
         try {
-            console.log('req.body', req.body);
+            // console.log('req.body', req.body);
             let { message, subject, status, order, issue_type } = req?.body;
             status = Number(status);
             issue_type = Number(issue_type);
@@ -395,18 +396,16 @@ class SupportTicket {
                     ticketNumber
                 });
 
-                console.log('ticketDoc', {
-                    sender: new mongoose.Types.ObjectId(String(sender)),
-                    assignedTo: new mongoose.Types.ObjectId(String(admin?._id)),
-                    order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
-                    subject,
-                    status,
-                    issue_type,
-                    message,
-                    ticketNumber
-                });
+                await ticketDoc.save(); 
 
-                await ticketDoc.save();
+                const notification = await notificationService.notifyTicketCreation(ticketDoc, {
+                    senderId: sender,
+                    userId: constants.adminRole.id,
+                    additionalUsers: [],
+                    additionalRoles: [],
+                    excludeUsers: []
+                });
+                console.log('notification create in saveTicket', notification);
             } else if (req?.method === 'PUT') {
                 ticketDoc = await supportTicketModel.findById(ticketId);
                 if (!ticketDoc) {
@@ -438,6 +437,7 @@ class SupportTicket {
             });
 
             await ticketMsg.save();
+            // await notificationService.notifyTicketCreation(ticketDoc);
 
             return {
                 ticket: ticketDoc,

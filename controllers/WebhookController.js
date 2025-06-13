@@ -5,6 +5,7 @@ const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'your_webhook_secret
 const Order = require('../models/Order');
 const PaymentDetail = require('../models/PaymentDetail');
 const StripeConnectAccount = require('../models/StripeConnectAccount');
+const notificationService = require('../services/notificationService');
 
 module.exports = class WebhookController {
 
@@ -101,9 +102,10 @@ module.exports = class WebhookController {
                 order.paymentStatus = 'failed';
                 order.orderStatus = 0; // Cancelled
             }
-
+            
             await order.save();
-            // console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
+            await notificationService.notifyPaymentConfirmation(paymentDetail, order);
+             // console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
         } catch (error) {
             console.error('Error updating payment status:', error);
             throw error;

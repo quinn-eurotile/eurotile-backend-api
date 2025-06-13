@@ -73,7 +73,7 @@ const orderSchema = new mongoose.Schema({
     default: 3
   },
   customerType: {
-    type: String,
+    type: String, 
     enum: ['retail', 'trade'],
     required: true,
     default: 'trade'
@@ -85,7 +85,7 @@ const orderSchema = new mongoose.Schema({
     default: null
   },
   discount: {type: Number, default: 0 },
-  tax: {type: Number, default: 0 },
+  tax: {type: Number, default: 0 }, 
   promoCode: {type: String, default: null},
   shippingMethod: {
     type: String,
@@ -96,13 +96,14 @@ const orderSchema = new mongoose.Schema({
   shippedAt: {type: Date, default: null},
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  currency: { type: String, default: 'EUR' },
 }, {
   timestamps: true
-});
+}); 
 
 orderSchema.plugin(mongoosePaginate);
-
 // Index for faster supplier queries
-orderSchema.index({ 'supplierStatuses.supplier': 1 });
+orderSchema.index({ 'supplierStatuses.supplier': 1 }); 
+
 
 module.exports = mongoose.model('Order', orderSchema);

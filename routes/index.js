@@ -57,5 +57,11 @@ routes.use(`/api/${API_V}/webhook`, webhookRoutes);
 const paymentRoutes = require('./paymentRoutes');
 routes.use(`/api/${API_V}/payment`, paymentRoutes);
 
+/************* Notification route**************/
+const notificationRoutes = require('./NotificationRoutes');
+routes.use(`/api/${API_V}/notification`, notificationRoutes);       
+
+        
+
 
 module.exports = routes;
