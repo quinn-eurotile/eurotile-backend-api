@@ -197,6 +197,8 @@ class SupportTicket {
                 isDeleted: false,
                 status: { $in: [1, 2, 3, 4, 5, 6, 7] }
             };
+            const matchStageMsg = { 
+            };
 
             
 
@@ -216,16 +218,20 @@ class SupportTicket {
             // Add ticket ID from params if it exists
             if (req.params.id) {
                 matchStage['_id'] = new mongoose.Types.ObjectId(req.params.id);
+                matchStageMsg['ticket'] = new mongoose.Types.ObjectId(req.params.id);
             }
        
             const messageCountResult = await supportTicketMsgModel.aggregate([
-                { $match: matchStage },
+                { $match: matchStageMsg },
                 { $count: 'total' }
             ]);
-
-            delete matchStage?._id;
+           
+            delete matchStage?._id; 
             const totalMsgDocs = messageCountResult[0]?.total || 0;
-
+            console.log('totalMsgDocs', totalMsgDocs);
+            console.log('matchStageMsg', matchStageMsg);
+            console.log('matchStage', matchStage);
+       
             const pipeline = [
                 { $match: matchStage },
                 {
@@ -309,7 +315,7 @@ class SupportTicket {
             };
 
             const chats = tickets.map(ticket => {
-                const chatMessages = ticket.supportticketmsgs_detail
+          const chatMessages = ticket.supportticketmsgs_detail
                     .slice()
                     .reverse() // To get oldest-to-newest order
                     .map(msg => ({
@@ -335,11 +341,9 @@ class SupportTicket {
 
             // Calculate pagination values
             const totalPages = Math.ceil(totalDocs / limit);
-            const totalMessagePages = Math.ceil(totalMsgDocs / limit);
+            const totalMessagePages = Math.ceil(totalMsgDocs / limit); 
 
-
-            console.log(totalPages, 'totalPages');
-            console.log(totalPages, 'totalPages');
+ 
             
             return {
                 docs,
