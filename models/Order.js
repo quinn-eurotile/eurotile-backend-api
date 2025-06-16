@@ -104,6 +104,4 @@ const orderSchema = new mongoose.Schema({
 orderSchema.plugin(mongoosePaginate);
 // Index for faster supplier queries
 orderSchema.index({ 'supplierStatuses.supplier': 1 }); 
-
-
 module.exports = mongoose.model('Order', orderSchema);
