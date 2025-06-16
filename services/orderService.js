@@ -258,7 +258,17 @@ class Order {
                     eligibleCommission: {
                         $sum: {
                             $cond: [
-                                { $eq: ["$orderStatus", 4] }, // Only include shipped orders (status 4)
+                                {
+                                    $and: [
+                                        { $eq: ["$orderStatus", 4] }, // Only include shipped orders (status 4)
+                                        {
+                                            $gte: [
+                                                { $subtract: [new Date(), "$shippedAt"] },
+                                                -14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
+                                            ]
+                                        }
+                                    ]
+                                },
                                 "$commission",
                                 0
                             ]
