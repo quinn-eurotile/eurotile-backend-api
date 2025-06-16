@@ -451,7 +451,7 @@ class TradeProfessional {
     async buildClientListQuery(req) {
         const query = req.query;
         const conditionArr = [
-            { isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] } }
+            { isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.clientRole?.id))] }, createdBy: new mongoose.Types.ObjectId(String(req?.user?.id)) }
         ];
         if (query.status !== undefined && query.status !== "") {
             conditionArr.push({ status: Number(query.status) });
