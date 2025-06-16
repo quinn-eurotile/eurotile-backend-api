@@ -1477,6 +1477,10 @@ class Product {
                             select: '_id filePath fileName'
                         },
                         {
+                            path: 'attributeVariations',
+                            match: { isDeleted: false }
+                        },
+                        {
                             path: 'product',
                             match: { isDeleted: false },
                             select: '_id name shortDescription'
@@ -1499,6 +1503,17 @@ class Product {
                 (sum, v) => sum + (v.stockQuantity || 0),
                 0
             ) || 0;
+            if (productObject.productVariations) {
+                productObject.productVariations = productObject.productVariations.map(variation => {
+                  const attributeVariationsDetail = variation.attributeVariations || [];
+                  const attributeVariationsIds = attributeVariationsDetail.map(av => av._id);
+                  return {
+                    ...variation,
+                    attributeVariations: attributeVariationsIds,
+                    attributeVariationsDetail
+                  };
+                });
+              }
 
             // Fetch associated products based on shared categories
             const categoryIds = product.categories?.map(cat => cat._id) || [];
@@ -1511,11 +1526,15 @@ class Product {
             })
                 .limit(10)
                 .select('_id name shortDescription productFeaturedImage minPriceB2B maxPriceB2B slug sku')
-                .populate({
+                .populate([{
                     path: 'productFeaturedImage',
                     match: { isDeleted: false },
                     select: '_id filePath fileName isFeaturedImage'
-                });
+                }, 
+                {
+                    path: 'productVariations',
+                    match: { isDeleted: false }
+                }]);
 
             // Attach to response
             productObject.associatedProducts = associatedProducts;
