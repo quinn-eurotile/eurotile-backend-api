@@ -6,7 +6,7 @@ const supportTicketMsgSchema = new Schema({
     sender: { type: Schema.Types.ObjectId, refPath: 'User', required: true },
     message: { type: String, defult: null },
     fileName: { type: String, defult: null },
-    fileType: { type: String, enum: ['image', 'docs'], default: null, },
+    fileType: { type: String, enum: ['image', 'docs', 'video', 'pdf'], default: null, },
     filePath: { type: String, default: null },
     fileSize: { type: Number, default: 0 },
 }, {

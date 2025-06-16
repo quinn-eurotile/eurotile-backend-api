@@ -72,6 +72,10 @@ class SupportTicket {
                     time: msg.createdAt,
                     senderId: msg.sender,
                     sender_detail: msg.sender_detail,
+                    fileType: msg?.fileType,
+                    fileSize: msg?.fileSize,
+                    filePath: msg?.filePath,
+                    fileName: msg?.fileName,
                     msgStatus: {
                         isSent: true,
                         isDelivered: true,
@@ -324,6 +328,10 @@ class SupportTicket {
                         time: msg.createdAt,
                         senderId: msg.sender,
                         sender_detail: msg.sender_detail,
+                        fileType: msg?.fileType,
+                        fileSize: msg?.fileSize,
+                        filePath: msg?.filePath,
+                        fileName: msg?.fileName,
                         msgStatus: {
                             isSent: true,
                             isDelivered: true,

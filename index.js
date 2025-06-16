@@ -56,41 +56,36 @@ io.on('connection', socket => {
 	console.log('Socket connected:', socket.id);
 
 	socket.on('sendMessage', async (msg) => {
-		console.log('Message received:', {
-			hasImage: msg.hasImage,
-			imageType: msg.imageType,
-			imageName: msg.imageName,
-			imageSize: msg.imageSize,
-			imageData: msg.image ? 'Image data present' : 'No image data',
-			ticketId: msg.ticketId
-		});
 
 		try {
-			const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', String(msg.ticketId));
+			const uploadDir = path.join(__dirname, '.', 'uploads', 'support-tickets', String(msg.ticketId));
 			let fileData = null;
 
 			// Handle file if present
 			if (msg.hasImage && msg.image) {
 				try {
-					console.log('msg.image :', msg.image);
 					// Create upload directory if it doesn't exist
 					if (!fs.existsSync(uploadDir)) {
 						fs.mkdirSync(uploadDir, { recursive: true });
 					}
 			
 					const ext = path.extname(msg.imageName).toLowerCase();
-					console.log('File extension:', ext);
+					let fileType = 'docs';
 					
-					const fileType = ['.jpg', '.jpeg', '.png', '.gif'].includes(ext) ? 'image' : 'docs';
-					console.log('File type determined:', fileType);
+					// Determine file type based on extension
+					if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
+						fileType = 'image';
+					} else if (['.mp4', '.webm', '.mov'].includes(ext)) {
+						fileType = 'video';
+					} else if (['.pdf'].includes(ext)) {
+						fileType = 'pdf';
+					}
 			
 					const timestampedName = `${Date.now()}_${msg.imageName}`;
 					const fullPath = path.join(uploadDir, timestampedName);
-					console.log('Saving file to:', fullPath);
 			
 					// Save file
 					fs.writeFileSync(fullPath, msg?.image);
-					console.log('File written successfully');
 
 					// Prepare file data with correct URL path
 					fileData = {
@@ -100,14 +95,10 @@ io.on('connection', socket => {
 						fileSize: msg.imageSize
 					};
 
-					console.log('File data prepared:', fileData);
+					console.log('File saved successfully:', fileData);
 				} catch (fileError) {
 					console.error('Error saving file:', fileError);
-					console.error('Error details:', {
-						error: fileError.message,
-						stack: fileError.stack
-					});
-					throw new Error('Failed to save image file');
+					throw new Error('Failed to save file');
 				}
 			}
 
@@ -119,7 +110,6 @@ io.on('connection', socket => {
 				...(fileData && fileData)
 			});
 
-			console.log('Message saved to database:', savedMsg);
 
 			// Emit message to all clients in the ticket room
 			io.to(msg.ticketId).emit('receiveMessage', {
