@@ -56,7 +56,14 @@ io.on('connection', socket => {
 	console.log('Socket connected:', socket.id);
 
 	socket.on('sendMessage', async (msg) => {
-		console.log('Message received:', msg);
+		console.log('Message received:', {
+			hasImage: msg.hasImage,
+			imageType: msg.imageType,
+			imageName: msg.imageName,
+			imageSize: msg.imageSize,
+			imageData: msg.image ? 'Image data present' : 'No image data',
+			ticketId: msg.ticketId
+		});
 
 		try {
 			const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', String(msg.ticketId));
@@ -65,33 +72,41 @@ io.on('connection', socket => {
 			// Handle file if present
 			if (msg.hasImage && msg.image) {
 				try {
+					console.log('msg.image :', msg.image);
 					// Create upload directory if it doesn't exist
 					if (!fs.existsSync(uploadDir)) {
 						fs.mkdirSync(uploadDir, { recursive: true });
 					}
-
-					// Convert base64 to buffer
-					const base64Data = msg.image.replace(/^data:image\/\w+;base64,/, '');
-					const buffer = Buffer.from(base64Data, 'base64');
-
-					// Generate filename with timestamp
+			
+					const ext = path.extname(msg.imageName).toLowerCase();
+					console.log('File extension:', ext);
+					
+					const fileType = ['.jpg', '.jpeg', '.png', '.gif'].includes(ext) ? 'image' : 'docs';
+					console.log('File type determined:', fileType);
+			
 					const timestampedName = `${Date.now()}_${msg.imageName}`;
 					const fullPath = path.join(uploadDir, timestampedName);
-
+					console.log('Saving file to:', fullPath);
+			
 					// Save file
-					fs.writeFileSync(fullPath, buffer);
+					fs.writeFileSync(fullPath, msg?.image);
+					console.log('File written successfully');
 
 					// Prepare file data with correct URL path
 					fileData = {
 						fileName: msg.imageName,
-						fileType: 'image',
+						fileType,
 						filePath: `/uploads/support-tickets/${msg.ticketId}/${timestampedName}`,
-						fileSize: buffer.length
+						fileSize: msg.imageSize
 					};
 
-					console.log('File saved successfully:', fileData);
+					console.log('File data prepared:', fileData);
 				} catch (fileError) {
 					console.error('Error saving file:', fileError);
+					console.error('Error details:', {
+						error: fileError.message,
+						stack: fileError.stack
+					});
 					throw new Error('Failed to save image file');
 				}
 			}

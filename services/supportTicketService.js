@@ -363,6 +363,7 @@ class SupportTicket {
             };
         }
     }
+
     async getChatByTicketold(req) {
         try {
             let { page = 1, limit = 20 } = req.query;
@@ -535,6 +536,7 @@ class SupportTicket {
             };
         }
     }
+    
     async uploadTicketFile(file, ticketId) {
         console.log('file..............', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
