@@ -467,7 +467,7 @@ class Product {
             const productId = product._id.toString();
 
             // Step 2: Create upload folder
-            const uploadDir = path.join(__dirname, '..', 'uploads', productId);
+            const uploadDir = path.join(__dirname, '..', 'uploads/products', productId);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
@@ -647,7 +647,7 @@ class Product {
             }
 
             // Step 2: Ensure upload folder exists
-            const uploadDir = path.join(__dirname, '..', 'uploads', productId);
+            const uploadDir = path.join(__dirname, '..', 'uploads/products', productId);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
