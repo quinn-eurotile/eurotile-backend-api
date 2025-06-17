@@ -17,7 +17,7 @@ class SupportTicket {
             let { page = 1, limit = 10 } = req?.query;
             limit = Number(limit);
             page = Number(page);
-            const totalCount = await supportTicketMsgModel.countDocuments({ ticket: ticketId  });
+            const totalCount = await supportTicketMsgModel.countDocuments({ ticket: ticketId });
             console.log('totalCount', totalCount);
             const skip = (page - 1) * limit;
 
@@ -82,11 +82,11 @@ class SupportTicket {
                         isSeen: true,
                     },
                 }));
-            return { 
+            return {
                 chats: formattedMessages,
                 hasNextPageMessages: page * limit < totalCount,
                 hasPrevPageMessages: page > 1
-                
+
             };
         } catch (error) {
             throw { message: error?.message || 'Failed to load more tickets', statusCode: error?.statusCode || 500 };
@@ -177,14 +177,14 @@ class SupportTicket {
                     userId: ticket._id, // Or replace with appropriate user/ticket reference
                     unseenMsgs: 0, // Add logic to calculate unseen if needed
                     chat: chatMessages
-                  
+
                 };
             });
 
             return {
                 contacts: docs, chats: chats, hasNextPage: page * limit < totalCount,
                 hasPrevPage: page > 1,
-};
+            };
         } catch (error) {
             throw { message: error?.message || 'Failed to load more tickets', statusCode: error?.statusCode || 500 };
         }
@@ -201,10 +201,10 @@ class SupportTicket {
                 isDeleted: false,
                 status: { $in: [1, 2, 3, 4, 5, 6, 7] }
             };
-            const matchStageMsg = { 
+            const matchStageMsg = {
             };
 
-            
+
 
             const roles = req?.user?.roles?.map((el) => el?.id);
 
@@ -224,18 +224,18 @@ class SupportTicket {
                 matchStage['_id'] = new mongoose.Types.ObjectId(req.params.id);
                 matchStageMsg['ticket'] = new mongoose.Types.ObjectId(req.params.id);
             }
-       
+
             const messageCountResult = await supportTicketMsgModel.aggregate([
                 { $match: matchStageMsg },
                 { $count: 'total' }
             ]);
-           
-            delete matchStage?._id; 
+
+            delete matchStage?._id;
             const totalMsgDocs = messageCountResult[0]?.total || 0;
             console.log('totalMsgDocs', totalMsgDocs);
             console.log('matchStageMsg', matchStageMsg);
             console.log('matchStage', matchStage);
-       
+
             const pipeline = [
                 { $match: matchStage },
                 {
@@ -277,13 +277,23 @@ class SupportTicket {
                         as: 'supportticketmsgs_detail'
                     }
                 },
+                {
+                    $lookup: {
+                        from: 'orders',
+                        localField: 'order',
+                        foreignField: '_id',
+                        as: 'orderDetail'
+                    }
+                },
+                { $unwind: { path: '$orderDetail', preserveNullAndEmptyArrays: true } },
                 { $sort: { createdAt: -1 } },
                 {
                     $project: {
                         _id: 1,
                         subject: 1,
                         sender: 1,
-                        supportticketmsgs_detail: 1
+                        supportticketmsgs_detail: 1,
+                        orderDetail:1
                     }
                 },
                 { $skip: skip },
@@ -291,6 +301,7 @@ class SupportTicket {
             ];
 
             const tickets = await supportTicketModel.aggregate(pipeline);
+            console.log('tickets',tickets)
 
             const docs = tickets.map(ticket => ({
                 id: ticket._id,
@@ -298,6 +309,7 @@ class SupportTicket {
                 role: 'Ticket',
                 about: ticket.subject,
                 avatar: ticket?.supportticketmsgs_detail?.[0]?.filePath || null,
+                orderDetail : ticket?.orderDetail,
                 status: 'online'
             }));
 
@@ -319,7 +331,7 @@ class SupportTicket {
             };
 
             const chats = tickets.map(ticket => {
-          const chatMessages = ticket.supportticketmsgs_detail
+                const chatMessages = ticket.supportticketmsgs_detail
                     .slice()
                     .reverse() // To get oldest-to-newest order
                     .map(msg => ({
@@ -349,10 +361,10 @@ class SupportTicket {
 
             // Calculate pagination values
             const totalPages = Math.ceil(totalDocs / limit);
-            const totalMessagePages = Math.ceil(totalMsgDocs / limit); 
+            const totalMessagePages = Math.ceil(totalMsgDocs / limit);
 
- 
-            
+
+
             return {
                 docs,
                 profileUser,
@@ -548,7 +560,7 @@ class SupportTicket {
             };
         }
     }
-    
+
     async uploadTicketFile(file, ticketId) {
         console.log('file..............', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
@@ -607,7 +619,7 @@ class SupportTicket {
                     ticketNumber
                 });
 
-                await ticketDoc.save(); 
+                await ticketDoc.save();
 
                 const notification = await notificationService.notifyTicketCreation(ticketDoc, {
                     senderId: sender,
