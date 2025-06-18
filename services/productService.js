@@ -1455,7 +1455,12 @@ class Product {
                 },
                 {
                     path: 'attributeVariations',
-                    match: { isDeleted: false }
+                    match: { isDeleted: false },
+                    populate: {
+                        path: 'productMeasurementUnit',
+                        match: { isDeleted: false },
+                        select: '_id name symbol'
+                    }
                 },
                 {
                     path: 'createdBy',
@@ -1478,7 +1483,12 @@ class Product {
                         },
                         {
                             path: 'attributeVariations',
-                            match: { isDeleted: false }
+                            match: { isDeleted: false },
+                            populate: {
+                                path: 'productMeasurementUnit',
+                                match: { isDeleted: false },
+                                select: '_id name symbol'
+                            }
                         },
                         {
                             path: 'product',

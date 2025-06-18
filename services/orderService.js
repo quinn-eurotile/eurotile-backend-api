@@ -170,6 +170,11 @@ class Order {
         const queryParams = req.query;
         // console.log(queryParams.status, 'queryParamsqueryParamsqueryParamsqueryParams');
         const conditions = [];
+        const roles = req?.user?.roles?.map((el) => el?.id);
+
+        if (!roles?.includes(constants?.adminRole?.id)) {
+            conditions.push({ createdBy: new mongoose.Types.ObjectId(String(req?.user?.id)) })
+        }
         // Date range filter
         if (queryParams?.startDate && queryParams?.endDate) {
             conditions.push({
