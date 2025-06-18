@@ -6,57 +6,99 @@ const AdminSetting = require('../models/AdminSetting');
 const User = require('../models/User');
 const { removeCartItem } = require('../services/cartService');
 const Product = require('../models/Product');
+const { generateOrderId } = require('../_helpers/common');
+const Cart = require('../models/Cart');
 
 
 module.exports = class PaymentController {
+
+
+  /** Free Order */
+  async createFreeOrder(req, res) {
+    const cartItems = req.body.cartItems;
+    const orderData = req.body.orderData;
+    delete req.body.cartItems;
+    const userId = req?.user?.id
+
+    // Populate product and supplier information
+    const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
+      const product = await Product.findById(item.product?._id)
+        .populate('supplier')
+        .lean();
+      return {
+        ...item,
+        product: product
+      };
+    }));
+    const orderId = generateOrderId();
+    const order = await orderService.createFreeOrder({
+      userId: userId,
+      cartItems: populatedCartItems,
+      orderData: orderData,
+      paymentIntent: {
+        metadata: {
+          orderId: orderId
+        }
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Order created successfully',
+      data: {
+        orderId: order._id
+      }
+    });
+  }
+
   // Create Stripe Payment Intent
   async createPaymentIntent(req, res) {
     try {
-      const cartItems = req.body.cartItems;
-      const orderData = req.body.orderData;
-      delete req.body.cartItems;
-      const userId = req?.user?.id
 
-      // Populate product and supplier information
-      const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
-        const product = await Product.findById(item.product?._id)
-          .populate('supplier')
-          .lean();
-        return {
-          ...item,
-          product: product
-        };
-      }));
-
-      const result = await paymentService.createPaymentIntent(req.body);
-
-      if (!result.success) {
-        return res.status(400).json(result);
+      if (req.body.amount === 0) {
+        console.log('Creating free order');
+        return await new PaymentController().createFreeOrder(req, res);
       }
+       else {
+        const cartItems = req.body.cartItems;
+        const orderData = req.body.orderData;
+        delete req.body.cartItems;
+        const userId = req?.user?.id
 
-      const order = await orderService.createOrder({
-        userId: userId,
-        cartItems: populatedCartItems,
-        orderData: orderData,
-        paymentIntent: result.data.paymentIntent
-      });
-      // Remove cart items after successful order creation
-      try {
-        for (const item of cartItems) {
-          await removeCartItem(item._id);
+        // Populate product and supplier information
+        const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
+          const product = await Product.findById(item.product?._id)
+            .populate('supplier')
+            .lean();
+          return {
+            ...item,
+            product: product
+          };
+        }));
+
+        const result = await paymentService.createPaymentIntent(req.body);
+
+        if (!result.success) {
+          return res.status(400).json(result);
         }
-        console.log('Cart items removed successfully after order creation');
-      } catch (cartError) {
-        console.error('Failed to remove cart items, but order was created:', cartError);
+
+        const order = await orderService.createOrder({
+          userId: userId,
+          cartItems: populatedCartItems,
+          orderData: orderData,
+          paymentIntent: result.data.paymentIntent
+        });
+
+        res.status(200).json({
+          ...result,
+          data: {
+            ...result.data,
+            orderId: order._id
+          }
+        });
       }
+    
 
-      res.status(200).json({
-        ...result,
-        data: {
-          ...result.data,
-          orderId: order._id
-        }
-      });
     } catch (error) {
       console.error('Payment intent creation error:', error);
       res.status(500).json({

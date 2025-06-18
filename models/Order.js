@@ -20,7 +20,7 @@ const orderSchema = new mongoose.Schema({
   paymentDetail: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'PaymentDetail',
-    required: true
+    default: null
   },
   subtotal: {
     type: Number,

@@ -19,8 +19,141 @@ class Order {
         this.addOrderHistory = this.addOrderHistory.bind(this);
     }
 
+        /** Create a new free order */
+        async createFreeOrder(data) {
+            console.log('data in createOrder', data);
+            const orderItems = data?.cartItems;
+            const paymentInfo = data?.paymentIntent;
+            const orderData = data?.orderData;
+            const userId = orderData?.userId;
+            const tradeProfessionalId = orderData?.tradeProfessionalId;
+    
+            // console.log('orderData', orderData);
+            // console.log('orderItems', orderItems);
+            // console.log('paymentInfo', { ...paymentInfo });
+            // console.log('userId', userId);
+    
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
+                // Collect unique suppliers from order items
+                const uniqueSuppliers = [...new Set(orderItems
+                    .map(item => item.product?.supplier)
+                    .filter(supplier => supplier))];
+    
+                const newData = {
+                    orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
+                    commission: orderData?.commission ?? 0,
+                    shippingAddress: orderData?.shippingAddress || null,
+                    paymentMethod: orderData?.paymentMethod || 'stripe',
+                    paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
+                    orderStatus: 3,
+                    subtotal: orderData?.subtotal ?? 0,
+                    shipping: orderData?.shipping ?? 0,
+                    tax: orderData?.tax ?? 0,
+                    discount: orderData?.discount ?? 0,
+                    total: orderData?.total ?? 0,
+                    promoCode: orderData?.promoCode ?? null,
+                    shippingMethod: orderData?.shippingMethod ?? 'standard',
+                    clientOf: tradeProfessionalId || null,
+                    createdBy: userId,
+                    updatedBy: userId,
+                    supplierStatuses: uniqueSuppliers.map(supplier => ({
+                        supplier: supplier,
+                        status: 'pending',
+                        confirmedAt: null,
+                        lastUpdated: new Date()
+                    }))
+                };
+
+                // 2. Create order (temporarily empty orderDetails)
+                const orderDoc = await orderModel.create(
+                    [{
+                        ...newData,
+                        paymentDetail: null,
+                        orderDetails: [],
+                    }],
+                    { session }
+                );
+
+                // 4. Create OrderDetails with all required fields
+                const orderDetails = await Promise.all(orderItems.map(item => {
+                    if (!item.product?.supplier) {
+                        throw new Error(`Supplier is required for product ${item.product?.name || 'unknown'}`);
+                    }
+                    return orderDetailModel.create([{
+                        orderId: orderDoc[0]._id,
+                        order: orderDoc[0]._id,
+                        product: item.product?._id,
+                        supplier: item.product.supplier,
+                        price: item?.price ?? 0,
+                        quantity: item?.quantity ?? 0,
+                        commission: item?.commission ?? 0,
+                        totalCommission: item?.totalCommission ?? 0,
+                        productVariation: item.variation?._id,
+                        productImages: item.productImages || '',
+                        productDetail: JSON.stringify({
+                            ...item.variation,
+                            product: {
+                                name: item.product?.name,
+                                sku: item.product?.sku,
+                                description: item.product?.description
+                            },
+                            supplierName: item.product?.supplier?.companyName,
+                        }),
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }], { session })
+                }));
+    
+                // 5. Update order with orderDetail references
+                orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
+                await orderDoc[0].save({ session });
+    
+                await session.commitTransaction();
+                session.endSession();
+    
+                // Fetch the complete order with all details
+                const completeOrder = await orderModel
+                    .findById(orderDoc[0]._id)
+                    .populate('orderDetails')
+                    .populate('shippingAddress')
+                    .populate('paymentDetail')
+                    .populate('createdBy', 'name email');
+    
+                // Send order confirmation to customer
+                await emailService.sendOrderConfirmationEmail(
+                    completeOrder, 
+                    completeOrder.createdBy.email,
+                    completeOrder.createdBy.name
+                );
+    
+                const notification = await notificationService.notifyOrderCreation(completeOrder, {
+                    senderId: completeOrder.createdBy._id,
+                    userId: constants.adminRole.id,
+                    additionalUsers: [],
+                    additionalRoles: [],
+                    excludeUsers: []
+                });
+                // Notify suppliers about their portion of the order
+                const notifyRes = await this.notifySuppliers(completeOrder);
+                
+                console.log(notifyRes,'notifyRes');
+                
+    
+                return completeOrder;
+            } catch (error) {
+                await session.abortTransaction();
+                session.endSession();
+                console.error('Order creation error:', error);
+                throw error;
+            }
+        }
+    
+
     /** Create a new order */
     async createOrder(data) {
+        console.log('data in createOrder', data);
         const orderItems = data?.cartItems;
         const paymentInfo = data?.paymentIntent;
         const orderData = data?.orderData;
@@ -69,8 +202,8 @@ class Order {
             const paymentDetailDoc = await paymentDetailModel.create(
                 [{
                     ...paymentInfo,
-                    amount: paymentInfo.amount / 100, // Convert from cents back to dollars
-                    status: paymentInfo.status,
+                    amount: paymentInfo?.amount ? paymentInfo?.amount / 100 : 0, // Convert from cents back to dollars
+                    status: paymentInfo?.status,
                     paymentMethod: orderData?.paymentMethod,
                     createdBy: userId
                 }],

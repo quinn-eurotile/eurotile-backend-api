@@ -349,12 +349,9 @@ async function updateShippingMethod(userId, method) {
 }
 
 async function deleteCartByUserId(userId) {
-  return await Cart.findOneAndUpdate(
-    { userId },
-    { isDeleted: true },
-    { new: true }
-  );
+  return await Cart.findOneAndDelete({ userId });
 }
+  
 module.exports = {
   getCartByUser,
   saveCart,
