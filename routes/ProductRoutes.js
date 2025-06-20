@@ -14,7 +14,7 @@ router.put('/:id', upload.any(), auth, productController.updateProduct);
 router.patch('/:id/status', multer().any(), auth, productController.updateProductStatus);
 router.get('/raw/data', multer().any(), productController.getProductRawData);
 router.delete('/:id', multer().any(),auth, productController.deleteProduct);
-router.get('/:id', multer().any(), auth, productController.getProduct);
+router.get('/:id', multer().any(), productController.getProduct);
 
 router.get('/export/csv', multer().any(), auth, productController.exportCsv);
 

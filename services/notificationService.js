@@ -47,18 +47,18 @@ class NotificationService {
 
     async createNotification(data) {
         try {
-            // console.log('=== Starting createNotification ===');
-            // console.log('Input data:', JSON.stringify(data, null, 2));
+            // //console.log('=== Starting createNotification ===');
+            // //console.log('Input data:', JSON.stringify(data, null, 2));
 
             // Get default visibility and target roles for the notification type
             const notificationType = this.NOTIFICATION_TYPES[data.type] || {};
-            // console.log('Notification type config:', JSON.stringify(notificationType, null, 2));
+            // //console.log('Notification type config:', JSON.stringify(notificationType, null, 2));
             
             const defaultVisibility = notificationType.defaultVisibility || [null];
             const defaultTargetRoles = notificationType.defaultTargetRoles || [];
             
-            // console.log('Default visibility:', defaultVisibility);
-            // console.log('Default target roles:', defaultTargetRoles);
+            // //console.log('Default visibility:', defaultVisibility);
+            // //console.log('Default target roles:', defaultTargetRoles);
 
             // Add visibility and target users fields
             const notification = new Notification({     
@@ -71,11 +71,11 @@ class NotificationService {
                 userId: data.userId || data.senderId, 
             });
             
-            // console.log('Created notification object:', JSON.stringify(notification, null, 2));
+            // //console.log('Created notification object:', JSON.stringify(notification, null, 2));
             
             try {
                 const savedNotification = await notification.save();
-                // console.log('Successfully saved notification:', JSON.stringify(savedNotification, null, 2));
+                // //console.log('Successfully saved notification:', JSON.stringify(savedNotification, null, 2));
                 return savedNotification;
             } catch (saveError) {
                 console.error('Error saving notification:', saveError);
@@ -98,7 +98,7 @@ class NotificationService {
 
             // Get user with roles
             const user = await User.findById(userId).populate('roles');
-            // console.log('User data for notifications:', JSON.stringify(user, null, 2));
+            // //console.log('User data for notifications:', JSON.stringify(user, null, 2));
             
             if (!user) {
                 throw new Error('User not found');
@@ -106,7 +106,7 @@ class NotificationService {
 
             // Get user's role IDs
             const userRoleIds = user.roles.map(role => role._id);
-            // console.log('User role IDs:', userRoleIds);
+            // //console.log('User role IDs:', userRoleIds);
 
             // Build visibility filter based on user role and specific targeting
             const visibilityFilter = {
@@ -136,7 +136,7 @@ class NotificationService {
                 filter.status = status;
             }
 
-            // console.log('Final notification filter:', JSON.stringify(filter, null, 2));
+            // //console.log('Final notification filter:', JSON.stringify(filter, null, 2));
 
             // First get notifications without population
             const notifications = await Notification.find(filter)
@@ -182,7 +182,7 @@ class NotificationService {
                 })
             );
 
-            // console.log('Found notifications:', populatedNotifications.length);
+            // //console.log('Found notifications:', populatedNotifications.length);
 
             const total = await Notification.countDocuments(filter);
 
@@ -525,14 +525,14 @@ class NotificationService {
 
     async notifyTicketCreation(ticket, { senderId, userId, additionalUsers = [], additionalRoles = [], excludeUsers = [] } = {}) {
         try {
-            console.log('=== Starting notifyTicketCreation ===');
-            console.log('Ticket data:', JSON.stringify(ticket, null, 2));
-            console.log('Additional params:', JSON.stringify({ senderId, userId, additionalUsers, additionalRoles, excludeUsers }, null, 2));
+            //console.log('=== Starting notifyTicketCreation ===');
+            //console.log('Ticket data:', JSON.stringify(ticket, null, 2));
+            //console.log('Additional params:', JSON.stringify({ senderId, userId, additionalUsers, additionalRoles, excludeUsers }, null, 2));
 
             // Get all support team members and admins
             const supportTeam = await this.getUsersByRoles([this.ROLES.ADMIN, this.ROLES.TEAM_MEMBER]);
             const supportTeamIds = supportTeam.map(user => user._id.toString());
-            console.log('Support team IDs:', supportTeamIds);
+            //console.log('Support team IDs:', supportTeamIds);
 
             // If no specific userId provided, use the first support team member
             const targetUserId = userId || supportTeamIds[0];
@@ -557,7 +557,7 @@ class NotificationService {
                 excludeUsers
             });
 
-            console.log('Created notification:', JSON.stringify(notification, null, 2));
+            //console.log('Created notification:', JSON.stringify(notification, null, 2));
 
             return {
                 success: true,

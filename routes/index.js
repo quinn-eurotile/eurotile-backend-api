@@ -61,7 +61,9 @@ routes.use(`/api/${API_V}/payment`, paymentRoutes);
 const notificationRoutes = require('./NotificationRoutes');
 routes.use(`/api/${API_V}/notification`, notificationRoutes);       
 
-        
+/************* Shipping Option route**************/
+const shippingOptionRoutes = require('./ShippingOptionRoutes');
+routes.use(`/api/${API_V}/shipping-option`, shippingOptionRoutes);
 
 
 module.exports = routes;

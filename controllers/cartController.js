@@ -83,22 +83,16 @@ const addToCartController = async (req, res) => {
 // Save cart
 const saveCartController = async (req, res) => {
   try {
-    const { items } = req.body;
-    const userId = req.user.id;
-    // // console.log(userId, 'userId');
-    // return false;
-    const updatedCart = await saveCart(userId, items);
-
+    //console.log('shippingOption', req.body);
+    const updatedCart = await saveCart(req);
+    
     res.json({
       success: true,
       data: updatedCart
     });
   } catch (error) {
     console.error('Error saving cart:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to save cart'
-    });
+    return res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -108,7 +102,7 @@ const updateCartItemController = async (req, res) => {
     // const { itemId } = req.params;
     const { id ,quantity } = req.body;
 
-    // // console.log(req.params, req.body ,'req.bodyreq.body');
+    // // //console.log(req.params, req.body ,'req.bodyreq.body');
     
 
     const updatedCart = await updateCartItem(id, quantity);
@@ -389,6 +383,20 @@ async function sendPaymentLink(req, res) {
       });
     }
 
+    console.log('orderSummary=======================', {
+      // cartId,
+      userId:clientId,
+      items: cartItems,
+      // shippingAddress,
+      // shippingMethod,
+      total:orderSummary?.total,
+      shippingOption:orderSummary?.shippingOption,
+      shipping:orderSummary?.shipping,
+      vat:orderSummary?.vat,
+      tradeProfessionalId: tradeProfessionalId||null
+      // expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+    });
+
     // Save cart data
     const cart = new Cart({
       // cartId,
@@ -396,7 +404,10 @@ async function sendPaymentLink(req, res) {
       items: cartItems,
       // shippingAddress,
       // shippingMethod,
-      orderSummary,
+      total:orderSummary?.total,
+      shippingOption:orderSummary?.shippingOption,
+      shipping:orderSummary?.shipping,
+      vat:orderSummary?.vat,
       tradeProfessionalId: tradeProfessionalId||null
       // expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
     });
@@ -413,7 +424,7 @@ async function sendPaymentLink(req, res) {
     };
 
     const emailSent = await sendPaymentLinkEmail(emailData);
-   console.log(emailSent, 'emailSentemailSent');
+   //console.log(emailSent, 'emailSentemailSent');
     if (!emailSent) {
       return res.status(500).json({
         success: false,
@@ -443,7 +454,7 @@ const updateOrderStatusController = async (req, res) => {
   try {
     
     const { id } = req.params;
-    console.log(req.body ,req.params,'req.body ,req.params');
+    //console.log(req.body ,req.params,'req.body ,req.params');
     const updatedOrder = await updateOrderStatus(id, req.body);
     res.status(200).json({
       success: true,
@@ -461,9 +472,9 @@ const getOrderByIdController = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log(id,'id');
+    //console.log(id,'id');
     const order = await getOrderById(id);
-    console.log(order,'order');
+    //console.log(order,'order');
     res.status(200).json({
       success: true,
       data: order

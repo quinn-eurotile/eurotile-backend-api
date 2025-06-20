@@ -10,11 +10,11 @@ module.exports = class TradeProfessionalController {
     /** Create Connect Account */
     async createConnectAccount(req, res) {
         try {
-            console.log('`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,',`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,)
+            //console.log('`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,',`${process.env.NEXT_PUBLIC_APP_URL}/trade-professional/profile`,)
             const data = await tradeProfessionalService.createConnectAccount(req);
             return res.status(200).json({ type: "success", message: "Account connected successfully", data: data });
         } catch (error) {
-            // console.log('error comming here',error);
+            // //console.log('error comming here',error);
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }
@@ -54,7 +54,7 @@ module.exports = class TradeProfessionalController {
     /*** Save New Client Data ****/
     async saveClient(req, res) {
         try {
-            // console.log('req.body', req.body);
+            // //console.log('req.body', req.body);
             const { client, isNew } = await tradeProfessionalService.saveClient(req);
             return res.json({ type: "success", message: isNew ? "Client created successfully" : "Client updated successfully", data: client, });
         } catch (error) {
@@ -130,7 +130,7 @@ module.exports = class TradeProfessionalController {
             });
 
         } catch (error) {
-            // console.log('asxsax');
+            // //console.log('asxsax');
             return res.status(error.statusCode || 500).json({
                 message: error.message || 'Something went wrong'
             });
@@ -170,7 +170,7 @@ module.exports = class TradeProfessionalController {
     async processPayout(req, res) {
         try {
             const result = await tradeProfessionalService.processPayout(req);
-            console.log('result', result);
+            //console.log('result', result);
             return res.status(200).json({ message: 'Payout processed successfully', data: result });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });

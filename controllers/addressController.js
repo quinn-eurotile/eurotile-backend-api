@@ -17,7 +17,7 @@ async function getAddresses(req, res) {
 
 async function saveAddress(req, res) {
   const {  address } = req.body;
-  // console.log(address,'address');
+  // //console.log(address,'address');
 
   try {
     const savedAddress = await saveAddressData(req?.user?.id, address);
@@ -34,7 +34,7 @@ async function saveAddress(req, res) {
 async function updateAddress(req, res) {
   const {  address } = req.body;
 
-   // console.log(req?.user,'req?.user?req?.user?req?.user?');
+   // //console.log(req?.user,'req?.user?req?.user?req?.user?');
    
  
   try {

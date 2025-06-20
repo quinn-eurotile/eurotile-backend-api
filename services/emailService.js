@@ -21,7 +21,7 @@ if (process.env.SMTP_SERVICE) {
 }
 
 // Log SMTP configuration (without sensitive data)
-console.log('Setting up nodemailer with config:', {
+//console.log('Setting up nodemailer with config:', {
     ...smtpConfig,
     auth: {
         user: smtpConfig.auth.user,
@@ -46,7 +46,7 @@ transporter.verify(function(error, success) {
     if (error) {
         console.error('Nodemailer transporter verification failed:', error);
     } else {
-        console.log('Nodemailer server is ready to send emails');
+        //console.log('Nodemailer server is ready to send emails');
     }
 });
 
@@ -202,7 +202,7 @@ const forgotPasswordEmail = async (req, token) => {
 /** Send Payment Link Email ***/
 const sendPaymentLinkEmail = async (data) => {
     try {
-        // console.log('Starting sendPaymentLinkEmail with data:', {
+        // //console.log('Starting sendPaymentLinkEmail with data:', {
         //     cartId: data.cartId,
         //     clientId: data.clientId,
         //     clientEmail: data.clientEmail,
@@ -210,17 +210,17 @@ const sendPaymentLinkEmail = async (data) => {
         // });
 
         const CLIENT_URL = getClientUrlByRole('Client');
-     //   console.log('Client URL:', CLIENT_URL);
+     //   //console.log('Client URL:', CLIENT_URL);
 
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
         // Update payment link to match Next.js app routing structure
         const paymentLink = `${CLIENT_URL}/en/payment/${data.cartId}?client=${data.clientId}`;
         
-       // console.log('Payment Link:', paymentLink);
+       // //console.log('Payment Link:', paymentLink);
 
         // Read the HTML template
         const emailTemplate = require('fs').readFileSync('views/emails/payment_link_template.html', 'utf-8');
-       // console.log('Email template loaded successfully');
+       // //console.log('Email template loaded successfully');
 
         // Generate product list HTML
         const productListHtml = data.cartItems.map(item => `
@@ -242,7 +242,7 @@ const sendPaymentLinkEmail = async (data) => {
             </tr>
         `).join('');
         
-      //  console.log('Product list HTML generated');
+      //  //console.log('Product list HTML generated');
 
         // Replace placeholders in the template
         let emailContent = emailTemplate
@@ -250,6 +250,7 @@ const sendPaymentLinkEmail = async (data) => {
             .replace(/\[LOGO\]/g, logo)
             .replace(/\[APP_NAME\]/g, APP_NAME)  // Using global replacement
             .replace(/\[ORDER_ID\]/g, data.cartId)
+            .replace(/\[VAT\]/g, data.orderSummary.vat.toFixed(2))
             .replace(/\[PRODUCT_LIST\]/g, productListHtml)
             .replace(/\[SUBTOTAL\]/g, data.orderSummary.subtotal.toFixed(2))
             .replace(/\[SHIPPING\]/g, data.orderSummary.shipping.toFixed(2))
@@ -258,7 +259,7 @@ const sendPaymentLinkEmail = async (data) => {
             .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())
             .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
 
-       // console.log('Email content prepared with all replacements');
+       // //console.log('Email content prepared with all replacements');
 
         // Send the email
         const mailOptions = {
@@ -268,14 +269,14 @@ const sendPaymentLinkEmail = async (data) => {
             html: emailContent
         };
 
-       // console.log('Attempting to send email with options:', {
+       // //console.log('Attempting to send email with options:', {
         //     from: mailOptions.from,
         //     to: mailOptions.to,
         //     subject: mailOptions.subject
         // });
 
         const result = await sendEmailCommon(mailOptions);
-       // console.log('Email sending result:', result);
+       // //console.log('Email sending result:', result);
 
         return result;
     } catch (error) {
@@ -294,7 +295,7 @@ const sendPaymentLinkEmail = async (data) => {
 
 /** Send Order Confirmation Email ***/
 const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
-    // console.log('Starting sendOrderConfirmationEmail with:', {
+    // //console.log('Starting sendOrderConfirmationEmail with:', {
     //     orderId: order?._id,
     //     clientEmail,
     //     clientName,
@@ -304,13 +305,13 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
 
     try {
         const CLIENT_URL = getClientUrlByRole('Client');
-        // console.log('Client URL:', CLIENT_URL);
+        // //console.log('Client URL:', CLIENT_URL);
         
         const logo = `${CLIENT_URL}/images/euro-tile/logo/Eurotile_Logo.png`;
 
         // Generate product list HTML with variants
         const productListHtml = order.orderDetails.map(detail => {
-            // console.log('Processing order detail:', {
+            // //console.log('Processing order detail:', {
             //     detailId: detail?._id,
             //     productDetail: detail?.productDetail
             // });
@@ -319,7 +320,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             let productInfo;
             try {
                 productInfo = JSON.parse(detail.productDetail);
-                // console.log('Parsed product info:', {
+                // //console.log('Parsed product info:', {
                 //     name: productInfo?.product?.name,
                 //     dimensions: productInfo?.dimensions,
                 //     attributes: productInfo?.attributeVariations
@@ -369,7 +370,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             </tr>
         `}).join('');
 
-        // console.log('Generated product list HTML length:', productListHtml.length);
+        // //console.log('Generated product list HTML length:', productListHtml.length);
 
         // Format shipping address
         const shippingAddress = order.shippingAddress ? 
@@ -379,12 +380,12 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             ${order?.shippingAddress.postalCode}
             ${order?.shippingAddress.country}` : 'Address not available';
 
-        // console.log('Formatted shipping address:', shippingAddress);
+        // //console.log('Formatted shipping address:', shippingAddress);
 
         // Read the HTML template
-        // console.log('Reading email template...');
+        // //console.log('Reading email template...');
         const emailTemplate = require('fs').readFileSync('views/emails/order_confirmation_template.html', 'utf-8');
-        // console.log('Email template loaded, length:', emailTemplate.length);
+        // //console.log('Email template loaded, length:', emailTemplate.length);
 
         // Replace placeholders in the template
         const emailContent = emailTemplate
@@ -401,7 +402,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             .replace(/\[CURRENT_YEAR\]/g, new Date().getFullYear())
             .replace(/\[CLIENT_URL\]/g, CLIENT_URL);
 
-        // console.log('Email content generated, length:', emailContent.length);
+        // //console.log('Email content generated, length:', emailContent.length);
 
         // Send the email
         const mailOptions = {
@@ -411,14 +412,14 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
             html: emailContent
         };
 
-        // console.log('Sending email with options:', {
+        // //console.log('Sending email with options:', {
         //     to: clientEmail,
         //     subject: mailOptions.subject,
         //     from: mailOptions.from
         // });
 
         const result = await sendEmailCommon(mailOptions);
-        // console.log('Email send result:', result);
+        // //console.log('Email send result:', result);
         return result;
     } catch (error) {
         console.error('Error in sendOrderConfirmationEmail:', error);
@@ -433,11 +434,7 @@ const sendOrderConfirmationEmail = async (order, clientEmail, clientName) => {
 };
 
 const sendEmailCommon = (mailOptions) => {
-    console.log('sendEmailCommon called with options:', {
-        from: mailOptions.from,
-        to: mailOptions.to,
-        subject: mailOptions.subject
-    });
+    
 
     // Return a promise to properly handle asynchronous operation
     return new Promise((resolve, reject) => {
@@ -454,10 +451,7 @@ const sendEmailCommon = (mailOptions) => {
                 });
                 reject(false);
             } else {
-                console.log('Email sent successfully:', {
-                    messageId: info.messageId,
-                    response: info.response
-                });
+                
                 resolve(true);
             }
         });
@@ -539,14 +533,10 @@ const sendSupplierOrderConfirmationEmail = async (order, supplierEmail, supplier
             html: emailContent
         };
 
-        console.log('Sending supplier order confirmation email:', {
-            to: supplierEmail,
-            subject: mailOptions.subject,
-            orderId: order.orderId
-        });
+       
 
         const result = await sendEmailCommon(mailOptions);
-        console.log('Email send result:', result);
+        //console.log('Email send result:', result);
         return result;  
     } catch (error) {
         console.error('Error in sendSupplierOrderConfirmationEmail:', error);
@@ -589,14 +579,10 @@ const sendPaymentFailedEmail = async (order, clientEmail, clientName) => {
             html: emailContent
         };
 
-        console.log('Sending payment failed email:', {
-            to: clientEmail,
-            subject: mailOptions.subject,
-            orderId: order.orderId
-        });
+     
 
         const result = await sendEmailCommon(mailOptions);
-        console.log('Email send result:', result);
+        //console.log('Email send result:', result);
         return result;
     } catch (error) {
         console.error('Error in sendPaymentFailedEmail:', error);
@@ -638,14 +624,10 @@ const sendPaymentConfirmationEmail = async (order, clientEmail, clientName) => {
             html: emailContent
         };
 
-        console.log('Sending payment confirmation email:', {
-            to: clientEmail,
-            subject: mailOptions.subject,
-            orderId: order.orderId
-         });
+        
 
         const result = await sendEmailCommon(mailOptions);
-        console.log('Email send result:', result);
+        //console.log('Email send result:', result);
         return result;
     } catch (error) {   
         console.error('Error in sendPaymentConfirmationEmail:', error);

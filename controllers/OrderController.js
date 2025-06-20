@@ -40,9 +40,9 @@ module.exports = class OrderController {
         try {
             const { status, trackingId } = req.body;
             const orderId = req.params.id;
-            console.log(status, 'status');
-            console.log(trackingId, 'trackingId');
-            console.log(orderId, 'orderId');
+            //console.log(status, 'status');
+            //console.log(trackingId, 'trackingId');
+            //console.log(orderId, 'orderId');
             const data = await orderService.updateOrderStatus(orderId, status, trackingId);
             return res.status(200).json({ data: data, message: 'Order status updated successfully.' });
         } catch (error) {
@@ -69,7 +69,7 @@ module.exports = class OrderController {
             const data = await orderService.getOrderListForSupportTicket(req)
             return res.status(200).json({ data: data, message: '' });
         } catch (error) {
-            console.log(error, 'error')
+            //console.log(error, 'error')
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
     }

@@ -12,7 +12,7 @@ const checkPermission = (requiredPermission) => {
         try {
             // Get user roles from the request (assuming it's already attached)
             const user = await User.findOne({_id : req.user.id}).populate({path : 'roles', select : '_id name module permissions', populate : {path : 'permissions', select : "_id name slug"}}).select("+password");
-            // // console.log('user',user)
+            // // //console.log('user',user)
             
             if (!user || !Array.isArray(user.roles) || user.roles.length === 0) {
                 return res.json({ type : "failure", message: "Access Denied: No roles assigned." });

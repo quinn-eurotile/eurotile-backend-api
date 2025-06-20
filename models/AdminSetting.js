@@ -4,7 +4,6 @@ const AdminSettingSchema = new mongoose.Schema({
   currencyConversionRate: Number,
   vatOnOrder: Number,
   vatOnCommission: Number,
-  // Add new fields here as needed
 }, {
   strict: false, // Allows storing fields not explicitly defined
   timestamps: true,

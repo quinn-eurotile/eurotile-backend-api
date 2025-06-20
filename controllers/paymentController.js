@@ -56,7 +56,7 @@ module.exports = class PaymentController {
     try {
 
       if (req.body.amount === 0) {
-        console.log('Creating free order');
+        //console.log('Creating free order');
         return await new PaymentController().createFreeOrder(req, res);
       }
        else {
@@ -93,7 +93,9 @@ module.exports = class PaymentController {
           ...result,
           data: {
             ...result.data,
-            orderId: order._id
+            orderId: order._id,
+            order:order
+
           }
         });
       }
@@ -108,7 +110,7 @@ module.exports = class PaymentController {
     }
   }
   async createPaymentIntentPublic(req, res) {
-    // console.log('Starting createPaymentIntentPublic with body:', {
+    // //console.log('Starting createPaymentIntentPublic with body:', {
     //   cartItemsCount: req.body.cartItems?.length,
     //   orderData: {
     //     userId: req.body.orderData?.userId,
@@ -125,13 +127,9 @@ module.exports = class PaymentController {
       const userId = orderData?.userId;
 
       // Fetch user details to get email
-      console.log('Fetching user details for ID:', userId);
+      //console.log('Fetching user details for ID:', userId);
       const user = await User.findById(userId).select('email name');
-      console.log('User details fetched:', {
-        userId: user?._id,
-        email: user?.email,
-        name: user?.name
-      });
+    
 
       if (!user) {
         console.error('User not found:', userId);
@@ -142,7 +140,7 @@ module.exports = class PaymentController {
       }
 
       // Populate product and supplier information
-      console.log('Populating product and supplier information...');
+      //console.log('Populating product and supplier information...');
       const populatedCartItems = await Promise.all(cartItems.map(async (item) => {
         const product = await Product.findById(item.product?._id)
           .populate('supplier')
@@ -153,7 +151,7 @@ module.exports = class PaymentController {
         };
       }));
 
-      console.log('Creating payment intent...');
+      //console.log('Creating payment intent...');
       const result = await paymentService.createPaymentIntent(req.body);
 
       if (!result.success) {
@@ -161,20 +159,16 @@ module.exports = class PaymentController {
         return res.status(400).json(result);
       }
 
-      console.log('Payment intent created successfully:', {
-        intentId: result.data.paymentIntent.id,
-        amount: result.data.paymentIntent.amount,
-        status: result.data.paymentIntent.status
-      });
+      
 
       // Get admin settings for commission calculations
-      console.log('Fetching admin settings...');
+      //console.log('Fetching admin settings...');
       const adminSettings = await AdminSetting.findOne();
       const vatOnCommission = adminSettings?.vatOnCommission || 0;
-      console.log('Admin settings loaded:', { vatOnCommission });
+      //console.log('Admin settings loaded:', { vatOnCommission });
 
       // Calculate commission for each item and total commission
-      console.log('Calculating commissions...');
+      //console.log('Calculating commissions...');
       let totalCommission = 0;
       const itemsWithCommission = populatedCartItems.map(item => {
         const basePrice = item.variation?.regularPriceB2B || 0;
@@ -183,13 +177,6 @@ module.exports = class PaymentController {
         const itemTotalCommission = itemCommission * item.quantity;
         totalCommission += itemTotalCommission;
 
-        console.log('Item commission calculated:', {
-          productId: item.product?._id,
-          basePrice,
-          sellingPrice,
-          itemCommission,
-          itemTotalCommission
-        });
 
         return {
           ...item,
@@ -200,13 +187,9 @@ module.exports = class PaymentController {
 
       // Add VAT to total commission if applicable
       const commissionWithVAT = totalCommission * (1 + (vatOnCommission / 100));
-      console.log('Final commission calculation:', {
-        totalCommission,
-        vatRate: vatOnCommission,
-        commissionWithVAT
-      });
+      
 
-      console.log('Creating order...');
+      //console.log('Creating order...');
       // Create order with commission information
       const order = await orderService.createOrder({
         userId: userId,
@@ -218,29 +201,25 @@ module.exports = class PaymentController {
         paymentIntent: result.data.paymentIntent
       });
 
-      console.log('Order created successfully:', {
-        orderId: order._id,
-        total: order.total,
-        commission: totalCommission
-      });
+    
 
       // Remove cart items after successful order creation
       try {
         for (const item of cartItems) {
           await removeCartItem(item._id);
         }
-        console.log('Cart items removed successfully after order creation');
+        //console.log('Cart items removed successfully after order creation');
       } catch (cartError) {
         console.error('Failed to remove cart items, but order was created:', cartError);
       }
 
       // Send confirmation email to both shipping address and user email
-      console.log('Sending confirmation emails...');
+      //console.log('Sending confirmation emails...');
       const shippingName = `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}`;
 
       // Send to shipping address email
       if (user.email) {
-        console.log('Sending confirmation to shipping email:', user.email);
+        //console.log('Sending confirmation to shipping email:', user.email);
         await emailService.sendOrderConfirmationEmail(
           order,
           user.email,
@@ -250,7 +229,7 @@ module.exports = class PaymentController {
 
       // Send to user's registered email if different from shipping email
       if (user.email && user.email !== orderData.email) {
-        console.log('Sending confirmation to user email:', user.email);
+        //console.log('Sending confirmation to user email:', user.email);
         await emailService.sendOrderConfirmationEmail(
           order,
           user.email,
@@ -268,11 +247,6 @@ module.exports = class PaymentController {
         }
       };
 
-      console.log('Sending successful response:', {
-        orderId: order._id,
-        success: true,
-        commission: commissionWithVAT
-      });
 
       res.status(200).json(response);
     } catch (error) {
