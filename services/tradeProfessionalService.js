@@ -17,34 +17,34 @@ class TradeProfessional {
         try {
             let { amount } = req.body;
             amount = parseFloat(amount);
-            console.log('amount',amount, typeof amount);
+            //console.log('amount', amount, typeof amount);
             const userId = req.user.id;
-    
+
             // Get user's connect account
             const connectAccount = await StripeConnectAccount.findOne({ createdBy: userId });
             if (!connectAccount) {
                 throw { message: 'Connect account not found', statusCode: 404 };
             }
-    
+
             // Verify the account is ready for payouts
             if (!connectAccount.payoutsEnabled) {
                 throw { message: 'Payouts are not enabled for this account', statusCode: 400 };
             }
-    
+
             // Get eligible orders (status 4 and shipped 14+ days ago)
             const fourteenDaysAgo = new Date();
             fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    
+
             const eligibleOrders = await Order.find({
                 createdBy: userId,
                 orderStatus: 4,
                 updatedAt: { $lte: fourteenDaysAgo },
                 commission: { $gt: 0 }
             });
-    
+
             // Calculate total eligible commission
             const totalEligibleCommission = eligibleOrders.reduce((sum, order) => sum + order.commission, 0);
-    
+
             // Validate requested amount
             if (amount <= 0 || amount > totalEligibleCommission) {
                 throw { message: 'Invalid payout amount', statusCode: 400 };
@@ -52,10 +52,10 @@ class TradeProfessional {
             const adminSettings = await AdminSetting.findOne();
 
             amount = amount - ((amount) * parseFloat(adminSettings?.vatOnCommission)) / 100;
-            console.log(' new amount',amount);
+            //console.log(' new amount', amount);
 
-  
-    
+
+
             // Create transfer to connected account
             const transfer = await stripe.transfers.create({
                 amount: (parseFloat(amount) * 100), // Convert to cents
@@ -64,7 +64,7 @@ class TradeProfessional {
                 description: 'Commission payout'
             });
 
-            // console.log('transfer',transfer);
+            // //console.log('transfer',transfer);
 
             // Save transfer response to database
             const transferPayout = new TransferPayout({
@@ -90,13 +90,13 @@ class TradeProfessional {
             });
 
             await transferPayout.save();
-    
+
             return {
                 transferId: transfer.id,
                 amount: amount,
                 remainingCommission: totalEligibleCommission - amount
             };
-    
+
         } catch (error) {
             throw {
                 message: error.message || 'Failed to process payout',
@@ -264,7 +264,7 @@ class TradeProfessional {
             return {
                 success: true,
                 data: {
-                    status: stripeAccount.payouts_enabled && stripeAccount.details_submitted  ? true : false,
+                    status: stripeAccount.payouts_enabled && stripeAccount.details_submitted ? true : false,
                     stripe_account_id: stripeAccount.id,
                     details_submitted: stripeAccount.details_submitted,
                     charges_enabled: stripeAccount.charges_enabled,
@@ -407,7 +407,7 @@ class TradeProfessional {
             if (id) {
                 // Update existing client
                 client = await User.findById(id);
-                // console.log(client, 'pehle client');
+                // //console.log(client, 'pehle client');
                 if (!client) throw { message: 'Client not found', statusCode: 404 };
 
                 client.name = name ?? client.name;
@@ -538,7 +538,7 @@ class TradeProfessional {
             ]);
             const totalDocs = totalCountAgg[0]?.total || 0;
 
-            // console.log('data', data);
+            // //console.log('data', data);
 
             const result = {
                 docs: data,
@@ -553,7 +553,7 @@ class TradeProfessional {
             return result;
 
         } catch (error) {
-            // console.log(error, 'error');
+            // //console.log(error, 'error');
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
@@ -637,7 +637,7 @@ class TradeProfessional {
             return result;
 
         } catch (error) {
-            // console.log(error, 'error');
+            // //console.log(error, 'error');
             throw {
                 message: error?.message || 'Something went wrong while fetching supplier',
                 statusCode: error?.statusCode || 500
@@ -646,7 +646,7 @@ class TradeProfessional {
     }
 
     mapMimeType(mime) {
-        // console.log(mime, 'mimemimemimemime');
+        // //console.log(mime, 'mimemimemimemime');
         if (mime.includes('image')) return 'image';
         if (mime.includes('video')) return 'video';
         if (mime.includes('pdf')) return 'pdf';
@@ -824,11 +824,14 @@ class TradeProfessional {
 
             const token = helpers.randomString(20);
 
+            const customer = await stripe.customers.create({ name: name, email: email });
+
             // Step 1: Create User
             const [user] = await User.create([{
                 name,
                 email,
                 phone,
+                stripeCustomerId: customer?.id,
                 password: hashedPassword,
                 token,
                 addresses: address,
@@ -1021,8 +1024,8 @@ class TradeProfessional {
     async getClientById(req) {
         try {
             const clientId = req?.params?.id;
- 
-            const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id)); 
+
+            const clientRoleId = new mongoose.Types.ObjectId(String(constants?.clientRole?.id));
             const userId = new mongoose.Types.ObjectId(String(clientId));
 
             const pipeline = [
@@ -1030,7 +1033,7 @@ class TradeProfessional {
                     $match: {
                         _id: userId,
                         isDeleted: false,
-                        roles: { $in: [clientRoleId] }, 
+                        roles: { $in: [clientRoleId] },
                     }
                 },
                 {
@@ -1088,7 +1091,7 @@ class TradeProfessional {
             ];
 
             const client = await User.aggregate(pipeline);
-            
+
             if (!client || client.length === 0) {
                 throw {
                     message: 'Client not found',
@@ -1184,7 +1187,7 @@ class TradeProfessional {
                     }
                 }
             ];
-    
+
             const [result] = await TransferPayout.aggregate(pipeline2);
 
             // Calculate total commission from orders

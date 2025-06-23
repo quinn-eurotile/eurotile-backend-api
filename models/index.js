@@ -21,6 +21,7 @@ const ProductVariation = require('./ProductVariation');
 const AdminSetting = require('./AdminSetting');
 const StripeConnectAccountSchema = require('./StripeConnectAccount');
 const TransferPayout = require('./TransferPayout');
+const ShippingOption = require('./ShippingOption');
 
 
-module.exports = { AdminSetting, ProductVariation, ProductAttributeVariation, ProductMeasurementUnit, Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketMsg, UserBusinessDocument, UserBusiness, OrderDetail, StripeConnectAccountSchema, TransferPayout };
+module.exports = { ShippingOption,AdminSetting, ProductVariation, ProductAttributeVariation, ProductMeasurementUnit, Tax, Category, SupplierDiscount, User, Order, Product, ProductFile, ProductAttribute, Role, Permission, Promotion, Supplier, SupportTicket, SupportTicketMsg, UserBusinessDocument, UserBusiness, OrderDetail, StripeConnectAccountSchema, TransferPayout };

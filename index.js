@@ -29,15 +29,15 @@ const { default: mongoose } = require("mongoose");
 // 		};
 
 // 		server = https.createServer(httpsOptions, app);
-// 		// console.log("HTTPS server created");
+// 		// //console.log("HTTPS server created");
 // 	} catch (error) {
 // 		console.error("Error creating HTTPS server:", error.message);
-// 		// console.log("Falling back to HTTP server");
+// 		// //console.log("Falling back to HTTP server");
 // 		server = http.createServer(app);
 // 	}
 // } else {
 // 	server = http.createServer(app);
-// 	// console.log("HTTP server created");
+// 	// //console.log("HTTP server created");
 // }
 
 const server = http.createServer(app);
@@ -53,7 +53,7 @@ const io = socketIo(server, {
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 io.on('connection', socket => {
-	console.log('Socket connected:', socket.id);
+	//console.log('Socket connected:', socket.id);
 
 	socket.on('sendMessage', async (msg) => {
 
@@ -95,7 +95,7 @@ io.on('connection', socket => {
 						fileSize: msg.imageSize
 					};
 
-					console.log('File saved successfully:', fileData);
+					//console.log('File saved successfully:', fileData);
 				} catch (fileError) {
 					console.error('Error saving file:', fileError);
 					throw new Error('Failed to save file');
@@ -132,18 +132,18 @@ io.on('connection', socket => {
 
 	/** Join By Ticket Id ***/
 	socket.on("join", (requestData) => {
-		console.log("Join time requestData", requestData);
+		//console.log("Join time requestData", requestData);
 		socket.join(requestData.ticketId);
 	});
 
 	socket.on('disconnect', () => {
-		console.log('Socket disconnected:', socket.id);
+		//console.log('Socket disconnected:', socket.id);
 	});
 });
 
 // server listening 
 server.listen(port, () => {
-	// console.log(`Server running on port ${port}`);
+	// //console.log(`Server running on port ${port}`);
 });
 
 app.use('/', routes);

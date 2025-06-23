@@ -20,30 +20,30 @@ module.exports = class WebhookController {
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
 
-        console.log('Received webhook event:', event.type);
+        //console.log('Received webhook event:', event.type);
 
         try {
             switch (event.type) {
                 case 'payment_intent.payment_failed':
                     const paymentIntentFailed = event.data.object;
-                    // console.log('PaymentIntent was canceled!', paymentIntentFailed);
+                    // //console.log('PaymentIntent was canceled!', paymentIntentFailed);
                     await new WebhookController().updatePaymentStatus(paymentIntentFailed);
                     break;
                 case 'payment_intent.canceled':
                     const paymentIntentCreated = event.data.object;
-                    // console.log('PaymentIntent was canceled!', paymentIntentCreated);
+                    // //console.log('PaymentIntent was canceled!', paymentIntentCreated);
                     await new WebhookController().updatePaymentStatus(paymentIntentCreated);
                     break;
 
                 case 'payment_intent.succeeded':
                     const paymentIntentSucceeded = event.data.object;
-                    // console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
+                    // //console.log('PaymentIntent succeeded!', paymentIntentSucceeded);
                     await new WebhookController().updatePaymentStatus(paymentIntentSucceeded, true);
                     break;
 
                 case 'account.updated':
                     const account = event.data.object;
-                    console.log('Stripe connect account ==> ',account)
+                    //console.log('Stripe connect account ==> ',account)
                     await StripeConnectAccount.findOneAndUpdate(
                         { stripeAccountId: account.id },
                         {
@@ -65,7 +65,7 @@ module.exports = class WebhookController {
                     break;
 
                 default:
-                    // console.log(`Unhandled event type ${event.type}`);
+                    // //console.log(`Unhandled event type ${event.type}`);
             }
             return res.status(200).send({ message: 'Webhook processed successfully' });
         } catch (err) {
@@ -105,7 +105,7 @@ module.exports = class WebhookController {
             
             await order.save();
             await notificationService.notifyPaymentConfirmation(paymentDetail, order);
-             // console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
+             // //console.log(`Updated order ${order._id} status to ${order.orderStatus}`);
         } catch (error) {
             console.error('Error updating payment status:', error);
             throw error;

@@ -7,6 +7,11 @@ const orderSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+
+  isFreeOrder: {
+    type: Boolean,
+    default: false
+  },
  
   orderDetails: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -20,7 +25,7 @@ const orderSchema = new mongoose.Schema({
   paymentDetail: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'PaymentDetail',
-    required: true
+    default: null
   },
   subtotal: {
     type: Number,
@@ -84,6 +89,7 @@ const orderSchema = new mongoose.Schema({
     description: 'If order is placed by Trade Professional for their client',
     default: null
   },
+  shippingOption: { type: mongoose.Schema.Types.ObjectId, ref: 'ShippingOption' },
   discount: {type: Number, default: 0 },
   tax: {type: Number, default: 0 }, 
   promoCode: {type: String, default: null},

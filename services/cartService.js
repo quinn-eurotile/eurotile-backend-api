@@ -1,6 +1,7 @@
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const ProductVariation = require('../models/ProductVariation');
+const Order = require('../models/Order');
 
 // async function getCartByUser(userId) {
 //   return await Cart.findOne({ userId, isDeleted: false })
@@ -107,8 +108,32 @@ async function getCartById(cartId) {
     ]);
 }
 
-async function saveCart(userId, items = [], clientId = null) {
+async function saveCart(req,clientId = null) {
   try {
+    const { items } = req.body;
+    const userId = req.user.id;
+    //console.log('items coming here ..........................', req.body);
+    // 1. Check if the cart contains a free order item
+    const isAddingFreeOrder = items?.some(item => item?.isSample && parseFloat(item?.price) === 0); // adjust as per your logic
+
+    if (isAddingFreeOrder) {
+      // 2. Calculate the start and end of the current month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      // 3. Count free orders for this user in the current month
+      const freeOrderCount = await Order.countDocuments({
+        createdBy: userId,
+        isFreeOrder: true,
+        createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+      });
+
+      if (freeOrderCount >= 2) {
+        throw { message: 'You have already placed 2 free orders this month.', statusCode: 422 };
+      }
+    }
+
     let cart = await Cart.findOne({ userId, isDeleted: false });
 
     if (!cart) {
@@ -123,6 +148,10 @@ async function saveCart(userId, items = [], clientId = null) {
       cart.isClientOrder = true;
     }
 
+    //console.log('req?.body?.orderSummary?.shippingOption', req?.body?.orderSummary);
+
+    cart.shippingOption = req?.body?.orderSummary?.shippingOption;
+    cart.shipping = req?.body?.orderSummary?.shipping;
     // Ensure items is an array
     const itemsArray = Array.isArray(items) ? items : [items];
 
@@ -132,7 +161,7 @@ async function saveCart(userId, items = [], clientId = null) {
       return await cart.save();
     }
 
-    console.log('itemsArray......................', itemsArray);
+    //console.log('itemsArray......................', itemsArray);
 
     // Validate and format items before saving
     const validatedItems = [];
@@ -243,7 +272,7 @@ async function updateCartItem(itemId, quantity) {
 
 async function removeCartItem(itemId) {
   const cart = await Cart.findOne({ 'items._id': itemId });
-  // console.log(cart, itemId, 'cartcartcart');
+  // //console.log(cart, itemId, 'cartcartcart');
 
   if (!cart) return null;
 
@@ -349,12 +378,10 @@ async function updateShippingMethod(userId, method) {
 }
 
 async function deleteCartByUserId(userId) {
-  return await Cart.findOneAndUpdate(
-    { userId },
-    { isDeleted: true },
-    { new: true }
-  );
+  console.log('userId running here',userId);
+  return await Cart.findOneAndDelete({ userId });
 }
+  
 module.exports = {
   getCartByUser,
   saveCart,

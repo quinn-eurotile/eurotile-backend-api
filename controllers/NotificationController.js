@@ -89,7 +89,7 @@ module.exports =  class NotificationController {
   async getUnreadCount(req, res) {
     try {
       const userId = req.user.id;
-      console.log("userId", userId);
+      //console.log("userId", userId);
 
       const count = await notificationService.getUnreadCount(userId);
       return res.status(201).json({ message: "", data: { count } });

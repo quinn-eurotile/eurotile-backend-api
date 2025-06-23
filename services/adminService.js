@@ -332,7 +332,7 @@ class AdminService {
             user.token = token;
             const CLIENT_URL = getClientUrlByRole('Admin'); // or user.role if it's a string
             const verificationLink = `${CLIENT_URL}/admin/verify/${token}`;
-            // console.log(verificationLink, "verificationLinkverificationLink");
+            // //console.log(verificationLink, "verificationLinkverificationLink");
 
             await user.save();
             // Send a new verification email

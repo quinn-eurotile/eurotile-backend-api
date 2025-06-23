@@ -36,7 +36,7 @@ module.exports = class SupportTicketController {
     /** Get Chat According To Ticket  */
     getChatByTicket = async (req, res) => {
         try {
-            console.log('getChatByTicket req', req?.params);
+            //console.log('getChatByTicket req', req?.params);
             const result = await supportTicketService.getChatByTicket(req);
             return res.status(200).json({ message: 'Chat fetched successfully.', data: result });
         } catch (error) {
@@ -57,6 +57,7 @@ module.exports = class SupportTicketController {
 
     /** Create and Update Ticket */
     async saveSupportTicket(req, res) {
+        //console.log('saveSupportTicket req................................', req?.body);
         try {
             const result = await supportTicketService.saveTicket(req);
             return res.status(201).json({ data: result, message: 'Support ticket created successfully.', });

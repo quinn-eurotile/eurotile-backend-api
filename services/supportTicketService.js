@@ -18,7 +18,7 @@ class SupportTicket {
             limit = Number(limit);
             page = Number(page);
             const totalCount = await supportTicketMsgModel.countDocuments({ ticket: ticketId });
-            console.log('totalCount', totalCount);
+            //console.log('totalCount', totalCount);
             const skip = (page - 1) * limit;
 
             const matchStage = { ticket: new mongoose.Types.ObjectId(String(ticketId)), };
@@ -60,8 +60,8 @@ class SupportTicket {
                 },
             ]);
 
-            console.log('what we get in query and params', req?.params, req?.query);
-            console.log('messages', messages);
+            //console.log('what we get in query and params', req?.params, req?.query);
+            //console.log('messages', messages);
 
             // Format the response to match the `getChatByTicket` message structure
             const formattedMessages = messages
@@ -100,7 +100,7 @@ class SupportTicket {
             limit = Number(limit);
             page = Number(page);
             const totalCount = await supportTicketModel.countDocuments({ isDeleted: false, status: { $in: [1, 2, 3, 4, 5, 6, 7] } });
-            console.log('totalCount', totalCount);
+            //console.log('totalCount', totalCount);
             const skip = (page - 1) * limit;
             const matchStage = { isDeleted: false, status: { $in: [1, 2, 3, 4, 5, 6, 7] } };
             const roles = req?.user?.roles?.map((el) => el?.id);
@@ -231,9 +231,9 @@ class SupportTicket {
 
             delete matchStage?._id;
             const totalMsgDocs = messageCountResult[0]?.total || 0;
-            console.log('totalMsgDocs', totalMsgDocs);
-            console.log('matchStageMsg', matchStageMsg);
-            console.log('matchStage', matchStage);
+            //console.log('totalMsgDocs', totalMsgDocs);
+            //console.log('matchStageMsg', matchStageMsg);
+            //console.log('matchStage', matchStage);
 
             const pipeline = [
                 { $match: matchStage },
@@ -300,7 +300,7 @@ class SupportTicket {
             ];
 
             const tickets = await supportTicketModel.aggregate(pipeline);
-            console.log('tickets',tickets)
+            //console.log('tickets',tickets)
 
             const docs = tickets.map(ticket => ({
                 id: ticket._id,
@@ -561,7 +561,7 @@ class SupportTicket {
     }
 
     async uploadTicketFile(file, ticketId) {
-        console.log('file..............', file);
+        //console.log('file..............', file);
         const uploadDir = path.join(__dirname, '..', 'uploads', 'support-tickets', ticketId.toString());
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -585,7 +585,7 @@ class SupportTicket {
 
     async saveTicket(req) {
         try {
-            // console.log('req.body', req.body);
+            // //console.log('req.body', req.body);
             let { message, subject, status, order, issue_type } = req?.body;
             status = Number(status);
             issue_type = Number(issue_type);
@@ -627,7 +627,6 @@ class SupportTicket {
                     additionalRoles: [],
                     excludeUsers: []
                 });
-                console.log('notification create in saveTicket', notification);
             } else if (req?.method === 'PUT') {
                 ticketDoc = await supportTicketModel.findById(ticketId);
                 if (!ticketDoc) {
@@ -653,7 +652,7 @@ class SupportTicket {
             const ticketMsg = new supportTicketMsgModel({
                 ticket: ticketDoc._id,
                 sender: new mongoose.Types.ObjectId(String(sender)),
-                order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
+                order: order === "null" ? null :  new mongoose.Types.ObjectId(String(order)),
                 message,
                 ...fileData
             });

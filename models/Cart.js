@@ -19,8 +19,10 @@ const CartItemSchema = new Schema({
 const CartSchema = new Schema({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   items: [CartItemSchema],
+  shippingOption: { type: Schema.Types.ObjectId, ref: 'ShippingOption', default: null },
   totalItems: { type: Number, default: 0 },
   totalAmount: { type: Number, default: 0 },
+  vat: { type: Number, default: 0 },
   isDeleted: { type: Boolean, default: false },
   promoCode: { type: String },
   subtotal: { type: Number, default: 0 },
@@ -39,8 +41,8 @@ CartSchema.plugin(mongoosePaginate);
 CartSchema.pre('save', function (next) {
   this.totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0);
   this.subtotal = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  this.total = this.subtotal + this.shipping - this.discount;
-  this.totalAmount = this.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  this.total = this.subtotal + this.shipping + this.vat;
+  // this.totalAmount = this.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   next();
 });
 

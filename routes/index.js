@@ -65,7 +65,9 @@ routes.use(`/api/${API_V}/notification`, notificationRoutes);
 const retailCustomerRoutes = require('./RetailCustomerRoutes');
 routes.use(`/api/${API_V}/user`, retailCustomerRoutes);
 
-        
+/************* Shipping Option route**************/
+const shippingOptionRoutes = require('./ShippingOptionRoutes');
+routes.use(`/api/${API_V}/shipping-option`, shippingOptionRoutes);
 
 
 module.exports = routes;
