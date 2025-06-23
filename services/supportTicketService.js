@@ -201,8 +201,7 @@ class SupportTicket {
                 isDeleted: false,
                 status: { $in: [1, 2, 3, 4, 5, 6, 7] }
             };
-            const matchStageMsg = {
-            };
+            const matchStageMsg = {};
 
 
 
@@ -654,7 +653,7 @@ class SupportTicket {
             const ticketMsg = new supportTicketMsgModel({
                 ticket: ticketDoc._id,
                 sender: new mongoose.Types.ObjectId(String(sender)),
-                order: order ? new mongoose.Types.ObjectId(String(order)) : null,
+                order: order === 'null' ? null : new mongoose.Types.ObjectId(String(order)),
                 message,
                 ...fileData
             });

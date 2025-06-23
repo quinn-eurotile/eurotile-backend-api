@@ -726,8 +726,6 @@ class TradeProfessional {
                 documents_to_remove, // Array of document IDs to remove
             } = req.body;
 
-
-
             // Step 1: Update User
             const user = await User.findByIdAndUpdate(
                 userId,

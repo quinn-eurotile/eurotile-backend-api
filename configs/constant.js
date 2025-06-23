@@ -50,4 +50,4 @@ const measurementUnit = [
   { _id: new mongoose.Types.ObjectId('000000000000000000000018'), name: 'Pallet', symbol: 'pallet', type: 'count' },
 ];
 
-module.exports = { adminRole, teamMemberRole, tradeProfessionalRole, measurementUnit, adminSettingId, clientRole, orderStatusMap     };
+module.exports = { adminRole, teamMemberRole, tradeProfessionalRole, measurementUnit, adminSettingId, clientRole, orderStatusMap, retailCustomerRole     };
