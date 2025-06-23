@@ -6,6 +6,7 @@ const categorySchema = new Schema({
     parent: { type: Schema.Types.ObjectId, ref: 'Category', default : null },
     isDeleted: { type: Boolean, default: false },
     status: { type: Number, default: 1 }, // 1 = Active, 0 = Inactive  
+    image: { type: String,default: null, },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },

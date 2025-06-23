@@ -1,6 +1,8 @@
 const categoryService = require('../services/categoryService');
 const commonService = require('../services/commonService');
 const constants = require('../configs/constant');
+const fs = require('fs').promises;
+const path = require('path');
 
 module.exports = class CategoryController {
 
@@ -17,10 +19,53 @@ module.exports = class CategoryController {
     /** Save Category **/
     async saveCategory(req, res) {
         try {
-            const data = { ...req.body, updatedBy: req.user?._id };
+            let data = { ...req.body, updatedBy: req.user?._id };
+            let categoryId = req.method === 'PUT' && req?.params?.id ? req.params.id : null;
+            let category = null;
+            let oldImagePath = null;
+
+            // For POST, create the category first to get the id
             if (req.method === 'POST') {
                 data.createdBy = req?.user?.id;
-                const category = await categoryService.saveCategory(null, data);
+                category = await categoryService.saveCategory(null, data);
+                categoryId = category._id;
+            }
+
+            // For PUT, get the id from params and fetch old image path
+            if (req.method === 'PUT' && req?.params?.id) {
+                categoryId = req.params.id;
+                const existingCategory = await categoryService.getCategoryById(categoryId);
+                oldImagePath = existingCategory?.image;
+            }
+
+            // Handle image upload
+            if (req.files && req.files.image && req.files.image.length > 0 && categoryId) {
+                const file = req.files.image[0];
+                const uploadPath = path.join('uploads', 'categories', String(categoryId));
+                await fs.mkdir(uploadPath, { recursive: true });
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = uniqueSuffix + '-' + file.originalname;
+                const filepath = path.join(uploadPath, filename);
+                await fs.writeFile(filepath, file.buffer);
+                data.image = `/${filepath.replace(/\\/g, '/')}`;
+                // Update the category with the image path
+                if (req.method === 'POST') {
+                    await categoryService.saveCategory(categoryId, { image: data.image });
+                }
+                // If updating, delete the old image after saving new one
+                if (req.method === 'PUT' && oldImagePath && oldImagePath !== data.image) {
+                    const oldImageFullPath = path.join(process.cwd(), oldImagePath.startsWith('/') ? oldImagePath.slice(1) : oldImagePath);
+                    try {
+                        await fs.unlink(oldImageFullPath);
+                    } catch (err) {
+                        // Ignore error if file does not exist
+                    }
+                }
+            }
+
+            if (req.method === 'POST') {
+                // Refetch the category to get the updated image path
+                category = await categoryService.getCategoryById(categoryId);
                 return res.status(201).json({ data: category, message: 'Category saved successfully' });
             }
             if (req.method === 'PUT' && req?.params?.id) {

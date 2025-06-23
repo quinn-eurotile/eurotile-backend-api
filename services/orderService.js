@@ -278,7 +278,7 @@ class Order {
                 completeOrder.createdBy.name
             );
 
-            const notification = await notificationService.notifyOrderCreation(completeOrder, {
+            await notificationService.notifyOrderCreation(completeOrder, {
                 senderId: completeOrder.createdBy._id,
                 userId: constants.adminRole.id,
                 additionalUsers: [],
@@ -286,7 +286,7 @@ class Order {
                 excludeUsers: []
             });
             // Notify suppliers about their portion of the order
-            const notifyRes = await this.notifySuppliers(completeOrder);
+            await this.notifySuppliers(completeOrder);
             
             //console.log(notifyRes,'notifyRes');
             
@@ -647,6 +647,11 @@ class Order {
                 previousStatus,
                 data.status
             );
+            await notificationService.notifyOrderStatusUpdate(updatedOrder, data.status, data.notes, {
+                additionalUsers: [updatedOrder.clientOf,updatedOrder.createdBy],
+                additionalRoles: [updatedOrder.createdBy.roles[0]._id],
+                excludeUsers: []
+            });
 
             return updatedOrder;
         } catch (error) {

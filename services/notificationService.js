@@ -250,7 +250,7 @@ class NotificationService {
         try {
             // Create notification for customer with specific targeting
             await this.createNotification({
-                userId: order.customerId,
+                userId: order?.createdBy?._id !== undefined ? order?.createdBy?._id : order?.createdBy,
                 type: 'ORDER_STATUS',
                 title: `Order #${order.order} Status Updated`,
                 message: `Your order status has been updated to: ${newStatus}${notes ? `. Notes: ${notes}` : ''}`,
@@ -258,7 +258,7 @@ class NotificationService {
                     orderId: order._id
                 },
                 visibility: [this.ROLES.CLIENT, this.ROLES.ADMIN],
-                targetUsers: [order.customerId, ...additionalUsers],
+                targetUsers: [order?.createdBy, ...additionalUsers],
                 targetRoles: [this.ROLES.ADMIN, ...additionalRoles],
                 excludeUsers
             });
