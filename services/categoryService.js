@@ -15,6 +15,7 @@ class Category {
                     _id: cat._id,
                     name: cat.name,
                     status: cat.status,
+                    image: cat.image,
                     children: children,
                 });
             }
@@ -23,6 +24,23 @@ class Category {
         } catch (error) {
             throw {
                 message: error?.message || 'Failed to build category tree',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
+    async getHomePageCategories(req) {
+        try {
+            const limit = parseInt(req?.query?.limit) || 10; // default limit is 10
+    
+            const allCategories = await categoryModel
+                .find({ isDeleted: false, status: 1 })
+                .limit(limit);
+    
+            return await this.buildCategoryTree(allCategories);
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to fetch nested categories',
                 statusCode: error?.statusCode || 500
             };
         }

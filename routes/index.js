@@ -61,6 +61,10 @@ routes.use(`/api/${API_V}/payment`, paymentRoutes);
 const notificationRoutes = require('./NotificationRoutes');
 routes.use(`/api/${API_V}/notification`, notificationRoutes);      
 
+/************* CMS route **************/
+const cmsRoutes = require('./CmsRoutes');
+routes.use(`/api/${API_V}/cms`, cmsRoutes);
+
 /************* Retail Customer route**************/
 const retailCustomerRoutes = require('./RetailCustomerRoutes');
 routes.use(`/api/${API_V}/user`, retailCustomerRoutes);

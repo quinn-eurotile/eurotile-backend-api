@@ -12,6 +12,7 @@ const productSchema = new Schema({
     supplier: { type: Schema.Types.ObjectId, ref: 'Supplier' },
     stockStatus: { type: String, enum: ['in_stock', 'out_of_stock'], default: 'in_stock' },
     allowSample: { type: Boolean, default: false },
+    isFeatured:{ type: Boolean, default: false },
     samples: {
         small: {
             enabled: { type: Boolean, default: true },

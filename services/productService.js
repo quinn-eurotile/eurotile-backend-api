@@ -1438,6 +1438,67 @@ class Product {
     }
 
 
+    async getProductNamesWithVariations(query, options) {
+        try {
+            const {
+                page = 1,
+                limit = 10,
+                sort = { createdAt: -1 }
+            } = options;
+    
+            const skip = (page - 1) * limit;
+    
+            const pipeline = [
+                {
+                    $lookup: {
+                        from: 'products',
+                        localField: 'product',
+                        foreignField: '_id',
+                        as: 'productDetail'
+                    }
+                },
+                { $unwind: '$productDetail' },
+                {
+                    $lookup: {
+                        from: 'productfiles',
+                        localField: 'variationImages',
+                        foreignField: '_id',
+                        as: 'variationImagesDetail'
+                    }
+                },
+                { $unwind: { path: '$variationImagesDetail', preserveNullAndEmptyArrays: true } },
+                {
+                    $match: {
+                        ...query,
+                        'productDetail.isDeleted': false
+                    }
+                },
+                { $sort: sort },
+                {
+                    $project: {
+                        _id: 1,
+                        productName: '$productDetail.name',
+                        regularPriceB2C: 1,
+                        variationImagesDetail: 1
+                    }
+                },
+                { $skip: skip },
+                { $limit: limit },
+            ];
+    
+            return await productVariationModel.aggregate(pipeline);
+        } catch (error) {
+            throw {
+                message: error?.message || 'Something went wrong while fetching product variations',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+    
+    
+    
+
+
 
 
     async getProductById(id) {
