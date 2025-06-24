@@ -19,6 +19,8 @@ module.exports = class CategoryController {
     /** Save Category **/
     async saveCategory(req, res) {
         try {
+            console.log('req.body',req.body)
+            console.log('req.method',req.method)
             let data = { ...req.body, updatedBy: req.user?._id };
             let categoryId = req.method === 'PUT' && req?.params?.id ? req.params.id : null;
             let category = null;
