@@ -152,6 +152,114 @@ class RetailCustomer {
         return user;
     };
 
+    /** Build Quert To Get Retail Customer */
+    async buildRetailCustomerListQuery(req) {
+        const query = req.query;
+        const conditionArr = [
+            { isDeleted: false, roles: { $in: [new mongoose.Types.ObjectId(String(constants?.retailCustomerRole?.id))] } }
+        ];
+        if (query.status !== undefined) {
+            if (query.status === "0" || query.status === 0) {
+                conditionArr.push({ status: 0 });
+            } else if (query.status === "1" || query.status === 1) {
+                conditionArr.push({ status: { $in: [1, 3] } });
+            } else if (query.status === "2" || query.status === 2) {
+                conditionArr.push({ status: 2 });
+            }
+        }
+
+
+        // Add search conditions if 'search_string' is provided
+        if (query.search_string !== undefined && query.search_string !== "") {
+            conditionArr.push({
+                $or: [
+                    { email: new RegExp(query.search_string, "i") },
+                    { name: new RegExp(query.search_string, "i") },
+                    { phone: new RegExp(query.search_string, "i") },
+                ],
+            });
+        }
+
+        // Construct the final query
+        let builtQuery = {};
+        if (conditionArr.length === 1) {
+            builtQuery = conditionArr[0];
+        } else if (conditionArr.length > 1) {
+            builtQuery = { $and: conditionArr };
+        }
+
+        return builtQuery;
+    }
+
+    /** Get Retail Customer List */
+    async retailCustomerList(query, options) {
+        try {
+            const { page = 1, limit = 10, sort = { createdAt: -1 } } = options;
+            const skip = (page - 1) * limit;
+
+            // Build aggregation pipeline
+            const pipeline = [
+                { $match: query },
+
+                // Optional sort
+                { $sort: sort },
+
+                // Optional projection to only return required fields
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        email: 1,
+                        phone: 1,
+                        status: 1,
+                        userId: 1,
+                        isDeleted: 1,
+                        lastLoginDate: 1,
+                        userImage: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        createdBy: 1,
+                        updatedBy: 1,
+                        // Include only _id and name from each populated field
+                        userbusinesses: 1,
+                    }
+                },
+                // Pagination
+                { $skip: skip },
+                { $limit: limit }
+            ];
+
+            // Run aggregation
+            const data = await User.aggregate(pipeline);
+
+            // Get total count (for pagination meta)
+            const totalCountAgg = await User.aggregate([
+                { $match: query },
+                { $count: 'total' }
+            ]);
+            const totalDocs = totalCountAgg[0]?.total || 0;
+
+            const result = {
+                docs: data,
+                totalDocs,
+                limit,
+                page,
+                totalPages: Math.ceil(totalDocs / limit),
+                hasNextPage: page * limit < totalDocs,
+                hasPrevPage: page > 1
+            };
+
+            return result;
+
+        } catch (error) {
+            // //console.log(error, 'error');
+            throw {
+                message: error?.message || 'Something went wrong while fetching retail customer',
+                statusCode: error?.statusCode || 500
+            };
+        }
+    }
+
 }
 
 module.exports = new RetailCustomer();

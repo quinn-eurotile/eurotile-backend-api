@@ -41,6 +41,10 @@ router.get('/settings/:id', multer().any(), auth, adminController.settingsList);
 router.put('/settings/:id', multer().any(), auth, adminController.updateSettings);
 
 
+/* Retail Customer Management */
+router.get('/retail-customer', multer().any(), auth, adminController.retailCustomerList);
+
+
 // router.post('/update-profile', multer().any(), auth, adminController.updateProfile);
 // router.post('/update-password', multer().any(), auth, adminController.updatePassword);
 // router.post('/update-user-profile/:id', multer().any(), auth, user_validation.updateUserProfile, adminController.updateUserProfile);

@@ -42,12 +42,31 @@ const { default: mongoose } = require("mongoose");
 
 const server = http.createServer(app);
 
+
+const allowedOrigins = [
+	process.env.CLIENT_URL,
+	process.env.CLIENT_URL_FOR_B2C
+];
+
 const io = socketIo(server, {
 	cors: {
-		origin: process.env.CLIENT_URL,
+		origin: (origin, callback) => {
+			if (!origin || allowedOrigins.includes(origin)) {
+				callback(null, true);
+			} else {
+				callback(new Error('Not allowed by CORS'));
+			}
+		},
 		methods: ['GET', 'POST']
 	}
 });
+
+// const io = socketIo(server, {
+// 	cors: {
+// 		origin: process.env.CLIENT_URL,
+// 		methods: ['GET', 'POST']
+// 	}
+// });
 
 // Add this near the top of your file, after other middleware
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
@@ -68,10 +87,10 @@ io.on('connection', socket => {
 					if (!fs.existsSync(uploadDir)) {
 						fs.mkdirSync(uploadDir, { recursive: true });
 					}
-			
+
 					const ext = path.extname(msg.imageName).toLowerCase();
 					let fileType = 'docs';
-					
+
 					// Determine file type based on extension
 					if (['.jpg', '.jpeg', '.png', '.gif'].includes(ext)) {
 						fileType = 'image';
@@ -80,10 +99,10 @@ io.on('connection', socket => {
 					} else if (['.pdf'].includes(ext)) {
 						fileType = 'pdf';
 					}
-			
+
 					const timestampedName = `${Date.now()}_${msg.imageName}`;
 					const fullPath = path.join(uploadDir, timestampedName);
-			
+
 					// Save file
 					fs.writeFileSync(fullPath, msg?.image);
 

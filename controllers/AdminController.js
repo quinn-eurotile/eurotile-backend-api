@@ -11,6 +11,7 @@ const AdminSetting = require("../models/AdminSetting");
 const commonService = require('../services/commonService');
 const constants = require('../configs/constant');
 const notificationService = require('../services/notificationService');
+const retailCustomerService = require('../services/retailCustomerService');
 
 module.exports = class AdminController {
 
@@ -102,6 +103,19 @@ module.exports = class AdminController {
             const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
             const data = await tradeProfessionalService.tradeProfessionalList(query, options);
             return res.status(200).json({ data: data, message: 'Trade professional list get successfully.' });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
+
+    /** Get Retail Customer List **/
+    async retailCustomerList(req, res) {
+        try {
+            const query = await retailCustomerService.buildRetailCustomerListQuery(req);
+            const options = { sort: { _id: -1 }, page: Number(req.query.page), limit: Number(req.query.limit) };
+            const data = await retailCustomerService.retailCustomerList(query, options);
+            return res.status(200).json({ data: data, message: 'Retail customer list get successfully.' });
         } catch (error) {
             return res.status(error.statusCode || 500).json({ message: error.message });
         }
