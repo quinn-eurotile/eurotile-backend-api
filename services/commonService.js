@@ -30,7 +30,7 @@ class CommonService {
     async updateUserProfile(req) {
         try {
             // //console.log("Uploaded file:", req.file); // debug
-            const userId = req?.user?.id;
+            const userId = req?.params?.id;
             const updateData = req.body;
 
             // Get user first

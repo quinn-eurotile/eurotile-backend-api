@@ -260,6 +260,16 @@ class RetailCustomer {
         }
     }
 
+    /** Get Retail Customer By Their Id */
+    async getRetailCustomerById(userId) {
+        try {
+            const data = await User.findById(userId);
+            return data;
+        } catch (error) {
+            throw { message: error?.message || 'Something went wrong while fetching retail customer', statusCode: error?.statusCode || 500 };
+        }
+    }
+
 }
 
 module.exports = new RetailCustomer();

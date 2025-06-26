@@ -2,6 +2,7 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const ProductVariation = require('../models/ProductVariation');
 const Order = require('../models/Order');
+const { AdminSetting } = require('../models');
 
 // async function getCartByUser(userId) {
 //   return await Cart.findOne({ userId, isDeleted: false })
@@ -43,22 +44,25 @@ async function getCartByUser(userId) {
       {
         path: 'items.product',
         populate: [
-          { path: 'supplier' },
+          { path: 'supplier', populate: { path: 'discounts' } },
           { path: 'productFeaturedImage' }
         ]
       },
       {
         path: 'items.variation',
         populate: [
-          { path: 'variationImages' ,
+          {
+            path: 'variationImages',
             select: 'fileName filePath _id isDeleted isFeaturedImage'
           },
-          { path: 'productFeaturedImage'
-         
+          {
+            path: 'productFeaturedImage'
 
-           },
-          { path: 'categories' ,
-               select: 'name parent _id isDeleted'
+
+          },
+          {
+            path: 'categories',
+            select: 'name parent _id isDeleted'
           },
           { path: 'attributes' },
           {
@@ -72,28 +76,106 @@ async function getCartByUser(userId) {
       }
     ]);
 }
+
+
+async function getCartRelatedProducts(userId) {
+  const cartData = await Cart.findOne({ userId, isDeleted: false })
+    .populate([
+      {
+        path: 'items.product',
+        populate: [{ path: 'supplier' },]
+      },
+      // {
+      //   path: 'items.variation',
+      //   populate: [
+      //     {
+      //       path: 'variationImages',
+      //       select: 'fileName filePath _id isDeleted isFeaturedImage'
+      //     },
+      //     {
+      //       path: 'productFeaturedImage'
+
+
+      //     },
+      //     {
+      //       path: 'categories',
+      //       select: 'name parent _id isDeleted'
+      //     },
+      //     { path: 'attributes' },
+      //     {
+      //       path: 'attributeVariations',
+      //       populate: [
+      //         { path: 'productAttribute' },
+      //         { path: 'productMeasurementUnit' }
+      //       ]
+      //     }
+      //   ]
+      // }
+    ]);
+
+  if (!cartData) return null;
+
+  // Step 2: Extract unique supplier IDs from cart items
+  const supplierIds = cartData.items.map(item => item.product?.supplier?._id).filter(Boolean).map(id => id.toString());
+
+  const uniqueSupplierIds = [...new Set(supplierIds)];
+
+  // Step 3: Find other products where productCollection.supplier matches
+  const relatedProducts = await Product.find({ 'supplier': { $in: uniqueSupplierIds }, isDeleted: false }).limit(10)
+    .select('_id name supplier productVariations').populate([
+      {
+        path: 'productVariations',
+        populate : {
+          path : 'variationImages' 
+        },
+        match: { isDeleted: false }
+      },
+      {
+        path: 'supplier',
+        match: { isDeleted: false }
+      }
+    ]);
+  
+  const newArray = relatedProducts.map((product, index) => {
+    return {
+      id: product?._id,
+      supId: product?.supplier?.id,
+      supName: product?.supplier?.companyName,
+      relatedProducts: product
+    }
+  })
+  // Optional: Attach relatedProducts to the cart or return separately
+  return {
+    cartData,
+    relatedProducts
+  };
+}
+
 async function getCartById(cartId) {
   return await Cart.findOne({ _id: cartId, isDeleted: false })
     .populate([
       {
         path: 'items.product',
         populate: [
-          { path: 'supplier' },
+          { path: 'supplier', populate: { path: 'discounts' } },
           { path: 'productFeaturedImage' }
         ]
       },
       {
         path: 'items.variation',
         populate: [
-          { path: 'variationImages' ,
+          {
+            path: 'variationImages',
             select: 'fileName filePath _id isDeleted isFeaturedImage'
           },
-          { path: 'productFeaturedImage'
-         
+          {
+            path: 'productFeaturedImage'
 
-           },
-          { path: 'categories' ,
-               select: 'name parent _id isDeleted'
+
+          },
+          {
+            path: 'categories',
+            select: 'name parent _id isDeleted'
           },
           { path: 'attributes' },
           {
@@ -108,10 +190,13 @@ async function getCartById(cartId) {
     ]);
 }
 
-async function saveCart(req,clientId = null) {
+async function saveCart(req, clientId = null) {
   try {
     const { items } = req.body;
     const userId = req.user.id;
+    const adminSettings = await AdminSetting.findOne();
+    const vatOnOrder = adminSettings?.vatOnOrder || 0;
+    console.log('req.body 123', req.body)
     //console.log('items coming here ..........................', req.body);
     // 1. Check if the cart contains a free order item
     const isAddingFreeOrder = items?.some(item => item?.isSample && parseFloat(item?.price) === 0); // adjust as per your logic
@@ -141,7 +226,8 @@ async function saveCart(req,clientId = null) {
         userId,
         items: [],
         clientId: clientId,
-        isClientOrder: !!clientId
+        isClientOrder: !!clientId,
+        vat: vatOnOrder
       });
     } else if (clientId) {
       cart.clientId = clientId;
@@ -152,6 +238,7 @@ async function saveCart(req,clientId = null) {
 
     cart.shippingOption = req?.body?.orderSummary?.shippingOption;
     cart.shipping = req?.body?.orderSummary?.shipping;
+
     // Ensure items is an array
     const itemsArray = Array.isArray(items) ? items : [items];
 
@@ -196,7 +283,7 @@ async function saveCart(req,clientId = null) {
           // Update existing item
           cart.items[existingItemIndex].quantity = item.quantity || 1;
           cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (item.numberOfTiles || 0);
-          cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (item.numberOfPallets || 0);
+          cart.items[existingItemIndex].numberOfBoxes = (cart.items[existingItemIndex].numberOfBoxes || 0) + (item.numberOfBoxes || 0);
           if (item.price || item.isSample) {
             cart.items[existingItemIndex].price = item.price;
           }
@@ -205,14 +292,15 @@ async function saveCart(req,clientId = null) {
           validatedItems.push({
             product: product._id,
             variation: variation._id,
+            discount: item?.discount,
             quantity: item.quantity || 1,
             numberOfTiles: item.numberOfTiles || 0,
-            numberOfPallets: item.numberOfPallets || 0,
+            numberOfBoxes: item.numberOfBoxes || 0,
             attributes: item.attributes || {},
             price: item.price || (item.isSample ? 0 : (clientId ? variation.regularPriceB2B : variation.regularPriceB2C)),
             isNewVariation: item.isNewVariation || false,
             isSample: item.isSample || false,
-            sampleAttributes: item.sampleAttributes || null
+            sampleAttributes: item.sampleAttributes || null,
           });
         }
       } catch (error) {
@@ -223,6 +311,19 @@ async function saveCart(req,clientId = null) {
 
     // Add new items to cart
     cart.items.push(...validatedItems);
+
+    console.log(items, 'itemsitems')
+
+    cart.totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    cart.subtotal = Number(items.reduce((sum, item) => {
+      // If discount exists and is > 0, apply it
+      const discount = item.discount && item.discount > 0 ? item.discount : 0;
+      const discountedPrice = item.price * (1 - discount / 100);
+      return sum + (discountedPrice * item.quantity);
+    }, 0).toFixed(2));
+
+    const vatAmount = Number(((cart.subtotal * vatOnOrder) / 100).toFixed(2));
+    cart.total = Number((cart.subtotal + vatAmount).toFixed(2));
 
     // Save cart and return populated version
     const savedCart = await cart.save();
@@ -257,17 +358,38 @@ async function deleteCartWhole(id) {
   );
 }
 
-async function updateCartItem(itemId, quantity) {
-  const cart = await Cart.findOne({ 'items._id': itemId });
-  if (!cart) return null;
+async function updateCartItem(itemId, items) {
+  try {
+    const cart = await Cart.findOne({ 'items._id': itemId });
+    if (!cart) return null;
 
-  const item = cart.items.id(itemId);
-  if (!item) return null;
+    const item = cart.items.id(itemId);
+    if (!item) return null;
 
-  item.quantity = quantity;
-  await cart.save();
-  return await getCartById(cart?._id)
-  
+    item.quantity = items.quantity;
+    item.numberOfTiles = items.numberOfTiles;
+    item.numberOfBoxes = items.numberOfBoxes;
+    item.discount = items.discount;
+    item.price = items.price;
+    const newCart = await cart.save();
+
+
+    newCart.subtotal = Number(newCart?.items.reduce((sum, item) => {
+      // If discount exists and is > 0, apply it
+      const discount = item.discount && item.discount > 0 ? item.discount : 0;
+      const discountedPrice = item.price * (1 - discount / 100);
+      return sum + (discountedPrice * item.quantity);
+    }, 0).toFixed(2));
+
+    const vatAmount = Number(((newCart.subtotal * newCart?.vat) / 100).toFixed(2));
+    newCart.total = Number((newCart?.subtotal + vatAmount).toFixed(2));
+
+    await newCart.save();
+    return await getCartById(cart._id);
+  } catch (error) {
+    console.error("Error updating cart item:", error);
+    throw error;
+  }
 }
 
 async function removeCartItem(itemId) {
@@ -318,7 +440,7 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
       quantity: quantity,
       attributes: attributes,
       numberOfTiles: attributes.numberOfTiles || 0,
-      numberOfPallets: attributes.numberOfPallets || 0,
+      numberOfBoxes: attributes.numberOfBoxes || 0,
       price: price || product.minPriceB2C,
       isNewVariation: isNewVariation
     };
@@ -328,7 +450,7 @@ async function addItemToCart(userId, productId, variationId, quantity, attribute
       cart.items[existingItemIndex].quantity += quantity;
       // Update other properties if needed
       cart.items[existingItemIndex].numberOfTiles = (cart.items[existingItemIndex].numberOfTiles || 0) + (attributes.numberOfTiles || 0);
-      cart.items[existingItemIndex].numberOfPallets = (cart.items[existingItemIndex].numberOfPallets || 0) + (attributes.numberOfPallets || 0);
+      cart.items[existingItemIndex].numberOfBoxes = (cart.items[existingItemIndex].numberOfBoxes || 0) + (attributes.numberOfBoxes || 0);
       if (price) {
         cart.items[existingItemIndex].price = price;
       }
@@ -378,11 +500,12 @@ async function updateShippingMethod(userId, method) {
 }
 
 async function deleteCartByUserId(userId) {
-  console.log('userId running here',userId);
+  console.log('userId running here', userId);
   return await Cart.findOneAndDelete({ userId });
 }
-  
+
 module.exports = {
+  getCartRelatedProducts,
   getCartByUser,
   saveCart,
   deleteCart,
@@ -391,6 +514,6 @@ module.exports = {
   addItemToCart,
   updateShippingMethod,
   getCartById,
-  deleteCartWhole,  
+  deleteCartWhole,
   deleteCartByUserId
 };

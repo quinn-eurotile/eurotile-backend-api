@@ -1,5 +1,5 @@
 // const { validationResult } = require('express-validator');
-const { getCartByUser, saveCart, deleteCart, updateCartItem, removeCartItem, getCartById, deleteCartWhole, deleteCartByUserId } = require('../services/cartService');
+const { getCartByUser, getCartRelatedProducts, saveCart, deleteCart, updateCartItem, removeCartItem, getCartById, deleteCartWhole, deleteCartByUserId } = require('../services/cartService');
 const { addToWishlist } = require('../services/wishlistService.js');
 const { validatePromoCode } = require('../services/promoService');
 const { sendPaymentLinkEmail } = require('../services/emailService');
@@ -11,6 +11,21 @@ const { getOrderById, updateOrderStatus } = require('../services/orderService');
 const getCartController = async (req, res) => {
   try {
     const cart = await getCartByUser(req.user.id);
+    res.json({
+      success: true,
+      data: cart
+    });
+  } catch (error) {
+    console.error('Error getting cart:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get cart'
+    });
+  }
+};
+const getRelatedProductByIdController = async (req, res) => {
+  try {
+    const cart = await getCartRelatedProducts(req.params.id);
     res.json({
       success: true,
       data: cart
@@ -59,7 +74,7 @@ const addToCartController = async (req, res) => {
       });
     }
 
-    const updatedCartItem = await updateCartItem(items.productId, items.quantity);
+    const updatedCartItem = await updateCartItem(items.productId, items);
     if (!updatedCartItem) {
       return res.status(404).json({
         success: false,
@@ -489,6 +504,7 @@ const getOrderByIdController = async (req, res) => {
 }
 
 module.exports = {
+  getRelatedProductByIdController,
   getCartController,
   saveCartController,
   deleteCartController,

@@ -121,6 +121,18 @@ module.exports = class AdminController {
         }
     }
 
+    /** Get Retail Customer By Their Id */
+
+    async getRetailCustomerById(req, res) {
+        try {
+            const userId = req?.params?.id;
+            const data = await retailCustomerService.getRetailCustomerById(userId);
+            return res.status(200).json({ message: 'Retail customer get successfully', data: data });
+        } catch (error) {
+            return res.status(error.statusCode || 500).json({ message: error.message });
+        }
+    }
+
     /** Get Trade Professional By Their Id */
     async getTradeProfessionalById(req, res) {
         try {

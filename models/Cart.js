@@ -7,7 +7,8 @@ const CartItemSchema = new Schema({
   variation: { type: Schema.Types.ObjectId, ref: 'ProductVariation', required: true },
   quantity: { type: Number, required: true, min: 1 },
   numberOfTiles: { type: Number, default: 0 },
-  numberOfPallets: { type: Number, default: 0 },
+  numberOfBoxes: { type: Number, default: 0 },
+  discount: { type: Number, default: 0 },
   attributes: { type: Schema.Types.Mixed, default: {} }, // store selected attribute key-values
   price: { type: Number, required: true, min: 0 },
   isSample: { type: Boolean, default: false },
@@ -39,9 +40,13 @@ const CartSchema = new Schema({
 CartSchema.plugin(mongoosePaginate);
 
 CartSchema.pre('save', function (next) {
-  this.totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0);
-  this.subtotal = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  this.total = this.subtotal + this.shipping + this.vat;
+    // this.totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0);
+    // this.subtotal = Number(this.items.reduce((sum, item) => {
+    //   // If discount exists and is > 0, apply it
+    //   const discount = item.discount && item.discount > 0 ? item.discount : 0;
+    //   const discountedPrice = item.price * (1 - discount / 100);
+    //   return sum + (discountedPrice * item.quantity);
+    // }, 0).toFixed(2));
   // this.totalAmount = this.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   next();
 });

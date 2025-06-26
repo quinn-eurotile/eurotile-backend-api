@@ -1507,7 +1507,12 @@ class Product {
                 {
                     path: 'supplier',
                     match: { isDeleted: false },
-                    select: '_id companyName companyEmail'
+                    select: '_id companyName companyEmail',
+                    populate: [
+                        {
+                            path: 'discounts',
+                        },
+                    ]
                 },
                 {
                     path: 'categories',
