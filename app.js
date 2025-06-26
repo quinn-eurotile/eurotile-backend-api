@@ -7,12 +7,14 @@ var cors = require('cors');
 path = require('path');
 const express = require('express');
 const app = Express();
+require('./cron/cronJobs');
 
 
 const corsOptions = {
   origin: [
     'http://localhost:3000',
     'https://eurotiles-admin.myfileshosting.com',
+    'https://eurotiles-b2c.myfileshosting.com',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
