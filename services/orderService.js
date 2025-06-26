@@ -19,7 +19,7 @@ class Order {
         this.addOrderHistory = this.addOrderHistory.bind(this);
     }
 
-    
+
 
     /** Create a new free order */
     async createFreeOrder(data) {
@@ -396,7 +396,12 @@ class Order {
 
         // Calculate total commission and eligible commission separately
         const commissionResult = await orderModel.aggregate([
-            { $match: query },
+            {
+                $match: {
+                    ...query,
+                    canTakeCommission : { $ne : true }
+                }
+            },
             {
                 $group: {
                     _id: null,
@@ -405,18 +410,27 @@ class Order {
                         $sum: {
                             $cond: [
                                 {
-                                    $and: [
-                                        { $eq: ["$orderStatus", 4] }, // Only include shipped orders (status 4)
-                                        {
-                                            $gte: [
-                                                { $subtract: [new Date(), "$shippedAt"] },
-                                                -14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
-                                            ]
-                                        }
+                                    $gte: [
+                                        { $subtract: [new Date(), "$shippedAt"] },
+                                        -14 * 24 * 60 * 60 * 1000
                                     ]
                                 },
                                 "$commission",
                                 0
+                            ]
+                        }
+                    },
+                    eligibleOrderIds: {
+                        $addToSet: {
+                            $cond: [
+                                {
+                                    $gte: [
+                                        { $subtract: [new Date(), "$shippedAt"] },
+                                        -14 * 24 * 60 * 60 * 1000
+                                    ]
+                                },
+                                "$_id",
+                                "$$REMOVE"
                             ]
                         }
                     }
@@ -424,7 +438,10 @@ class Order {
             }
         ]);
 
-        const commissionData = commissionResult.length > 0 ? commissionResult[0] : { totalCommission: 0, eligibleCommission: 0 };
+
+        const commissionData = commissionResult.length > 0
+            ? commissionResult[0]
+            : { totalCommission: 0, eligibleCommission: 0, eligibleOrderIds: [] };
 
         const pipeline = [
             { $match: query },
@@ -561,8 +578,9 @@ class Order {
         return {
             docs: result.data,
             totalDocs: result.totalDocs,
-            totalCommission: commissionData.totalCommission,
-            eligibleCommission: commissionData.eligibleCommission,
+            totalCommission: commissionData?.totalCommission,
+            eligibleCommission: commissionData?.eligibleCommission,
+            eligibleOrderIds: commissionData?.eligibleOrderIds,
             adminSettings: adminSettings ?? null,
             limit,
             page,

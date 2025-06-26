@@ -2,16 +2,12 @@ const cron = require('node-cron');
 const commonService = require('../services/commonService');
 
 
-
-
-// Array of cron jobs for future scalability
 const cronJobs = [
     {
         name: 'Update Order Status: New → Pending (after 24 hours)',
         schedule: '*/5 * * * *', // every 5 minutes
         job: async () => {
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            // In future, filter by createdAt > 24h ago
             const updated = await commonService.updateStatusByQuery(
                 'Order',
                 {

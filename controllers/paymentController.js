@@ -110,16 +110,6 @@ module.exports = class PaymentController {
     }
   }
   async createPaymentIntentPublic(req, res) {
-    // //console.log('Starting createPaymentIntentPublic with body:', {
-    //   cartItemsCount: req.body.cartItems?.length,
-    //   orderData: {
-    //     userId: req.body.orderData?.userId,
-    //     email: req.body.orderData?.email,
-    //     shipping: req.body.orderData?.shipping,
-    //     total: req.body.orderData?.total
-    //   }
-    // });
-
     try {
       const cartItems = req.body.cartItems;
       const orderData = req.body.orderData;

@@ -12,9 +12,8 @@ require('./cron/cronJobs');
 
 const corsOptions = {
   origin: [
-    'http://localhost:3000',
-    'https://eurotiles-admin.myfileshosting.com',
-    'https://eurotiles-b2c.myfileshosting.com',
+    process.env.CLIENT_URL,
+    process.env.CLIENT_URL_FOR_B2C
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],

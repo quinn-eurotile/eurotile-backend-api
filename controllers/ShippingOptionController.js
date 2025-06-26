@@ -6,7 +6,8 @@ module.exports = class ShippingOptionController {
     /** Get Shipping Options */
     async getShippingOptions(req, res) {
         try {
-            const shippingOptions = await ShippingOption.find();
+            // const shippingOptions = await ShippingOption.find({});
+            const shippingOptions = await ShippingOption.find().sort({ createdAt: 1 });
             if (!shippingOptions) {
                 return res.status(404).json({ message: 'No shipping options found' });
             }

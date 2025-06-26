@@ -15,7 +15,9 @@ class TradeProfessional {
 
     async processPayout(req) {
         try {
-            let { amount } = req.body;
+            console.log('req.body',req?.body)
+            let { amount, eligibleOrderIds } = req.body;
+
             amount = parseFloat(amount);
             //console.log('amount', amount, typeof amount);
             const userId = req.user.id;
@@ -38,13 +40,15 @@ class TradeProfessional {
             const eligibleOrders = await Order.find({
                 createdBy: userId,
                 orderStatus: 4,
-                updatedAt: { $lte: fourteenDaysAgo },
+                shippedAt: { $lte: fourteenDaysAgo },
                 commission: { $gt: 0 }
             });
 
             // Calculate total eligible commission
             const totalEligibleCommission = eligibleOrders.reduce((sum, order) => sum + order.commission, 0);
 
+            console.log('eligibleOrders',eligibleOrders)
+            console.log('totalEligibleCommission',totalEligibleCommission)
             // Validate requested amount
             if (amount <= 0 || amount > totalEligibleCommission) {
                 throw { message: 'Invalid payout amount', statusCode: 400 };
@@ -90,6 +94,20 @@ class TradeProfessional {
             });
 
             await transferPayout.save();
+
+            // Update Order Status After Transfer Money To User Account
+            if (eligibleOrderIds.length > 0) {
+                await Order.updateMany(
+                    {
+                        _id: { $in: eligibleOrderIds },
+                        $or: [
+                            { canTakeCommission: { $ne: true } },
+                            { canTakeCommission: { $exists: false } }
+                        ]
+                    },
+                    { $set: { canTakeCommission: true } }
+                );
+            }
 
             return {
                 transferId: transfer.id,
