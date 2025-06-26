@@ -9,7 +9,7 @@ const emailService = require('./emailService');
 const notificationService = require('./notificationService');
 const constants = require('../configs/constant');
 const { getClientUrlByRole } = require('../_helpers/common');
-    
+
 const { AdminSetting } = require('../models');
 
 class Order {
@@ -19,138 +19,140 @@ class Order {
         this.addOrderHistory = this.addOrderHistory.bind(this);
     }
 
-        /** Create a new free order */
-        async createFreeOrder(data) {
-            //console.log('data in createOrder', data);
-            const orderItems = data?.cartItems;
-            const paymentInfo = data?.paymentIntent;
-            const orderData = data?.orderData;
-            const userId = orderData?.userId;
-            const tradeProfessionalId = orderData?.tradeProfessionalId;
-    
-            // //console.log('orderData', orderData);
-            // //console.log('orderItems', orderItems);
-            // //console.log('paymentInfo', { ...paymentInfo });
-            // //console.log('userId', userId);
-    
-            const session = await mongoose.startSession();
-            session.startTransaction();
-            try {
-                // Collect unique suppliers from order items
-                const uniqueSuppliers = [...new Set(orderItems
-                    .map(item => item.product?.supplier)
-                    .filter(supplier => supplier))];
-    
-                const newData = {
-                    orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
-                    isFreeOrder: true,
-                    commission: orderData?.commission ?? 0,
-                    shippingAddress: orderData?.shippingAddress || null,
-                    paymentMethod: orderData?.paymentMethod || 'stripe',
-                    paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
-                    orderStatus: 3,
-                    subtotal: orderData?.subtotal ?? 0,
-                    shipping: orderData?.shipping ?? 0,
-                    tax: orderData?.tax ?? 0,
-                    discount: orderData?.discount ?? 0,
-                    total: orderData?.total ?? 0,
-                    promoCode: orderData?.promoCode ?? null,
-                    shippingMethod: orderData?.shippingMethod ?? 'standard',
-                    clientOf: tradeProfessionalId || null,
-                    createdBy: userId,
-                    updatedBy: userId,
-                    supplierStatuses: uniqueSuppliers.map(supplier => ({
-                        supplier: supplier,
-                        status: 'pending',
-                        confirmedAt: null,
-                        lastUpdated: new Date()
-                    }))
-                };
 
-                // 2. Create order (temporarily empty orderDetails)
-                const orderDoc = await orderModel.create(
-                    [{
-                        ...newData,
-                        paymentDetail: null,
-                        orderDetails: [],
-                    }],
-                    { session }
-                );
 
-                // 4. Create OrderDetails with all required fields
-                const orderDetails = await Promise.all(orderItems.map(item => {
-                    if (!item.product?.supplier) {
-                        throw new Error(`Supplier is required for product ${item.product?.name || 'unknown'}`);
-                    }
-                    return orderDetailModel.create([{
-                        orderId: orderDoc[0]._id,
-                        order: orderDoc[0]._id,
-                        product: item.product?._id,
-                        supplier: item.product.supplier,
-                        price: item?.price ?? 0,
-                        quantity: item?.quantity ?? 0,
-                        commission: item?.commission ?? 0,
-                        totalCommission: item?.totalCommission ?? 0,
-                        productVariation: item.variation?._id,
-                        productImages: item.productImages || '',
-                        productDetail: JSON.stringify({
-                            ...item.variation,
-                            product: {
-                                name: item.product?.name,
-                                sku: item.product?.sku,
-                                description: item.product?.description
-                            },
-                            supplierName: item.product?.supplier?.companyName,
-                        }),
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    }], { session })
-                }));
-    
-                // 5. Update order with orderDetail references
-                orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
-                await orderDoc[0].save({ session });
-    
-                await session.commitTransaction();
-                session.endSession();
-    
-                // Fetch the complete order with all details
-                const completeOrder = await orderModel
-                    .findById(orderDoc[0]._id)
-                    .populate('orderDetails')
-                    .populate('shippingAddress')
-                    .populate('paymentDetail')
-                    .populate('createdBy', 'name email');
-    
-                // Send order confirmation to customer
-                await emailService.sendOrderConfirmationEmail(
-                    completeOrder, 
-                    completeOrder.createdBy.email,
-                    completeOrder.createdBy.name
-                );
-    
-                const notification = await notificationService.notifyOrderCreation(completeOrder, {
-                    senderId: completeOrder.createdBy._id,
-                    userId: constants.adminRole.id,
-                    additionalUsers: [],
-                    additionalRoles: [],
-                    excludeUsers: []
-                });
-                // Notify suppliers about their portion of the order
-                const notifyRes = await this.notifySuppliers(completeOrder);
-                
-                //console.log(notifyRes,'notifyRes');
-                
-    
-                return completeOrder;
-            } catch (error) {
-                await session.abortTransaction();
-                session.endSession();
-                console.error('Order creation error:', error);
-                throw error;
-            }
+    /** Create a new free order */
+    async createFreeOrder(data) {
+        //console.log('data in createOrder', data);
+        const orderItems = data?.cartItems;
+        const paymentInfo = data?.paymentIntent;
+        const orderData = data?.orderData;
+        const userId = orderData?.userId;
+        const tradeProfessionalId = orderData?.tradeProfessionalId;
+
+        // //console.log('orderData', orderData);
+        // //console.log('orderItems', orderItems);
+        // //console.log('paymentInfo', { ...paymentInfo });
+        // //console.log('userId', userId);
+
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            // Collect unique suppliers from order items
+            const uniqueSuppliers = [...new Set(orderItems
+                .map(item => item.product?.supplier)
+                .filter(supplier => supplier))];
+
+            const newData = {
+                orderId: paymentInfo?.metadata?.orderId || `ORD-${Date.now()}`,
+                isFreeOrder: true,
+                commission: orderData?.commission ?? 0,
+                shippingAddress: orderData?.shippingAddress || null,
+                paymentMethod: orderData?.paymentMethod || 'stripe',
+                paymentStatus: paymentInfo?.status === 'succeeded' ? 'paid' : 'pending',
+                orderStatus: 3,
+                subtotal: orderData?.subtotal ?? 0,
+                shipping: orderData?.shipping ?? 0,
+                tax: orderData?.tax ?? 0,
+                discount: orderData?.discount ?? 0,
+                total: orderData?.total ?? 0,
+                promoCode: orderData?.promoCode ?? null,
+                shippingMethod: orderData?.shippingMethod ?? 'standard',
+                clientOf: tradeProfessionalId || null,
+                createdBy: userId,
+                updatedBy: userId,
+                supplierStatuses: uniqueSuppliers.map(supplier => ({
+                    supplier: supplier,
+                    status: 'pending',
+                    confirmedAt: null,
+                    lastUpdated: new Date()
+                }))
+            };
+
+            // 2. Create order (temporarily empty orderDetails)
+            const orderDoc = await orderModel.create(
+                [{
+                    ...newData,
+                    paymentDetail: null,
+                    orderDetails: [],
+                }],
+                { session }
+            );
+
+            // 4. Create OrderDetails with all required fields
+            const orderDetails = await Promise.all(orderItems.map(item => {
+                if (!item.product?.supplier) {
+                    throw new Error(`Supplier is required for product ${item.product?.name || 'unknown'}`);
+                }
+                return orderDetailModel.create([{
+                    orderId: orderDoc[0]._id,
+                    order: orderDoc[0]._id,
+                    product: item.product?._id,
+                    supplier: item.product.supplier,
+                    price: item?.price ?? 0,
+                    quantity: item?.quantity ?? 0,
+                    commission: item?.commission ?? 0,
+                    totalCommission: item?.totalCommission ?? 0,
+                    productVariation: item.variation?._id,
+                    productImages: item.productImages || '',
+                    productDetail: JSON.stringify({
+                        ...item.variation,
+                        product: {
+                            name: item.product?.name,
+                            sku: item.product?.sku,
+                            description: item.product?.description
+                        },
+                        supplierName: item.product?.supplier?.companyName,
+                    }),
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }], { session })
+            }));
+
+            // 5. Update order with orderDetail references
+            orderDoc[0].orderDetails = orderDetails.map(d => d[0]._id);
+            await orderDoc[0].save({ session });
+
+            await session.commitTransaction();
+            session.endSession();
+
+            // Fetch the complete order with all details
+            const completeOrder = await orderModel
+                .findById(orderDoc[0]._id)
+                .populate('orderDetails')
+                .populate('shippingAddress')
+                .populate('paymentDetail')
+                .populate('createdBy', 'name email');
+
+            // Send order confirmation to customer
+            await emailService.sendOrderConfirmationEmail(
+                completeOrder,
+                completeOrder.createdBy.email,
+                completeOrder.createdBy.name
+            );
+
+            const notification = await notificationService.notifyOrderCreation(completeOrder, {
+                senderId: completeOrder.createdBy._id,
+                userId: constants.adminRole.id,
+                additionalUsers: [],
+                additionalRoles: [],
+                excludeUsers: []
+            });
+            // Notify suppliers about their portion of the order
+            const notifyRes = await this.notifySuppliers(completeOrder);
+
+            //console.log(notifyRes,'notifyRes');
+
+
+            return completeOrder;
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            console.error('Order creation error:', error);
+            throw error;
         }
-    
+    }
+
 
     /** Create a new order */
     async createOrder(data) {
@@ -273,7 +275,7 @@ class Order {
 
             // Send order confirmation to customer
             await emailService.sendOrderConfirmationEmail(
-                completeOrder, 
+                completeOrder,
                 completeOrder.createdBy.email,
                 completeOrder.createdBy.name
             );
@@ -287,9 +289,9 @@ class Order {
             });
             // Notify suppliers about their portion of the order
             await this.notifySuppliers(completeOrder);
-            
+
             //console.log(notifyRes,'notifyRes');
-            
+
 
             return completeOrder;
         } catch (error) {
@@ -310,7 +312,7 @@ class Order {
             conditions.push({ createdBy: new mongoose.Types.ObjectId(String(req?.user?.id)) })
         }
 
-        if(queryParams?.user_id !== undefined && queryParams?.user_id !== ""){
+        if (queryParams?.user_id !== undefined && queryParams?.user_id !== "") {
             conditions.push({ createdBy: new mongoose.Types.ObjectId(String(queryParams?.user_id)) })
         }
 
@@ -332,7 +334,7 @@ class Order {
         }
 
         const paymentStatus = Number(queryParams.paymentStatus);
-        if (!isNaN(paymentStatus) && [0,1, 2, 3, 4, 5].includes(paymentStatus)) {
+        if (!isNaN(paymentStatus) && [0, 1, 2, 3, 4, 5].includes(paymentStatus)) {
             conditions.push({ paymentStatus });
         }
 
@@ -394,7 +396,12 @@ class Order {
 
         // Calculate total commission and eligible commission separately
         const commissionResult = await orderModel.aggregate([
-            { $match: query },
+            {
+                $match: {
+                    ...query,
+                    canTakeCommission : { $ne : true }
+                }
+            },
             {
                 $group: {
                     _id: null,
@@ -403,18 +410,27 @@ class Order {
                         $sum: {
                             $cond: [
                                 {
-                                    $and: [
-                                        { $eq: ["$orderStatus", 4] }, // Only include shipped orders (status 4)
-                                        {
-                                            $gte: [
-                                                { $subtract: [new Date(), "$shippedAt"] },
-                                                -14 * 24 * 60 * 60 * 1000 // 14 days in milliseconds
-                                            ]
-                                        }
+                                    $gte: [
+                                        { $subtract: [new Date(), "$shippedAt"] },
+                                        -14 * 24 * 60 * 60 * 1000
                                     ]
                                 },
                                 "$commission",
                                 0
+                            ]
+                        }
+                    },
+                    eligibleOrderIds: {
+                        $addToSet: {
+                            $cond: [
+                                {
+                                    $gte: [
+                                        { $subtract: [new Date(), "$shippedAt"] },
+                                        -14 * 24 * 60 * 60 * 1000
+                                    ]
+                                },
+                                "$_id",
+                                "$$REMOVE"
                             ]
                         }
                     }
@@ -422,8 +438,11 @@ class Order {
             }
         ]);
 
-        const commissionData = commissionResult.length > 0 ? commissionResult[0] : { totalCommission: 0, eligibleCommission: 0 };
-        
+
+        const commissionData = commissionResult.length > 0
+            ? commissionResult[0]
+            : { totalCommission: 0, eligibleCommission: 0, eligibleOrderIds: [] };
+
         const pipeline = [
             { $match: query },
             {
@@ -559,8 +578,9 @@ class Order {
         return {
             docs: result.data,
             totalDocs: result.totalDocs,
-            totalCommission: commissionData.totalCommission,
-            eligibleCommission: commissionData.eligibleCommission,
+            totalCommission: commissionData?.totalCommission,
+            eligibleCommission: commissionData?.eligibleCommission,
+            eligibleOrderIds: commissionData?.eligibleOrderIds,
             adminSettings: adminSettings ?? null,
             limit,
             page,
@@ -607,7 +627,7 @@ class Order {
     async updateOrderStatus(orderId, data) {
         try {
             //console.log(data, orderId, 'data, orderId in updateOrderStatus');
-            
+
             if (!orderId) {
                 throw new Error('Order ID is required');
             }
@@ -622,11 +642,11 @@ class Order {
             }
 
             const previousStatus = order.orderStatus;
-            const updates = { 
+            const updates = {
                 orderStatus: data.status,
                 updatedAt: new Date()
             };
-            
+
             if (data.trackingId) {
                 updates.trackingId = data.trackingId;
             }
@@ -645,14 +665,14 @@ class Order {
             await this.addOrderHistory(
                 orderId,
                 'status_changed',
-                `Order status updated from ${constants.orderStatusMap[previousStatus] || previousStatus} to ${constants.orderStatusMap[data.status] ||  data.status}`,
+                `Order status updated from ${constants.orderStatusMap[previousStatus] || previousStatus} to ${constants.orderStatusMap[data.status] || data.status}`,
                 data.userId,
                 { trackingId: data.trackingId },
                 previousStatus,
                 data.status
             );
             await notificationService.notifyOrderStatusUpdate(updatedOrder, data.status, data.notes, {
-                additionalUsers: [updatedOrder.clientOf,updatedOrder.createdBy],
+                additionalUsers: [updatedOrder.clientOf, updatedOrder.createdBy],
                 additionalRoles: [updatedOrder.createdBy.roles[0]._id],
                 excludeUsers: []
             });
@@ -775,7 +795,7 @@ class Order {
     async sendOrderConfirmation(order) {
         try {
             const emailContent = await this.generateOrderConfirmationEmail(order);
-            
+
             await this.transporter.sendMail({
                 from: process.env.SMTP_FROM,
                 to: order.customerDetails.email,
@@ -802,7 +822,7 @@ class Order {
             const supplierGroups = await this.groupOrderItemsBySupplier(order);
             const notifications = [];
             // //console.log(supplierGroups,' supplierGroups ');
-            
+
             for (const [supplierId, group] of Object.entries(supplierGroups)) {
                 try {
                     // Skip if supplier has already confirmed
@@ -820,12 +840,12 @@ class Order {
                         throw new Error(`No email address found for supplier ${group.supplier.companyName}`);
                     }
 
-                    
+
 
                     // Send email to supplier
                     await emailService.sendSupplierOrderConfirmationEmail(
-                        order, 
-                        group.supplier.email, 
+                        order,
+                        group.supplier.email,
                         group.supplier.companyName
                     );
 
@@ -835,7 +855,7 @@ class Order {
                         'email_sent',
                         `Order notification sent to supplier: ${group.supplier.companyName}`,
                         order.createdBy,
-                        { 
+                        {
                             supplierId,
                             supplierName: group.supplier.companyName,
                             itemCount: group.items.length,
@@ -876,9 +896,9 @@ class Order {
         // Generate product list HTML
         const productListHtml = order.orderDetails.map(detail => {
             const productDetail = JSON.parse(detail.productDetail);
-            const imagePath = productDetail?.variationImages?.[0]?.filePath || 
-                            productDetail?.productFeaturedImage?.filePath ||
-                            '/images/placeholder.png';
+            const imagePath = productDetail?.variationImages?.[0]?.filePath ||
+                productDetail?.productFeaturedImage?.filePath ||
+                '/images/placeholder.png';
 
             return `
             <tr>
@@ -890,8 +910,8 @@ class Order {
                         <div class="product-details">
                             <div style="font-weight: bold;">${productDetail?.product?.name || 'Product'}</div>
                             <div style="color: #666; font-size: 12px;">SKU: ${productDetail?.product?.sku || 'N/A'}</div>
-                            ${productDetail?.dimensions ? 
-                                `<div style="color: #666; font-size: 12px;">
+                            ${productDetail?.dimensions ?
+                    `<div style="color: #666; font-size: 12px;">
                                     Dimensions: ${productDetail.dimensions.length}x${productDetail.dimensions.width}x${productDetail.dimensions.height}
                                 </div>` : ''}
                         </div>
@@ -935,9 +955,9 @@ class Order {
         // Generate product list HTML for supplier's items only
         const productListHtml = group.items.map(detail => {
             const productDetail = JSON.parse(detail.productDetail);
-            const imagePath = productDetail?.variationImages?.[0]?.filePath || 
-                            productDetail?.productFeaturedImage?.filePath ||
-                            '/images/placeholder.png';
+            const imagePath = productDetail?.variationImages?.[0]?.filePath ||
+                productDetail?.productFeaturedImage?.filePath ||
+                '/images/placeholder.png';
 
             return `
             <tr>
@@ -949,8 +969,8 @@ class Order {
                         <div class="product-details">
                             <div style="font-weight: bold;">${productDetail?.product?.name || 'Product'}</div>
                             <div style="color: #666; font-size: 12px;">SKU: ${productDetail?.product?.sku || 'N/A'}</div>
-                            ${productDetail?.dimensions ? 
-                                `<div style="color: #666; font-size: 12px;">
+                            ${productDetail?.dimensions ?
+                    `<div style="color: #666; font-size: 12px;">
                                     Dimensions: ${productDetail.dimensions.length}x${productDetail.dimensions.width}x${productDetail.dimensions.height}
                                 </div>` : ''}
                         </div>
@@ -989,7 +1009,7 @@ class Order {
             ${address.city}
             ${address.state} ${address.postalCode}
             ${address.country}`;
-                }
+    }
 
     // Add a method to get order history
     async getOrderHistory(orderId) {
@@ -1008,7 +1028,7 @@ class Order {
     async groupOrderItemsBySupplier(order) {
         try {
             const supplierGroups = {};
-            
+
             // First, create a map of supplier statuses for quick lookup
             const supplierStatusMap = {};
             if (order.supplierStatuses && Array.isArray(order.supplierStatuses)) {
@@ -1019,7 +1039,7 @@ class Order {
             //console.log(supplierStatusMap,'supplierStatusMap');
 
             for (const item of order.orderDetails) {
-                const productDetail = typeof item.productDetail === 'string' 
+                const productDetail = typeof item.productDetail === 'string'
                     ? JSON.parse(item.productDetail)
                     : item.productDetail;
 
@@ -1269,7 +1289,7 @@ class Order {
     }
 
     // Forward to suppliers
-    async forwardToSuppliers(orderId, userId) { 
+    async forwardToSuppliers(orderId, userId) {
         try {
             const order = await orderModel.findById(orderId).populate('orderDetails')
                 .populate('shippingAddress')
@@ -1279,14 +1299,14 @@ class Order {
             if (!order) {
                 throw new Error('Order not found');
             }
-           
+
             // Send email to suppliers
             await this.notifySuppliers(order);
             // Update order status
             await orderModel.findByIdAndUpdate(orderId, { orderStatus: 2 });
             // Add to order history
-            await this.addOrderHistory(orderId, 'forward_to_suppliers', 'Order forwarded to suppliers', userId, null, null, 2);    
-            
+            await this.addOrderHistory(orderId, 'forward_to_suppliers', 'Order forwarded to suppliers', userId, null, null, 2);
+
             return {
                 success: true,
                 message: 'Order forwarded to suppliers successfully',
@@ -1295,7 +1315,7 @@ class Order {
         } catch (error) {
 
             console.error('Error forwarding to suppliers:', error);
-            throw error;    
+            throw error;
         }
     }
 }

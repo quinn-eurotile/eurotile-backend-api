@@ -161,6 +161,20 @@ class CommonService {
     }
 
 
+    async updateStatusByQuery(modelName, matchCondition, updateData) {
+        try {
+            const model = modelInstance[modelName];
+            if (!model) throw { message: `Model "${modelName}" not found`, statusCode: 404 };
+            const result = await model.updateMany(matchCondition, { $set: updateData });
+            return result;
+        } catch (error) {
+            throw {
+                message: error?.message || 'Failed to update status',
+                statusCode: error?.statusCode || 500,
+            };
+        }
+    }
+
 
 
     /** Soft Delete Any Model Using Proper Arguments Passed */

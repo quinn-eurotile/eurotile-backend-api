@@ -12,6 +12,11 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+
+  canTakeCommission:{
+    type: Boolean,
+    default: false
+  },
  
   orderDetails: [{
     type: mongoose.Schema.Types.ObjectId,
